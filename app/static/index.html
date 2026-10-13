@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scent Atlas</title>
+  <meta name="description" content="Explore perfumes by their notes: combine notes, build a pyramid, find fragrances that smell alike.">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23151211'/%3E%3Cpath d='M16 5l9 20H7z' fill='none' stroke='%23c9a96a' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M11.5 19h9M13.7 14h4.6' stroke='%23c9a96a' stroke-width='1.4'/%3E%3C/svg%3E">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <a class="skip" href="#main" onclick="document.getElementById('main').focus();return false;">Skip to content</a>
+  <header class="app-header">
+    <a class="brand" href="#/notes" aria-label="Scent Atlas home">
+      <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M16 4l10 22H6z"/><path d="M11 19.5h10M13.4 14h5.2"/></svg>
+      <span>Scent <em>Atlas</em></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#/notes">Notes</a>
+      <a href="#/combine">Combine</a>
+      <a href="#/pyramid">Pyramid</a>
+      <a href="#/like">Smells like</a>
+      <a href="#/atlas">My Atlas</a>
+    </nav>
+    <div class="header-end">
+      <div id="account" class="account"></div>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle theme"></button>
+    </div>
+  </header>
+  <div id="ribbon" class="ribbon" hidden></div>
+  <main id="main" tabindex="-1"></main>
+  <footer class="app-footer">
+    <span>Scent Atlas · non-commercial personal project</span>
+    <span id="footer-stats"></span>
+    <span class="footer-credits">Data <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> (Decant, olgagmiufana1 &amp; others) · Images © Fragrantica · <a href="#/about">About &amp; credits</a></span>
+    <span class="kbd-hint"><kbd>/</kbd> search · <kbd>Esc</kbd> close</span>
+  </footer>
+
+  <div id="scrim" class="scrim"></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true" tabindex="-1">
+    <div id="drawer-body"></div>
+  </aside>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <noscript><p class="noscript">Scent Atlas needs JavaScript.</p></noscript>
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

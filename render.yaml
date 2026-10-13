@@ -1,0 +1,40 @@
+# Render Blueprint - DOCUMENTATION of the intended setup (see DEPLOY.md). Nothing here is applied automatically
+# unless you create a Blueprint from it; the dashboard / API can create the same resources by hand.
+services:
+  - type: web
+    name: scent-atlas
+    runtime: python
+    region: frankfurt
+    plan: starter                      # 512 MB RAM / 0.5 CPU - the app is tuned to fit (~140 MB RSS)
+    # branch/repo are set when the service is created
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.server:app --host 0.0.0.0 --port $PORT --workers 1 --no-server-header
+    healthCheckPath: /api/status
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: IMAGE_MODE               # hotlink images from fimgs.net / Wikimedia; nothing proxied or written to disk
+        value: remote
+      - key: CATALOG_DB_GZ            # gzip artifact committed to the repo; decompressed to the temp dir at startup
+        value: /opt/render/project/src/data/deploy/catalog.db.gz
+      - key: DATABASE_URL             # user data (accounts, favorites, ...) in Postgres
+        fromDatabase:
+          name: scent-atlas-db
+          property: connectionString
+      - key: ALLOWED_HOSTS            # comma separated; your onrender.com host and any custom domain
+        value: scent-atlas.onrender.com
+      - key: TRUST_PROXY              # honour X-Forwarded-Proto / X-Forwarded-For from Render's proxy
+        value: "true"
+      - key: PROXY_HOPS               # entries Render's edge appends to X-Forwarded-For (verify with DEBUG_CLIENT_IP=1)
+        value: "1"
+      - key: MALLOC_ARENA_MAX         # keeps glibc from multiplying arenas per thread (lower RSS)
+        value: "2"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+databases:
+  - name: scent-atlas-db
+    plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: "18"
