@@ -1,4 +1,4 @@
-"""Owner-only admin: account recovery without email.  Enabled only when ADMIN_PASSWORD is set (>= 12 chars).
+"""Owner-only admin: account recovery without email.  Enabled only when ADMIN_PASSWORD is set (>= 8 chars).
 
 * separate in-memory admin sessions (single worker): random token, HttpOnly + SameSite=Strict cookie, 12 h, no sliding
 * login: constant-time compare of SHA-256 digests; 5/min per IP plus a global lockout after 20 failures per hour
@@ -24,7 +24,7 @@ import user_api
 log = logging.getLogger("scent-atlas.admin")
 ADMIN_COOKIE = "sa_admin"
 ADMIN_TTL = 12 * 3600
-MIN_ADMIN_PASSWORD = 12
+MIN_ADMIN_PASSWORD = 8
 HERE = Path(__file__).resolve().parent
 ADMIN_DIR = HERE / "admin_static"
 

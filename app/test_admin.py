@@ -27,7 +27,7 @@ def admin_login(c, pw=APW):
 
 
 def test_admin_disabled_when_env_unset_or_short(tmp_path, tiny_db):
-    for pw in (None, "", "short-12345"):          # 11 chars
+    for pw in (None, "", "short12"):              # 7 chars
         app = make_app(tmp_path / str(pw), tiny_db, admin_password=pw)
         c = TestClient(app)
         r = c.get("/admin")
@@ -37,8 +37,8 @@ def test_admin_disabled_when_env_unset_or_short(tmp_path, tiny_db):
                      lambda: c.get("/api/admin/users"), lambda: c.post("/api/admin/logout", headers=H, json={}),
                      lambda: c.delete("/api/admin/users/1", headers=H)):
             assert call().status_code == 404
-    assert not admin.admin_enabled(type("S", (), {"admin_password": "x" * 11})())
-    assert admin.admin_enabled(type("S", (), {"admin_password": "x" * 12})())
+    assert not admin.admin_enabled(type("S", (), {"admin_password": "x" * 7})())
+    assert admin.admin_enabled(type("S", (), {"admin_password": "x" * 8})())
 
 
 def test_admin_page_is_noindex_and_not_linked_publicly(app):

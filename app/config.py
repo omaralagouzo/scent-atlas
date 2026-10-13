@@ -56,7 +56,7 @@ class Settings:
     session_days: int = 30
     rate_limit_per_min: int = 10
     enable_docs: bool = False
-    admin_password: str | None = field(default=None, repr=False)  # ADMIN_PASSWORD; < 12 chars = admin disabled
+    admin_password: str | None = field(default=None, repr=False)  # ADMIN_PASSWORD; < 8 chars = admin disabled
     extra: dict = field(default_factory=dict)
 
     @classmethod

@@ -28,7 +28,7 @@ services:
         value: "true"
       - key: PROXY_HOPS               # entries Render's edge appends to X-Forwarded-For (verify with DEBUG_CLIENT_IP=1)
         value: "1"
-      - key: ADMIN_PASSWORD           # >= 12 chars enables /admin (account recovery); set the value in the dashboard
+      - key: ADMIN_PASSWORD           # >= 8 chars enables /admin (account recovery); set the value in the dashboard
         sync: false
       - key: MALLOC_ARENA_MAX         # keeps glibc from multiplying arenas per thread (lower RSS)
         value: "2"
