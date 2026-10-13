@@ -185,29 +185,30 @@ class HistoryBody(BaseModel):
     state: dict | None = None
 
 
+def csrf_guard(request: Request):
+    """State-changing requests need the custom header (forces a CORS preflight we never grant),
+    a JSON content type when they carry a body, and - when present - a same-origin Origin."""
+    if request.method in SAFE_METHODS:
+        return
+    if request.headers.get(CSRF_HEADER) != CSRF_VALUE:
+        raise HTTPException(403, "Missing X-Requested-With header.")
+    if request.method in ("POST", "PUT", "PATCH") and not request.headers.get("content-type", "").lower().startswith("application/json"):
+        raise HTTPException(415, "Content-Type must be application/json.")
+    if request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
+        raise HTTPException(403, "Cross-site request blocked.")
+    origin = request.headers.get("origin")
+    if origin is not None:
+        host = request.headers.get("host", "").lower()
+        o = origin.lower()
+        netloc = o.split("://", 1)[1] if "://" in o else o
+        if netloc.rstrip("/") != host:
+            raise HTTPException(403, "Cross-origin request blocked.")
+
+
 def make_router(ctx: Ctx) -> APIRouter:
     store, cat, settings = ctx.store, ctx.cat, ctx.settings
 
     # ---- guards ------------------------------------------------------------------------------
-    def csrf_guard(request: Request):
-        """State-changing requests need the custom header (forces a CORS preflight we never grant),
-        a JSON content type when they carry a body, and - when present - a same-origin Origin."""
-        if request.method in SAFE_METHODS:
-            return
-        if request.headers.get(CSRF_HEADER) != CSRF_VALUE:
-            raise HTTPException(403, "Missing X-Requested-With header.")
-        if request.method in ("POST", "PUT", "PATCH") and not request.headers.get("content-type", "").lower().startswith("application/json"):
-            raise HTTPException(415, "Content-Type must be application/json.")
-        if request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
-            raise HTTPException(403, "Cross-site request blocked.")
-        origin = request.headers.get("origin")
-        if origin is not None:
-            host = request.headers.get("host", "").lower()
-            o = origin.lower()
-            netloc = o.split("://", 1)[1] if "://" in o else o
-            if netloc.rstrip("/") != host:
-                raise HTTPException(403, "Cross-origin request blocked.")
-
     def current_user(request: Request):
         token = request.cookies.get(SESSION_COOKIE)
         if not token:

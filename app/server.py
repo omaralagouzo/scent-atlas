@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import admin  # noqa: E402
 import auth  # noqa: E402
 import catalog as cat_mod  # noqa: E402
 import config  # noqa: E402
@@ -175,6 +176,9 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
                 user_api.clear_session_cookie(resp, request, settings)
         h = resp.headers
         h["Content-Security-Policy"] = DOCS_CSP if (settings.enable_docs and path.startswith("/api/")) else CSP
+        if path.startswith(("/admin", "/api/admin")):
+            h["X-Robots-Tag"] = "noindex, nofollow"
+            h["Cache-Control"] = "no-store"
         h["X-Content-Type-Options"] = "nosniff"
         h["Referrer-Policy"] = "strict-origin-when-cross-origin"
         h["X-Frame-Options"] = "DENY"
@@ -259,6 +263,8 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     # ---------------------------------------------------------------- accounts + per-user data
     app.include_router(user_api.make_router(ctx))
+    app.include_router(admin.make_admin_router(ctx))
+    admin.add_admin_pages(app, settings)
 
     # ---------------------------------------------------------------- notes
     @app.get("/api/notes")

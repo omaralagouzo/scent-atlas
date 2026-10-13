@@ -221,6 +221,52 @@ class UserStore:
         with self.eng.begin() as c:
             c.execute(users.update().where(users.c.id == uid).values(password_hash=password_hash))
 
+    # ---- admin helpers
+    def list_users(self, q: str = "", limit: int = 500):
+        now = _now()
+
+        def cnt(t, *conds):
+            return sa.select(sa.func.count()).select_from(t).where(t.c.user_id == users.c.id, *conds).scalar_subquery()
+
+        query = sa.select(
+            users.c.id, users.c.username, users.c.email, users.c.created_at, users.c.last_login_at,
+            cnt(favorites).label("favorites"),
+            cnt(perfume_status, perfume_status.c.status.isnot(None)).label("collection"),
+            cnt(saved_searches).label("saved"),
+            cnt(sessions, sessions.c.expires_at > now).label("sessions"),
+        ).order_by(users.c.created_at.desc(), users.c.id.desc()).limit(limit)
+        q = (q or "").strip().lower()
+        if q:
+            like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+            query = query.where(sa.or_(users.c.username_lower.like(like, escape="\\"), users.c.email_lower.like(like, escape="\\")))
+        with self.eng.connect() as c:
+            return [dict(r) for r in c.execute(query).mappings()]
+
+    def revoke_sessions(self, uid: int) -> int:
+        with self.eng.begin() as c:
+            return c.execute(sessions.delete().where(sessions.c.user_id == uid)).rowcount
+
+    def update_user(self, uid: int, username: str | None = None, email: str | None = None):
+        """Raises ValueError('username'|'email') if taken, LookupError if the user is gone."""
+        vals = {}
+        if username is not None:
+            vals.update(username=username, username_lower=username.lower())
+        if email is not None:
+            vals.update(email=email, email_lower=email.lower())
+        if not vals:
+            return self.get_user(uid)
+        try:
+            with self.eng.begin() as c:
+                if not c.execute(users.update().where(users.c.id == uid).values(**vals)).rowcount:
+                    raise LookupError("user")
+        except IntegrityError:
+            with self.eng.connect() as c:
+                if username is not None and c.execute(sa.select(users.c.id).where(
+                        sa.and_(users.c.username_lower == username.lower(), users.c.id != uid))).first():
+                    raise ValueError("username")
+            raise ValueError("email")
+        return self.get_user(uid)
+
     def delete_user(self, uid: int):
         with self.eng.begin() as c:  # explicit deletes: do not depend on FK cascades being enabled
             for t in (sessions, favorites, perfume_status, saved_searches, history):

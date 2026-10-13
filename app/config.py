@@ -56,6 +56,7 @@ class Settings:
     session_days: int = 30
     rate_limit_per_min: int = 10
     enable_docs: bool = False
+    admin_password: str | None = field(default=None, repr=False)  # ADMIN_PASSWORD; < 12 chars = admin disabled
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -79,6 +80,7 @@ class Settings:
             session_days=max(1, _int(e.get("SESSION_DAYS"), 30)),
             rate_limit_per_min=max(1, _int(e.get("RATE_LIMIT_PER_MIN"), 10)),
             enable_docs=_bool(e.get("ENABLE_DOCS")),
+            admin_password=(e.get("ADMIN_PASSWORD") or None),
         )
 
     def with_(self, **kw) -> "Settings":
