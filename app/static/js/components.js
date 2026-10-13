@@ -122,7 +122,7 @@ export function perfumeCard(p, opts = {}) {
       h('p', { class: 'card-brand' }, p.brand),
       h('div', { class: 'card-meta' }, h('span', null, p.year || '—'), ratingBadge(p)),
       miniAccords(p.accords),
-      opts.extra || null));
+      opts.extra || (p.matched_names && p.matched_names.length ? h('p', { class: 'card-matched', title: `Matched: ${p.matched_names.join(', ')}` }, p.matched_names.join(' · ')) : null)));
   const open = () => openPerfume(p.id);
   card.addEventListener('click', (e) => { if (!e.target.closest('.heart, .status-btn')) open(); });
   card.addEventListener('keydown', (e) => {
@@ -176,6 +176,14 @@ export function noteChip(n, opts = {}) {
       onclick: (e) => { e.stopPropagation(); opts.layer.onCycle(); },
     }, opts.layer.value ? layerLabel(opts.layer.value) : 'Any layer'));
   }
+  if (opts.variant) {
+    const v = opts.variant;
+    chip.append(h('button', {
+      class: `chip-var${v.on ? ' on' : ''}`, type: 'button', 'aria-pressed': v.on ? 'true' : 'false',
+      title: v.title || (v.on ? 'Also matches every note containing this word (click to turn off)' : 'Also match every note containing this word'),
+      onclick: (e) => { e.stopPropagation(); v.onToggle(e); },
+    }, v.on ? `≈ ${v.count == null ? '…' : v.count}` : '≈'));
+  }
   if (opts.onAdd) chip.append(h('button', { class: 'chip-act', type: 'button', title: opts.addTitle || 'Add', 'aria-label': opts.addTitle || 'Add', onclick: (e) => { e.stopPropagation(); opts.onAdd(); } }, svgIcon('plus', 14)));
   if (opts.extra) chip.append(...opts.extra);
   if (opts.onRemove) chip.append(h('button', { class: 'chip-act', type: 'button', title: 'Remove', 'aria-label': `Remove ${n.name}`, onclick: (e) => { e.stopPropagation(); opts.onRemove(); } }, svgIcon('close', 14)));
@@ -184,7 +192,7 @@ export function noteChip(n, opts = {}) {
 }
 
 // ---------------------------------------------------------------- note autocomplete
-export function noteSearch({ placeholder = 'Add a note…', onPick, allowExclude = false, label = 'Search notes', skip = () => new Set(), compactMode = false }) {
+export function noteSearch({ placeholder = 'Add a note…', onPick, allowExclude = false, label = 'Search notes', skip = () => new Set(), compactMode = false, source = null }) {
   const id = 'ac' + Math.random().toString(36).slice(2, 8);
   const input = h('input', {
     class: 'input ac-input', type: 'text', autocomplete: 'off', spellcheck: 'false', placeholder, 'aria-label': label,
@@ -229,7 +237,7 @@ export function noteSearch({ placeholder = 'Add a note…', onPick, allowExclude
   const fetchNow = async () => {
     const my = ++seq;
     try {
-      const r = await api.get('/api/notes', { q: input.value, limit: 24 });
+      const r = source ? { notes: await source(input.value) } : await api.get('/api/notes', { q: input.value, limit: 24 });
       if (my !== seq) return;
       cacheNotes(r.notes);
       const sk = skip();
@@ -294,12 +302,15 @@ export function infinite(container, fetchPage, render, { empty = 'Nothing to sho
       msg.replaceChildren('Could not load. ', h('button', { class: 'btn btn-sm', type: 'button', onclick: () => { msg.textContent = ''; loading = false; loadMore(); } }, 'Retry'));
       done = true;
     } finally {
-      if (g === gen) { loading = false; container.classList.remove('loading'); }
+      if (g === gen) { loading = false; container.classList.remove('loading'); container.style.minHeight = ''; }
     }
     if (g === gen && !done) { io.unobserve(sentinel); io.observe(sentinel); }
   }
   function reset() {
     gen++;
+    // keep the old height until the first page is back, so the page does not jump to the top while re-querying
+    const h0 = container.offsetHeight;
+    container.style.minHeight = h0 > 200 ? `${Math.min(h0, 1400)}px` : '';
     page = 0; done = false; loading = false;
     container.replaceChildren(sentinel);
     container.append(msg);

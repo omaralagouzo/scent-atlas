@@ -6,7 +6,7 @@ as a Blueprint or create the resources by hand).
 
 The catalog (140k perfumes) is read-only and ships in the repo as `data/deploy/catalog.db.gz` (~19 MB). It is decompressed
 into the instance's temp dir at startup (about 90 MB on the ephemeral disk) and loaded into compact numpy arrays:
-**~140 MB RSS** for the whole server, peak ~240 MB during the 6-second load. Accounts, favorites, collection, saved
+**~150 MB RSS** for the whole server (measured with `python app/memcheck.py --serve`), peak ~250 MB during the 6-second load. Accounts, favorites, collection, saved
 searches and history live in Postgres.
 
 ## Build command

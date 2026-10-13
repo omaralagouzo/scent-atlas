@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 import auth
+import query
 import taste
 import userdb
 from userdb import STATUSES
@@ -67,50 +68,30 @@ def public_user(u: dict) -> dict:
 
 
 def sanitize_state(cat, kind: str, state: dict) -> dict:
-    """Whitelist + validate a saved/history query state (never trust the client's JSON)."""
+    """Whitelist + validate a saved/history query state (never trust the client's JSON).
+
+    Combine states go through query.canonical_state, which also migrates the old saved shape
+    (include / exclude / mode / sort / gender / brand / year_min / year_max) to the current one."""
+    if kind == "combine":
+        return query.canonical_state(cat, state)
     out: dict[str, str] = {}
     if not isinstance(state, dict):
         return out
-
-    def s(key, maxlen=600):
-        v = state.get(key)
-        return "" if v is None else str(v).strip()[:maxlen]
-
-    def slugs(key, layered):
+    p = query._clean_params(state)
+    for k in ("top", "middle", "base", "any"):
         res = []
-        for part in s(key).split(",")[:60]:
-            slug, _, layer = part.strip().partition("@")
-            if slug not in cat.note_index:
-                continue
-            if layered and layer in ("top", "middle", "base"):
-                slug = f"{slug}@{layer}"
-            res.append(slug)
-        return ",".join(res)
-
-    keys = ("include", "exclude") if kind == "combine" else ("top", "middle", "base", "any")
-    for k in keys:
-        v = slugs(k, kind == "combine")
-        if v:
-            out[k] = v
-    g = s("gender")
-    if g in ("women", "men", "unisex"):
-        out["gender"] = g
-    for k in ("year_min", "year_max"):
-        v = s(k, 4)
-        if v.isdigit():
-            out[k] = v
-    if kind == "combine":
-        if s("mode") == "any":
-            out["mode"] = "any"
-        if s("sort") in ("rating", "year", "year_asc", "name", "matches"):
-            out["sort"] = s("sort")
-        if s("brand"):
-            out["brand"] = s("brand", 80)
+        for part in p.get(k, "").split(",")[:60]:
+            slug = part.strip().partition("@")[0]
+            if slug in cat.note_index:
+                res.append(slug)
+        if res:
+            out[k] = ",".join(res)
+    out.update(query.canonical_filters(cat, p))
     return out
 
 
 def state_has_notes(kind: str, state: dict) -> bool:
-    return bool(state.get("include")) if kind == "combine" else any(state.get(k) for k in ("top", "middle", "base", "any"))
+    return bool(state.get("include") or state.get("q")) if kind == "combine" else any(state.get(k) for k in ("top", "middle", "base", "any"))
 
 
 def state_label(cat, kind: str, state: dict) -> str:
@@ -124,6 +105,8 @@ def state_label(cat, kind: str, state: dict) -> str:
         return out
 
     if kind == "combine":
+        if state.get("q") or state.get("adv"):
+            return query.state_summary(cat, state)[:230]
         inc = names(state.get("include", ""))
         txt = (" + " if state.get("mode") != "any" else " or ").join(inc)
         if state.get("exclude"):
@@ -394,12 +377,15 @@ def make_router(ctx: Ctx) -> APIRouter:
     def saved_out(r):
         notes = []
         st = r["state"]
-        keys = ("include",) if r["kind"] == "combine" else ("top", "middle", "base", "any")
-        for k in keys:
-            for part in (st.get(k) or "").split(","):
-                j = cat.note_index.get(part.partition("@")[0])
-                if j is not None and len(notes) < 6:
-                    notes.append({"slug": cat.note_slug[j], "name": cat.note_name[j], "image": cat.note_image(j)})
+        st = sanitize_state(cat, r["kind"], st)   # old saved shapes are migrated on the way out
+        if r["kind"] == "combine":
+            slugs = query.state_note_slugs(cat, st)
+        else:
+            slugs = [p.partition("@")[0] for k in ("top", "middle", "base", "any") for p in (st.get(k) or "").split(",")]
+        for slug in slugs:
+            j = cat.note_index.get(slug)
+            if j is not None and len(notes) < 6:
+                notes.append({"slug": cat.note_slug[j], "name": cat.note_name[j], "image": cat.note_image(j)})
         return {"id": r["id"], "kind": r["kind"], "name": r["name"], "state": st, "notes": notes,
                 "summary": state_label(cat, r["kind"], st), "updated_at": r["updated_at"]}
 
@@ -440,7 +426,8 @@ def make_router(ctx: Ctx) -> APIRouter:
 
     # ---- history -------------------------------------------------------------------------------
     def history_out(r):
-        d = {"id": r["id"], "kind": r["kind"], "label": r["label"], "created_at": r["created_at"], "state": r["state"]}
+        st = sanitize_state(cat, r["kind"], r["state"]) if r["kind"] in ("combine", "pyramid") and r["state"] else r["state"]
+        d = {"id": r["id"], "kind": r["kind"], "label": r["label"], "created_at": r["created_at"], "state": st}
         if r["kind"] in ("view", "like"):
             i = cat.idx_of(int(r["ref"])) if r["ref"].isdigit() else None
             if i is None:

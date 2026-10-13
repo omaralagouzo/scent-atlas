@@ -46,6 +46,7 @@ export function svgIcon(name, size = 18) {
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
     save: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
   };
   const wrap = document.createElement('span');
   wrap.className = 'ico';

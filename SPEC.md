@@ -79,3 +79,26 @@ For a query set of notes Q (each with a layer, or 'any') against perfume P:
 - Score = matched weight / sqrt(weight(Q) * weight(P)) (cosine-like, so huge note lists don't win by volume).
 - Optional small accord-overlap bonus when the query is "like perfume X".
 - Every result returns an explanation: which notes matched, in which layers.
+
+## Combine search, filters and facets (app/query.py)
+
+`GET /api/search` serves both query forms and all result filters; every parameter is also the URL-hash state of the
+Combine page and the content of a saved search (flat dict of strings).
+
+* **Simple** (legacy): `include` / `exclude` (`slug[@layer]`, comma list) + `mode=all|any` (+ optional `layer`).
+* **Advanced**: `q` = clauses joined by `~`, each `layer:slug,slug` (layer `top|middle|base|any`); clauses are ANDed, notes
+  inside a clause are ORed. `slug*` also matches every note whose name contains that word as a whole word (`tea*` → Tea,
+  Green Tea, Tea Leaf …; `amber*` does not match Ambergris/Ambrette). `x` = excluded notes (same syntax), `gen=0|1`
+  (default 1): perfumes whose notes are a flat list (layer `general`, ~28% of the catalogue) match a layered clause in any
+  layer. `adv=1` marks the advanced mode even when `q` is empty.
+* **Filters** (all modes, the note page and the pyramid / smells-like endpoints): `name`, `year_min`, `year_max`,
+  `year_unknown=1`, `brands`, `perfumers`, `accords` (`~`-separated names; `\~` escapes a literal tilde), `acc_any=1`,
+  `acc_main=1`, `gender` (comma list), `countries`, `rating_min`, `votes_min`, `must` / `not` (extra notes, `*` = variants).
+* `sort`: `popularity` (votes, default) `rating` (vote-weighted) `year` `year_asc` `name` `brand` `matches`
+  (number of matched query notes, then votes). Sorting uses unique composite keys, so paging is stable.
+* `ff=1` adds `filter_facets` (years histogram 1900+, brands, perfumers, accords, genders, countries) computed with
+  numpy bincounts over *the query AND every other filter* (a multi-select shows the alternatives you could switch to).
+  `GET /api/search/facet?facet=brand|perfumer|accord|gender|country|note|year&fq=text&offset=&limit=` returns one facet
+  list for the same query parameters (type-ahead beyond the top N). `GET /api/notes/{slug}/variants` lists what `*` expands to.
+* The catalog adds, at load: a perfumer index (CSR perfume → perfumer ids + the flat entry → perfume array, from the
+  `perfumers` JSON column that the deploy DB keeps), accord entry arrays (row / column / rank) and a `p_flat` flag.

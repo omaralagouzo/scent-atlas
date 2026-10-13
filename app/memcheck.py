@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -34,8 +35,11 @@ def mb(p: psutil.Process) -> float:
 
 def queries(get, post):
     """Yield (label, callable). `get`/`post` take a path (+ body) and return parsed JSON."""
-    top = get("/api/notes?limit=6&sort=count")["notes"]
+    top = get("/api/notes?limit=8&sort=count")["notes"]
     a, b = top[0]["slug"], top[1]["slug"]
+    adv = f"top:{a}*,{b}~middle:{top[2]['slug']},{top[3]['slug']}~base:{top[4]['slug']}*"
+    bs = get(f"/api/search?q=any:{a}*&ff=1&per_page=1")["filter_facets"]["brands"]["items"]
+    two = urllib.parse.quote("~".join(i["name"] for i in bs[:2]))
     pid = get("/api/search?per_page=1")["results"][0]["id"]
     pyr = {"notes": [{"slug": top[0]["slug"], "layer": "top"}, {"slug": top[1]["slug"], "layer": "middle"},
                      {"slug": top[2]["slug"], "layer": "base"}, {"slug": top[3]["slug"], "layer": "any"}], "limit": 30}
@@ -47,7 +51,14 @@ def queries(get, post):
         (f"combine {a}+{b} (facets)", lambda: get(f"/api/search?include={a},{b}&per_page=36")),
         ("combine any + sort=name", lambda: get(f"/api/search?include={a},{b}&mode=any&sort=name&per_page=36")),
         ("combine sort=rating", lambda: get(f"/api/search?include={a}&sort=rating&per_page=36")),
+        ("advanced AND/OR + all facets", lambda: get(f"/api/search?q={adv}&ff=1&per_page=36")),
+        ("advanced + 2 brands + years + newest", lambda: get(f"/api/search?q={adv}&ff=1&per_page=36&brands={two}&year_min=2000&year_max=2022&sort=year")),
+        ("advanced, sort=matches, page 3", lambda: get(f"/api/search?q={adv}&sort=matches&page=3&per_page=36&facets=0")),
+        ("whole catalogue + facets", lambda: get("/api/search?ff=1&per_page=36")),
+        ("facet typeahead (brand fq)", lambda: get(f"/api/search/facet?q={adv}&facet=brand&fq=a&limit=20")),
+        ("name filter + accords + perfumers", lambda: get(f"/api/search?q=any:{a}*&name=rose&accords=fresh&perfumers=x&ff=1")),
         ("pyramid /api/similar", lambda: post("/api/similar", pyr)),
+        ("pyramid + filters + facets", lambda: post("/api/similar", {**pyr, "ff": True, "filters": {"year_min": 2000, "votes_min": 100}})),
         (f"smells-like perfume {pid}", lambda: get(f"/api/perfumes/{pid}/similar?limit=24")),
         ("perfume detail", lambda: get(f"/api/perfumes/{pid}")),
         ("perfume find 'aventus'", lambda: get("/api/perfumes?q=aventus")),

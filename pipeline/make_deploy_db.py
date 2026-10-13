@@ -4,7 +4,9 @@
 
 Only what the web app reads is kept:
   * perfumes: no `sources`; `image_url` only when it is NOT the standard Fragrantica pattern
-    (the app derives https://fimgs.net/mdimg/perfume/375x500.<fragrantica_id>.jpg itself)
+    (the app derives https://fimgs.net/mdimg/perfume/375x500.<fragrantica_id>.jpg itself).
+    `perfumers` (JSON array) IS kept: the catalog builds its in-memory perfumer index (filter + facet on the
+    Combine / note / pyramid pages) from it at load; `country` and `accords` feed the other facets.
   * notes: `image_local` is dropped (no image files ship), `image_remote` is the hotlink URL
     (Fragrantica t.<id>.jpg thumbnail, or a Wikimedia thumbnail), `image_credit` the licence line for
     the few Wikipedia/Commons images
@@ -98,8 +100,11 @@ def verify(out_dir: Path, src: Path):
     s = sqlite3.connect(src)
     n_p = s.execute("SELECT COUNT(*) FROM perfumes").fetchone()[0]
     n_pn = s.execute("SELECT COUNT(*) FROM perfume_notes").fetchone()[0]
-    assert c.n_perf == n_p and len(c.pn_note) == n_pn, (c.n_perf, n_p, len(c.pn_note), n_pn)
+    n_pf = s.execute("SELECT COUNT(*) FROM perfumes WHERE perfumers IS NOT NULL AND perfumers NOT IN ('', '[]')").fetchone()[0]
     s.close()
+    assert c.n_perf == n_p and len(c.pn_note) == n_pn, (c.n_perf, n_p, len(c.pn_note), n_pn)
+    assert (len(c.perfumer_names) > 0) == (n_pf > 0), "perfumer index is empty although the source has perfumers"
+    assert int(c.p_has_perfumer.sum()) <= n_pf
     sample = c.summary(0)
     assert sample["image"].startswith("https://fimgs.net/mdimg/perfume/375x500."), sample["image"]
     return c.n_perf, c.n_notes, len(c.pn_note)

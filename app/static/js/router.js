@@ -26,7 +26,7 @@ export function buildHash(path, params) {
   const parts = [];
   for (const [k, v] of params.entries()) {
     if (v === '' || v == null) continue;
-    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(v).replace(/%2C/gi, ',').replace(/%40/g, '@')}`);
+    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(v).replace(/%2C/gi, ',').replace(/%40/g, '@').replace(/%3A/gi, ':')}`);
   }
   return `#${path}${parts.length ? '?' + parts.join('&') : ''}`;
 }
@@ -43,14 +43,19 @@ export function go(path, params = {}) {
   location.hash = buildHash(path, p);
 }
 
-// Update the URL for state that lives inside a view, without re-rendering it or adding history.
-export function sync(path, paramsObj) {
+// Update the URL for state that lives inside a view, without re-rendering it. By default the entry is replaced;
+// with { push: true } a history entry is added when the URL really changes, so the Back button steps through
+// query / filter / sort changes (the view re-mounts from the URL on Back).
+export function sync(path, paramsObj, { push = false } = {}) {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(paramsObj)) if (v !== '' && v != null) p.set(k, v);
   current.key = viewKey(path, p);
   const open = parseHash().params.get('p');
   if (open) p.set('p', open);
-  history.replaceState(null, '', buildHash(path, p));
+  const hash = buildHash(path, p);
+  const same = (a, b) => { try { return decodeURIComponent(a) === decodeURIComponent(b); } catch (e) { return a === b; } };
+  if (push && !same(hash, location.hash)) history.pushState(null, '', hash);
+  else history.replaceState(null, '', hash);
 }
 
 export function openPerfume(id) {

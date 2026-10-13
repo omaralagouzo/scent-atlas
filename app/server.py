@@ -29,6 +29,7 @@ import catalog as cat_mod  # noqa: E402
 import config  # noqa: E402
 import images  # noqa: E402
 import palette  # noqa: E402
+import query  # noqa: E402
 import similarity as sim  # noqa: E402
 import user_api  # noqa: E402
 import userdb  # noqa: E402
@@ -80,10 +81,25 @@ class QueryNote(BaseModel):
 
 
 class SimilarFilters(BaseModel):
+    """Result filters for /api/similar. Same keys as the Combine URL (see query.py); all optional."""
+    model_config = {"extra": "ignore"}
     brand: str | None = None
     gender: str | None = None
     year_min: int | None = None
     year_max: int | None = None
+    year_unknown: bool | str | None = None
+    name: str | None = None
+    brands: str | None = None
+    perfumers: str | None = None
+    accords: str | None = None
+    acc_any: bool | str | None = None
+    acc_main: bool | str | None = None
+    countries: str | None = None
+    rating_min: float | None = None
+    votes_min: int | None = None
+
+    def as_params(self) -> dict:
+        return {k: ("1" if v is True else v) for k, v in self.model_dump().items() if v not in (None, "", False)}
 
 
 class SimilarBody(BaseModel):
@@ -92,6 +108,16 @@ class SimilarBody(BaseModel):
     filters: SimilarFilters = Field(default_factory=SimilarFilters)
     offset: int = 0
     limit: int = Field(30, ge=1, le=200)
+    ff: bool = False                 # also return filter facets (counts over everybody sharing a note)
+
+
+class SimilarFacetBody(BaseModel):
+    notes: list[QueryNote]
+    filters: SimilarFilters = Field(default_factory=SimilarFilters)
+    facet: str
+    fq: str = ""
+    offset: int = Field(0, ge=0)
+    limit: int = Field(12, ge=1, le=100)
 
 
 class ResolveBody(BaseModel):
@@ -266,6 +292,39 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     app.include_router(admin.make_admin_router(ctx))
     admin.add_admin_pages(app, settings)
 
+    # ---------------------------------------------------------------- query helpers
+    def spec_of(params: dict, default_layer=None):
+        try:
+            return query.parse_spec(cat, params, default_layer)
+        except query.QueryError as e:
+            raise HTTPException(400, str(e))
+
+    def filters_of(params: dict):
+        try:
+            return query.parse_filters(cat, params)[0]
+        except query.QueryError as e:
+            raise HTTPException(400, str(e))
+
+    def check_sort(sort: str):
+        if sort not in query.SORT_KEYS:
+            raise HTTPException(400, f"sort must be one of {query.SORT_KEYS}")
+        return sort
+
+    def run_spec(spec, sort, page, per_page, facets=True, facet_limit=30, ff=False, ff_limit=10):
+        try:
+            return query.run(cat, spec, sort=check_sort(sort), page=page, per_page=per_page, facet_limit=facet_limit,
+                             want_facets=bool(facets) and facet_limit > 0, filter_facets=ff, ff_limit=ff_limit)
+        except query.QueryError as e:
+            raise HTTPException(400, str(e))
+
+    def facet_of(ev, facet, fq, offset, limit):
+        try:
+            if facet == "year":
+                return query.facet_years(cat, ev.without("year"), ev.spec.flt)
+            return query.facet_list(cat, facet, ev, limit, offset, fq)
+        except query.QueryError as e:
+            raise HTTPException(400, str(e))
+
     # ---------------------------------------------------------------- notes
     @app.get("/api/notes")
     def notes_list(q: str = "", family: str | None = None, limit: int = Query(60, ge=1, le=500),
@@ -280,18 +339,27 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     def brands(q: str = "", limit: int = Query(20, ge=1, le=100)):
         return {"brands": cat.find_brands(q, limit)}
 
+    @app.get("/api/notes/{slug}/variants")
+    def note_variants(slug: str):
+        """Every note whose name contains this note's name as a whole word (what the 'include variants' toggle adds)."""
+        j = cat.note_index.get(slug)
+        if j is None:
+            raise HTTPException(404, "note not found")
+        ks = query.note_variants(cat, j)
+        return {"slug": slug, "name": cat.note_name[j], "count": len(ks),
+                "notes": [cat.note_obj(k) for k in sorted(ks, key=lambda k: (k != j, -int(cat.note_df[k])))]}
+
     @app.get("/api/notes/{slug}")
-    def note_detail(slug: str, layer: str | None = None, sort: str = "popularity", page: int = Query(1, ge=1),
-                    per_page: int = Query(48, ge=1, le=200), brand: str | None = None, gender: str | None = None,
-                    year_min: int | None = None, year_max: int | None = None, pairs: int = Query(24, ge=0, le=60)):
+    def note_detail(request: Request, slug: str, layer: str | None = None, sort: str = "popularity",
+                    page: int = Query(1, ge=1), per_page: int = Query(48, ge=1, le=200),
+                    pairs: int = Query(24, ge=0, le=60), ff: int = 0):
         j = cat.note_index.get(slug)
         if j is None:
             raise HTTPException(404, "note not found")
         lc = layer_param(layer)
-        res = cat.search(
-            include=[(slug, lc)], sort=sort if sort in cat_mod.SORTS else "popularity", page=page, per_page=per_page,
-            filters=dict(brand=brand, gender=gender, year_min=year_min, year_max=year_max), want_facets=False,
-        )
+        params = {k: v for k, v in request.query_params.items() if k in query.FILTER_KEYS}
+        params["include"] = slug + (f"@{query.LAYER_NAME[lc]}" if lc is not None else "")
+        res = run_spec(spec_of(params), sort, page, per_page, facets=False, ff=bool(ff))
         layer_counts = {name: cat.layer_count(L, j) for name, L in (("top", 0), ("middle", 1), ("base", 2), ("general", 3))}
         return {
             "note": cat.note_obj(j, layer_counts=layer_counts, image_source=None),
@@ -301,54 +369,94 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     # ---------------------------------------------------------------- combination search
     @app.get("/api/search")
-    def search(include: str = "", exclude: str = "", mode: str = "all", layer: str | None = None, brand: str | None = None,
-               gender: str | None = None, year_min: int | None = None, year_max: int | None = None,
-               sort: str = "popularity", page: int = Query(1, ge=1), per_page: int = Query(48, ge=1, le=200),
-               facets: int = 1, facet_limit: int = Query(30, ge=0, le=100)):
-        if mode not in ("all", "any"):
-            raise HTTPException(400, "mode must be all|any")
-        if sort not in cat_mod.SORTS:
-            raise HTTPException(400, f"sort must be one of {cat_mod.SORTS}")
-        return cat.search(
-            include=parse_notes_param(include), exclude=parse_notes_param(exclude), mode=mode,
-            default_layer=layer_param(layer), sort=sort, page=page, per_page=per_page,
-            filters=dict(brand=brand, gender=gender, year_min=year_min, year_max=year_max),
-            facet_limit=facet_limit, want_facets=bool(facets) and facet_limit > 0,
-        )
+    def search(request: Request, mode: str = "all", layer: str | None = None, sort: str = "popularity",
+               page: int = Query(1, ge=1), per_page: int = Query(48, ge=1, le=200),
+               facets: int = 1, facet_limit: int = Query(30, ge=0, le=100), ff: int = 0, ff_limit: int = Query(10, ge=1, le=50)):
+        """Simple form: include / exclude (slug[@layer], comma list) + mode all|any.
+        Advanced form: q ("top:tea*,mint~middle:rose,lily~base:amber*") + x (excluded notes) + gen (0|1).
+        Filters: name year_min year_max year_unknown brands perfumers accords acc_any acc_main gender countries
+        rating_min votes_min must not (see query.py). ff=1 adds facet counts for the filter panel."""
+        spec = spec_of(dict(request.query_params), layer_param(layer))
+        return run_spec(spec, sort, page, per_page, facets, facet_limit, bool(ff), ff_limit)
+
+    @app.get("/api/search/facet")
+    def search_facet(request: Request, facet: str, fq: str = "", offset: int = Query(0, ge=0),
+                     limit: int = Query(12, ge=1, le=100), layer: str | None = None):
+        """One facet list (brand | perfumer | accord | gender | country | note | year) for the same query parameters as
+        /api/search; `fq` filters the list by text so values beyond the top N can be found."""
+        spec = spec_of(dict(request.query_params), layer_param(layer))
+        return facet_of(query.evaluate(cat, spec), facet, fq, offset, limit)
 
     # ---------------------------------------------------------------- similarity
+    def apply_extra(mask, extra):
+        return extra if mask is None else (mask & extra)
+
     @app.post("/api/similar")
     def similar(body: SimilarBody):
         try:
             items, unknown = sim.query_items_from_notes(cat, [(n.slug, n.layer) for n in body.notes])
         except ValueError as e:
             raise HTTPException(400, str(e))
-        mask = cat.filter_mask(**body.filters.model_dump())
+        flt = filters_of(body.filters.as_params())
+        mask = query.filters_mask(cat, flt)
+        extra = None
         if body.exclude_ids:
-            ex = np.ones(cat.n_perf, dtype=bool)
+            extra = np.ones(cat.n_perf, dtype=bool)
             for pid in body.exclude_ids:
                 i = cat.idx_of(pid)
                 if i is not None:
-                    ex[i] = False
-            mask = ex if mask is None else (mask & ex)
+                    extra[i] = False
+            mask = apply_extra(mask, extra)
         res = sim.similar_by_notes(cat, items, mask, body.offset, body.limit)
         out = sim_response(res)
         out.update(query=query_echo(items), unknown=unknown, offset=body.offset, limit=body.limit)
+        if body.ff:
+            base = res.all_score > 1e-9
+            if extra is not None:
+                base = base & extra
+            out["filter_facets"] = query.all_facets(cat, query.evaluate_base(cat, base, flt))
         return out
 
+    @app.post("/api/similar/facet")
+    def similar_facet(body: SimilarFacetBody):
+        try:
+            items, _ = sim.query_items_from_notes(cat, [(n.slug, n.layer) for n in body.notes])
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        score, _wq = sim.raw_scores(cat, sim.dedupe_items(items))
+        ev = query.evaluate_base(cat, score > 1e-9, filters_of(body.filters.as_params()))
+        return facet_of(ev, body.facet, body.fq, body.offset, body.limit)
+
     @app.get("/api/perfumes/{pid}/similar")
-    def perfume_similar(pid: int, limit: int = Query(30, ge=1, le=200), offset: int = Query(0, ge=0),
-                        brand: str | None = None, gender: str | None = None, year_min: int | None = None,
-                        year_max: int | None = None, exclude_brand: bool = False, include_self: bool = False):
+    def perfume_similar(request: Request, pid: int, limit: int = Query(30, ge=1, le=200), offset: int = Query(0, ge=0),
+                        exclude_brand: bool = False, include_self: bool = False, ff: int = 0):
         i = get_idx(pid)
-        mask = cat.filter_mask(brand=brand, gender=gender, year_min=year_min, year_max=year_max)
+        flt = filters_of(dict(request.query_params))
+        mask = query.filters_mask(cat, flt)
+        extra = None
         if exclude_brand:
-            nb = cat.p_brand_idx != cat.p_brand_idx[i]
-            mask = nb if mask is None else (mask & nb)
+            extra = cat.p_brand_idx != cat.p_brand_idx[i]
+            mask = apply_extra(mask, extra)
         res, acc = sim.similar_to_perfume(cat, i, mask, offset, limit, include_self=include_self)
         out = sim_response(res, accord_vec=acc, source=i)
         out.update(source=cat.detail(i), query=query_echo(res.items), offset=offset, limit=limit)
+        if ff:
+            base = res.all_score > 1e-9
+            if extra is not None:
+                base = base & extra
+            out["filter_facets"] = query.all_facets(cat, query.evaluate_base(cat, base, flt))
         return out
+
+    @app.get("/api/perfumes/{pid}/similar/facet")
+    def perfume_similar_facet(request: Request, pid: int, facet: str, fq: str = "", offset: int = Query(0, ge=0),
+                              limit: int = Query(12, ge=1, le=100), exclude_brand: bool = False):
+        i = get_idx(pid)
+        res, _acc = sim.similar_to_perfume(cat, i, None, 0, 1)
+        base = res.all_score > 1e-9
+        if exclude_brand:
+            base = base & (cat.p_brand_idx != cat.p_brand_idx[i])
+        ev = query.evaluate_base(cat, base, filters_of(dict(request.query_params)))
+        return facet_of(ev, facet, fq, offset, limit)
 
     # ---------------------------------------------------------------- perfumes
     @app.get("/api/perfumes")

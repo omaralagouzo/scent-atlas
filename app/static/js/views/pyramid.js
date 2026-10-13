@@ -4,6 +4,7 @@ import { api, cacheNotes, resolveSlugs, history } from '../api.js';
 import { noteChip, noteSearch, perfumeCard, resultRow, legend, infinite, dropZone } from '../components.js';
 import { savedBar } from '../saved.js';
 import { sync } from '../router.js';
+import { createFilters, pillsBar, readFilters, filterParams, filterBody, hydrateFilters } from '../filters.js';
 
 const PER = 30;
 const TIERS = [
@@ -23,7 +24,7 @@ const EXAMPLES = [
 
 export function mountPyramid(root, { params }) {
   const state = { top: [], middle: [], base: [], any: [] };
-  const f = { gender: params.get('gender') || '', year_min: params.get('year_min') || '', year_max: params.get('year_max') || '' };
+  const f = readFilters(params);
 
   // ---------------------------------------------------------------- DOM
   const tierEls = {};
@@ -51,15 +52,15 @@ export function mountPyramid(root, { params }) {
     suggest: () => Object.values(state).flat().map((n) => n.name).slice(0, 4).join(', '),
   });
   const recordHistory = debounce(() => { if (allSlugs().length) history.record({ kind: 'pyramid', state: paramsOut() }); }, 2500);
-  const genderSel = h('select', { class: 'select', 'aria-label': 'Gender', onchange: (e) => { f.gender = e.target.value; changed(); } },
-    [['', 'Any gender'], ['women', 'Women'], ['men', 'Men'], ['unisex', 'Unisex']].map(([v, l]) => h('option', { value: v, selected: v === f.gender }, l)));
-  const yMin = h('input', { class: 'input num', type: 'number', placeholder: 'From year', value: f.year_min, 'aria-label': 'From year', onchange: (e) => { f.year_min = e.target.value; changed(); } });
-  const yMax = h('input', { class: 'input num', type: 'number', placeholder: 'To year', value: f.year_max, 'aria-label': 'To year', onchange: (e) => { f.year_max = e.target.value; changed(); } });
   const examples = h('div', { class: 'examples' }, h('span', { class: 'muted small' }, 'Try:'), EXAMPLES.map((ex) =>
     h('button', { class: 'btn btn-sm btn-ghost', type: 'button', onclick: () => loadExample(ex) }, ex.name)));
   const count = h('span', { class: 'result-count', 'aria-live': 'polite' });
   const results = h('div', { class: 'results' });
-  const resultsHead = h('div', { class: 'results-head' }, h('h2', { class: 'sec-title inline' }, 'Closest matches'), count, legend());
+  const fetchFacet = (name, { fq = '', offset = 0, limit = 12 } = {}) => api.post('/api/similar/facet', { notes: queryNotes(), filters: filterBody(f), facet: name, fq, offset, limit });
+  const panel = createFilters({ f, features: { notes: false, perfumers: true }, fetchFacet, onChange: () => changed() });
+  const pills = pillsBar(f, () => { panel.redraw(); changed(); });
+  const resultsHead = h('div', { class: 'results-head' }, h('h2', { class: 'sec-title inline' }, 'Closest matches'), count, panel.openBtn, legend());
+  const resultsLayout = h('div', { class: 'rlayout' }, panel.scrim, panel.el, h('div', { class: 'rmain' }, pills.el, results));
   const emptyState = h('div', { class: 'empty-hint' }, h('p', null, 'Drop some notes into the pyramid and the closest perfumes appear here — ranked by how well each note, and the layer it sits in, lines up.'));
 
   root.append(h('section', { class: 'view' },
@@ -73,10 +74,8 @@ export function mountPyramid(root, { params }) {
         h('h3', { class: 'sec-title' }, 'Paste a list'),
         paste, h('div', { class: 'row' }, pasteBtn, clearBtn),
         h('div', { class: 'row save-row' }, saved),
-        h('h3', { class: 'sec-title' }, 'Narrow down'),
-        h('div', { class: 'stack' }, genderSel, h('div', { class: 'row' }, yMin, yMax)),
         examples)),
-    resultsHead, emptyState, results));
+    resultsHead, emptyState, resultsLayout));
 
   // ---------------------------------------------------------------- state ops
   const allSlugs = () => Object.values(state).flat().map((n) => n.slug);
@@ -101,18 +100,20 @@ export function mountPyramid(root, { params }) {
     const any = allSlugs().length > 0;
     emptyState.hidden = any;
     resultsHead.hidden = !any;
-    results.hidden = !any;
+    resultsLayout.hidden = !any;
     clearBtn.hidden = !any;
   }
   const paramsOut = () => ({
     top: state.top.map((n) => n.slug).join(','), middle: state.middle.map((n) => n.slug).join(','),
     base: state.base.map((n) => n.slug).join(','), any: state.any.map((n) => n.slug).join(','),
-    gender: f.gender, year_min: f.year_min, year_max: f.year_max,
+    ...filterParams(f),
   });
   const run = debounce(() => list.reset(), 220);
   function changed() {
     drawTiers();
-    sync('/pyramid', paramsOut());
+    sync('/pyramid', paramsOut(), { push: true });
+    pills.draw();
+    panel.update(null, null);
     if (allSlugs().length) { run(); recordHistory(); } else { run.cancel(); recordHistory.cancel(); results.replaceChildren(); count.textContent = ''; }
   }
 
@@ -156,22 +157,28 @@ export function mountPyramid(root, { params }) {
   }
 
   // ---------------------------------------------------------------- results
-  const list = infinite(results, async (page) => {
+  function queryNotes() {
     const notes = [];
     for (const t of TIERS) for (const n of state[t.key]) notes.push({ slug: n.slug, layer: t.api });
+    return notes;
+  }
+  const list = infinite(results, async (page) => {
+    const notes = queryNotes();
     if (!notes.length) return { items: [], hasMore: false };
-    const filters = {};
-    if (f.gender) filters.gender = f.gender;
-    if (f.year_min) filters.year_min = Number(f.year_min);
-    if (f.year_max) filters.year_max = Number(f.year_max);
     const offset = (page - 1) * PER;
-    const r = await api.post('/api/similar', { notes, filters, offset, limit: PER });
-    if (page === 1) count.textContent = `${plural(r.total, 'perfume')} share at least one note`;
+    const r = await api.post('/api/similar', { notes, filters: filterBody(f), offset, limit: PER, ff: page === 1 });
+    if (page === 1) {
+      count.textContent = `${plural(r.total, 'perfume')} share at least one note`;
+      panel.update(r.filter_facets, r.total);
+    }
     return { items: r.results.map((x, i) => ({ ...x, _rank: offset + i + 1 })), hasMore: offset + PER < r.total };
   }, (it) => resultRow(it, it._rank), { empty: 'No perfume shares any of these notes.' });
 
   // ---------------------------------------------------------------- hydrate from URL
   (async () => {
+    await hydrateFilters(f);
+    panel.redraw();
+    pills.draw();
     for (const t of TIERS) {
       const notes = await resolveSlugs(csv(params.get(t.key)));
       state[t.key] = notes.map((n) => ({ ...n }));
@@ -180,5 +187,5 @@ export function mountPyramid(root, { params }) {
     if (allSlugs().length) { list.reset(); recordHistory(); }
   })();
   drawTiers();
-  return () => { run.cancel(); recordHistory.cancel(); list.destroy(); };
+  return () => { run.cancel(); recordHistory.cancel(); list.destroy(); panel.destroy(); };
 }

@@ -72,6 +72,7 @@ class QueryResult:
     top_score: float
     items: list            # deduped [(note_idx, q_layer)]
     wq: float
+    all_score: object = None   # the unmasked dense score array (perfumes with score > 0 form the candidate set)
 
 
 def dedupe_items(items):
@@ -112,7 +113,7 @@ def rank(cat, score: np.ndarray, mask=None, offset: int = 0, limit: int = 50) ->
     cand = np.flatnonzero(s > 1e-9)
     total = int(cand.size)
     if total == 0:
-        return QueryResult(np.zeros(0, np.int64), np.zeros(0, np.float32), 0, 0.0, [], 0.0)
+        return QueryResult(np.zeros(0, np.int64), np.zeros(0, np.float32), 0, 0.0, [], 0.0, score)
     # popularity only breaks (near-)ties
     key = s[cand].astype(np.float64) + 1e-7 * cat.p_pop[cand]
     k = min(total, offset + limit)
@@ -122,7 +123,7 @@ def rank(cat, score: np.ndarray, mask=None, offset: int = 0, limit: int = 50) ->
         part = np.arange(total)
     order = part[np.argsort(-key[part], kind="stable")]
     sel = cand[order][offset:offset + limit]
-    return QueryResult(sel, s[sel], total, float(s[cand].max()), [], 0.0)
+    return QueryResult(sel, s[sel], total, float(s[cand].max()), [], 0.0, score)
 
 
 def query_items_from_notes(cat, notes):

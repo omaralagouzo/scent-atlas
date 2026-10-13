@@ -35,7 +35,7 @@ GENDERS = {"women": 1, "men": 2, "unisex": 3}
 GENDER_NAMES = {0: None, 1: "women", 2: "men", 3: "unisex"}
 LAYER_ALIASES = {"top": 0, "middle": 1, "mid": 1, "heart": 1, "base": 2, "general": 3}
 LAYER_LABEL = {0: "top", 1: "middle", 2: "base", 3: "general"}
-SORTS = ("popularity", "rating", "year", "year_asc", "name", "matches")
+SORTS = ("popularity", "rating", "year", "year_asc", "name", "brand", "matches")
 CHUNK = 20000
 
 
@@ -124,9 +124,10 @@ class Catalog:
         self._finish()
 
     def _load_perfumes(self, con):
+        has_pf = "perfumers" in self._perfume_cols
         cur = con.execute(
             "SELECT id, fragrantica_id, name, brand, year, gender, country, rating, rating_count, accords"
-            " FROM perfumes ORDER BY id"
+            + (", perfumers" if has_pf else ", NULL") + " FROM perfumes ORDER BY id"
         )
         # compact accumulators (array.array holds raw C values; no per-row Python objects survive a chunk)
         ids, fids, years, genders = array("i"), array("i"), array("h"), array("b")
@@ -138,11 +139,14 @@ class Catalog:
         brand_norm_of: list[str] = []
         country_map: dict[str, int] = {}
         acc_vocab: dict[str, int] = {}
+        pf_map: dict[str, int] = {}           # normalised perfumer name -> id
+        pf_names: list[str] = []              # display name per id (first spelling seen)
+        pf_ids, pf_cnt = array("i"), array("H")
         while True:
             rows = cur.fetchmany(CHUNK)
             if not rows:
                 break
-            for (pid, fid, name, brand, year, gender, country, rating, rcount, accords) in rows:
+            for (pid, fid, name, brand, year, gender, country, rating, rcount, accords, perfumers) in rows:
                 ids.append(pid)
                 fids.append(fid or 0)
                 years.append(year or 0)
@@ -183,6 +187,22 @@ class Catalog:
                         a_pct.append(min(255, int(round(float(a.get("strength", 0.5)) * 100))))
                         cnt += 1
                 a_cnt.append(cnt)
+                pc = 0
+                if perfumers:
+                    seen_pf = set()
+                    for pn in _loads(perfumers, []):
+                        pn = str(pn).strip()
+                        key = norm(pn) or pn.lower()
+                        if not key or key in seen_pf:
+                            continue
+                        seen_pf.add(key)
+                        k = pf_map.get(key)
+                        if k is None:
+                            k = pf_map[key] = len(pf_names)
+                            pf_names.append(pn)
+                        pf_ids.append(k)
+                        pc += 1
+                pf_cnt.append(pc)
             del rows
         n = self.n_perf = len(ids)
         self.p_id = np.frombuffer(ids, dtype=np.int32).copy()
@@ -259,6 +279,26 @@ class Catalog:
         else:
             self.acc_w = w
         self._acc_colors = [palette.accord_color(nm) for nm in self.acc_names]
+
+        # accord entry -> (perfume row, lower-cased accord column, rank within the perfume) for facets / filters
+        nacc = len(self.acc_name)
+        self.acc_row = np.repeat(np.arange(n, dtype=np.int32), np.diff(self.acc_indptr)) if nacc else np.zeros(0, np.int32)
+        self.acc_colid = (colmap[self.acc_name.astype(np.int64)].astype(np.uint8 if len(lower_ids) < 256 else np.uint16)
+                          if nacc else np.zeros(0, np.uint8))
+        self.acc_rank = ((np.arange(nacc, dtype=np.int64) - self.acc_indptr[self.acc_row]).clip(0, 255).astype(np.uint8)
+                         if nacc else np.zeros(0, np.uint8))
+        self.acc_col_names = list(lower_ids)  # lower-cased accord name per column
+
+        # perfumers: CSR (perfume -> perfumer ids) plus the flat entry -> perfume row array
+        self.perfumer_names = pf_names
+        self.perfumer_index = {norm(nm) or nm.lower(): k for k, nm in enumerate(pf_names)}
+        pcnt = np.frombuffer(pf_cnt, dtype=np.uint16).astype(np.int64)
+        self.pf_indptr = np.concatenate([[0], np.cumsum(pcnt)]).astype(np.int32)
+        self.pf_ids = np.frombuffer(pf_ids, dtype=np.int32).copy()
+        self.pf_row = np.repeat(np.arange(n, dtype=np.int32), pcnt) if pf_names else np.zeros(0, np.int32)
+        self.perfumer_count = np.bincount(self.pf_ids, minlength=len(pf_names)).astype(np.int32)
+        self.p_has_perfumer = pcnt > 0
+        del pf_ids, pf_cnt
 
     def _name_sort_keys(self, brand_norm_of, bix):
         """Fixed-width byte keys 'name_norm\x00brand_norm' (truncated) -> numpy 'S' array for argsort."""
@@ -345,6 +385,10 @@ class Catalog:
         self.na_indptr = np.concatenate([[0], np.cumsum(np.bincount(na_note, minlength=nn))]).astype(np.int32)
         del comb, na_note
         self.note_df = np.diff(self.na_indptr).astype(np.int64)
+        # perfumes whose notes are a flat list only (no top/middle/base): they match a layered clause "in any layer"
+        layered = np.bincount(pi[lay < 3], minlength=n) > 0
+        general = np.bincount(pi[lay == 3], minlength=n) > 0
+        self.p_flat = general & ~layered
         self.idf = sim.compute_idf(n, self.note_df)
         # W(P): summed idf over the perfume's (note, layer) items
         self.p_weight = np.bincount(pi, weights=self.idf[ni], minlength=n).astype(np.float32)
@@ -550,76 +594,20 @@ class Catalog:
 
     # ------------------------------------------------------------------ combination search
     def search(self, include=(), exclude=(), mode="all", default_layer=None, filters=None, sort="popularity",
-               page=1, per_page=48, facet_limit=30, want_facets=True):
-        """include / exclude: iterables of (slug, layer_code|None)."""
-        filters = filters or {}
-        unknown = []
-        inc, exc = [], []
-        for slug, layer in include:
-            j = self.note_index.get(slug)
-            if j is None:
-                unknown.append(slug)
-            else:
-                inc.append((j, layer if layer is not None else default_layer))
-        for slug, layer in exclude:
-            j = self.note_index.get(slug)
-            if j is not None:
-                exc.append((j, layer))
-        n = self.n_perf
-        matched_count = None
-        if inc:
-            masks = [self.presence(j, L) for j, L in inc]
-            if mode == "any":
-                mask = np.zeros(n, dtype=bool)
-                matched_count = np.zeros(n, dtype=np.int16)
-                for m in masks:
-                    mask |= m
-                    matched_count += m
-            else:
-                mask = np.ones(n, dtype=bool)
-                for m in masks:
-                    mask &= m
-                if unknown:
-                    mask[:] = False
-        else:
-            mask = np.ones(n, dtype=bool)
-        for j, L in exc:
-            mask &= ~self.presence(j, L)
-        fm = self.filter_mask(**filters)
-        if fm is not None:
-            mask &= fm
+               page=1, per_page=48, facet_limit=30, want_facets=True, spec=None, filter_facets=False, ff_limit=10):
+        """Combination search (see query.py). Either pass a parsed `spec`, or the legacy include / exclude lists of
+        (slug, layer_code|None) plus mode all|any and a `filters` dict (brand, gender, year_min, year_max)."""
+        import query
 
-        cand = np.flatnonzero(mask)
-        total = int(cand.size)
-        if sort == "rating":
-            key = -self.p_wrating[cand].astype(np.float64)
-        elif sort == "year":
-            key = -np.where(self.p_year[cand] > 0, self.p_year[cand], -1).astype(np.float64)
-        elif sort == "year_asc":
-            key = np.where(self.p_year[cand] > 0, self.p_year[cand], 9999).astype(np.float64)
-        elif sort == "name":
-            key = self.p_name_rank[cand].astype(np.float64)
-        elif sort == "matches" and matched_count is not None:
-            key = -(matched_count[cand].astype(np.float64) * 1e9 + self.p_votes[cand])
-        else:
-            key = -self.p_votes[cand].astype(np.float64)
-        order = np.argsort(key, kind="stable")
-        pages = max(1, math.ceil(total / per_page))
-        sl = order[(page - 1) * per_page: page * per_page]
-        results = []
-        for i in cand[sl]:
-            d = self.summary(int(i))
-            if matched_count is not None:
-                d["matched"] = [self.note_slug[j] for j, L in inc if self._has(int(i), j, L)]
-            results.append(d)
-        out = {
-            "total": total, "page": page, "per_page": per_page, "pages": pages,
-            "results": results, "unknown": unknown, "mode": mode, "sort": sort,
-        }
-        if want_facets:
-            skip = {j for j, _ in inc} | {j for j, _ in exc}
-            out["facets"] = self.facets(mask, skip, facet_limit)
-        return out
+        if spec is None:
+            def ser(items):
+                return ",".join(s + ("@" + query.LAYER_NAME[L] if L in (0, 1, 2) else "") for s, L in items)
+
+            p = {"include": ser(include), "exclude": ser(exclude), "mode": mode}
+            p.update({k: v for k, v in (filters or {}).items() if v not in (None, "")})
+            spec = query.parse_spec(self, p, default_layer)
+        return query.run(self, spec, sort=sort, page=page, per_page=per_page, facet_limit=facet_limit,
+                         want_facets=want_facets, filter_facets=filter_facets, ff_limit=ff_limit)
 
     def _has(self, i: int, j: int, layer):
         a, b = self.pn_indptr[i], self.pn_indptr[i + 1]
