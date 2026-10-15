@@ -4,6 +4,7 @@ import { h, svgIcon, debounce, plural, csv, noteImg, toast } from '../util.js';
 import { api, cacheNotes, resolveSlugs, history } from '../api.js';
 import { noteChip, noteSearch, segmented, perfumeCard, infinite, dropZone } from '../components.js';
 import { savedBar } from '../saved.js';
+import { brandHeader } from '../brandtags.js';
 import { sync } from '../router.js';
 import { createFilters, pillsBar, readFilters, filterParams, hydrateFilters } from '../filters.js';
 import { advancedBuilder, newAdv, encodeAdv, readAdv, hydrateAdv, advSentence } from '../adv.js';
@@ -11,7 +12,7 @@ import { advancedBuilder, newAdv, encodeAdv, readAdv, hydrateAdv, advSentence } 
 const PER = 36;
 const CYCLE = [null, 'top', 'middle', 'base'];
 export const SORT_OPTIONS = [['', 'Most reviewed'], ['rating', 'Top rated'], ['year', 'Newest first'], ['year_asc', 'Oldest first'],
-  ['name', 'Name A – Z'], ['brand', 'Brand A – Z'], ['matches', 'Most notes matched']];
+  ['name', 'Name A – Z'], ['brand', 'Brand A – Z'], ['matches', 'Most notes matched'], ['dupes', 'Most known dupes']];
 
 export function mountCombine(root, { params }) {
   // state ------------------------------------------------------------
@@ -60,6 +61,14 @@ export function mountCombine(root, { params }) {
   const summary = h('p', { class: 'query-sentence' });
   const sentenceBox = h('p', { class: 'query-sentence summary-line', 'aria-live': 'polite' });
   const grid = h('div', { class: 'grid grid-cards' });
+  const brandBox = h('div', { class: 'brand-box' });
+  let shownBrand = null;
+  const drawBrandBox = () => {   // one brand selected: show its tags, origin and parent company
+    const name = f.brands.length === 1 ? f.brands[0] : null;
+    if (name === shownBrand) return;
+    shownBrand = name;
+    brandBox.replaceChildren(...(name ? [brandHeader(name)] : []));
+  };
   const sortSel = h('select', { class: 'select', 'aria-label': 'Sort results', onchange: (e) => { sort = e.target.value; changed(); } },
     SORT_OPTIONS.map(([v, l]) => h('option', { value: v, selected: v === sort }, l)));
 
@@ -77,6 +86,7 @@ export function mountCombine(root, { params }) {
     h('div', { class: 'tray-panel' },
       h('div', { class: 'tray-top tray-head' }, modeSeg, clearBtn, saved),
       simpleBox, advBox, sentenceBox),
+    brandBox,
     h('section', { class: 'suggest' }, suggTitle, sugg),
     h('div', { class: 'rlayout' },
       panel.scrim, panel.el,
@@ -215,6 +225,7 @@ export function mountCombine(root, { params }) {
     drawQuery();
     if (!opts.keepBuilder && mode === 'adv') { /* builder keeps its own DOM */ }
     sync('/combine', paramsOut(), { push: true });
+    drawBrandBox();
     list.reset();
     recordHistory();
     panel.update(null, null);
@@ -239,6 +250,7 @@ export function mountCombine(root, { params }) {
     panel.redraw();
     pills.draw();
     drawQuery();
+    drawBrandBox();
     list.reset();
     recordHistory();
   })();

@@ -10,6 +10,8 @@ Only what the web app reads is kept:
   * notes: `image_local` is dropped (no image files ship), `image_remote` is the hotlink URL
     (Fragrantica t.<id>.jpg thumbnail, or a Wikimedia thumbnail), `image_credit` the licence line for
     the few Wikipedia/Commons images
+  * brand_tags / perfume_dupes / perfume_dupe_status (written by pipeline/tagging/merge_tags.py) are copied as they are when
+    the source has them; the catalog turns them into bitmasks + link arrays at load and reads notes / sources lazily
   * perfume_notes: WITHOUT ROWID table (no second copy of the key in an auto-index), no extra indexes
 The gzip is written deterministically (mtime=0) so an unchanged catalog gives a byte-identical file in git.
 """
@@ -46,6 +48,20 @@ CREATE TABLE perfume_notes (
 """
 
 
+TAG_SCHEMA = """
+CREATE TABLE brand_tags (
+  brand TEXT PRIMARY KEY, tags TEXT NOT NULL, dupe_style TEXT, origin_country TEXT, parent_company TEXT,
+  confidence TEXT, inferred INTEGER NOT NULL DEFAULT 0, notes TEXT, sources TEXT
+);
+CREATE TABLE perfume_dupes (
+  perfume_id INTEGER NOT NULL, target_id INTEGER NOT NULL, confidence TEXT NOT NULL, basis TEXT NOT NULL,
+  sources TEXT, rank INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (perfume_id, target_id)
+) WITHOUT ROWID;
+CREATE INDEX idx_perfume_dupes_target ON perfume_dupes(target_id);
+CREATE TABLE perfume_dupe_status (perfume_id INTEGER PRIMARY KEY, is_original INTEGER NOT NULL, notes TEXT);
+"""
+
+
 def build(src: Path, out_dir: Path, max_mb: float = 50.0) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     db, gz = out_dir / "catalog.db", out_dir / "catalog.db.gz"
@@ -74,12 +90,24 @@ def build(src: Path, out_dir: Path, max_mb: float = 50.0) -> dict:
         "INSERT INTO perfume_notes SELECT perfume_id, note_id, layer, position FROM src.perfume_notes"
         " ORDER BY perfume_id, note_id, layer"
     )
+    have = {r[0] for r in con.execute("SELECT name FROM src.sqlite_master WHERE type='table'")}
+    has_tags = {"brand_tags", "perfume_dupes", "perfume_dupe_status"} <= have
+    if has_tags:
+        con.executescript(TAG_SCHEMA)
+        con.execute("INSERT INTO brand_tags SELECT brand, tags, dupe_style, origin_country, parent_company, confidence,"
+                    " inferred, notes, sources FROM src.brand_tags ORDER BY brand")
+        con.execute("INSERT INTO perfume_dupes SELECT perfume_id, target_id, confidence, basis, sources, rank"
+                    " FROM src.perfume_dupes WHERE perfume_id IN (SELECT id FROM perfumes) AND target_id IN (SELECT id FROM perfumes)"
+                    " ORDER BY perfume_id, rank")
+        con.execute("INSERT INTO perfume_dupe_status SELECT perfume_id, is_original, notes FROM src.perfume_dupe_status"
+                    " WHERE perfume_id IN (SELECT id FROM perfumes) ORDER BY perfume_id")
     con.commit()
     con.execute("DETACH DATABASE src")
     con.execute("PRAGMA journal_mode=DELETE")
     con.execute("VACUUM")
     con.execute("ANALYZE")
-    counts = {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("perfumes", "notes", "perfume_notes")}
+    tables = ["perfumes", "notes", "perfume_notes"] + (["brand_tags", "perfume_dupes", "perfume_dupe_status"] if has_tags else [])
+    counts = {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables}
     no_remote = con.execute("SELECT COUNT(*) FROM notes WHERE image_remote IS NULL").fetchone()[0]
     con.close()
 
@@ -101,10 +129,17 @@ def verify(out_dir: Path, src: Path):
     n_p = s.execute("SELECT COUNT(*) FROM perfumes").fetchone()[0]
     n_pn = s.execute("SELECT COUNT(*) FROM perfume_notes").fetchone()[0]
     n_pf = s.execute("SELECT COUNT(*) FROM perfumes WHERE perfumers IS NOT NULL AND perfumers NOT IN ('', '[]')").fetchone()[0]
+    n_bt = s.execute("SELECT COUNT(*) FROM brand_tags").fetchone()[0] if s.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='brand_tags'").fetchone() else 0
+    n_dl = s.execute("SELECT COUNT(*) FROM perfume_dupes").fetchone()[0] if n_bt or s.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='perfume_dupes'").fetchone() else 0
     s.close()
     assert c.n_perf == n_p and len(c.pn_note) == n_pn, (c.n_perf, n_p, len(c.pn_note), n_pn)
     assert (len(c.perfumer_names) > 0) == (n_pf > 0), "perfumer index is empty although the source has perfumers"
     assert int(c.p_has_perfumer.sum()) <= n_pf
+    if n_bt:
+        assert c.tags_loaded and int((c.p_btags != 0).sum()) > 0, "brand tags were not carried into the deploy DB"
+        assert len(c.dl_target) == n_dl, (len(c.dl_target), n_dl)
     sample = c.summary(0)
     assert sample["image"].startswith("https://fimgs.net/mdimg/perfume/375x500."), sample["image"]
     return c.n_perf, c.n_notes, len(c.pn_note)

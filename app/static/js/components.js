@@ -3,6 +3,7 @@ import { h, svgIcon, debounce, compact, layerLabel, noteImg, LAYERS } from './ut
 import { api, favs, mine, session, cacheNotes, STATUS_LABEL } from './api.js';
 import { openPerfume } from './router.js';
 import { requireAuth } from './auth.js';
+import { brandLink, tagBadges, dupeBadges, linkBadge } from './brandtags.js';
 
 // ---------------------------------------------------------------- images
 // `src` may point straight at fimgs.net / Wikimedia (IMAGE_MODE=remote); if that fails to load we swap in
@@ -119,12 +120,13 @@ export function perfumeCard(p, opts = {}) {
     h('div', { class: 'card-img' }, bottleImg(p, `${p.name} bottle`), statusButton(p.id), heart('perfume', p.id)),
     h('div', { class: 'card-body' },
       h('h3', { class: 'card-name' }, p.name),
-      h('p', { class: 'card-brand' }, p.brand),
+      h('div', { class: 'card-brand' }, brandLink(p.brand), tagBadges(p)),
       h('div', { class: 'card-meta' }, h('span', null, p.year || '—'), ratingBadge(p)),
+      dupeBadges(p),
       miniAccords(p.accords),
       opts.extra || (p.matched_names && p.matched_names.length ? h('p', { class: 'card-matched', title: `Matched: ${p.matched_names.join(', ')}` }, p.matched_names.join(' · ')) : null)));
   const open = () => openPerfume(p.id);
-  card.addEventListener('click', (e) => { if (!e.target.closest('.heart, .status-btn')) open(); });
+  card.addEventListener('click', (e) => { if (!e.target.closest('.heart, .status-btn, .brand-link, .btags')) open(); });
   card.addEventListener('keydown', (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); open(); }
   });
@@ -357,7 +359,7 @@ export function resultRow(r, rank) {
     h('div', { class: 'result-img' }, bottleImg(r, `${r.name} bottle`)),
     h('div', { class: 'result-main' },
       h('div', { class: 'result-head' },
-        h('h3', null, r.name), h('span', { class: 'result-brand' }, r.brand, r.year ? ` · ${r.year}` : ''),
+        h('h3', null, r.name), h('span', { class: 'result-brand' }, brandLink(r.brand), r.year ? ` · ${r.year}` : ''), tagBadges(r), linkBadge(r.dupe_link) || (r.is_dupe || r.n_dupes ? dupeBadges(r) : null),
         statusButton(r.id), heart('perfume', r.id)),
       miniAccords(r.accords),
       h('div', { class: 'explain', 'aria-label': 'Why it matched' },
@@ -369,7 +371,7 @@ export function resultRow(r, rank) {
       h('div', { class: 'score-bar' }, h('span', { style: { width: `${Math.max(3, Math.round(r.relative * 100))}%` } })),
       r.shared_accords && r.shared_accords.length ? h('div', { class: 'shared-acc' }, r.shared_accords.slice(0, 3).map((a) => h('i', { style: { background: a.color }, title: `shared accord: ${a.name}` }))) : null));
   const open = () => openPerfume(r.id);
-  row.addEventListener('click', (e) => { if (!e.target.closest('.heart, .status-btn')) open(); });
+  row.addEventListener('click', (e) => { if (!e.target.closest('.heart, .status-btn, .brand-link, .btags')) open(); });
   row.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); open(); } });
   return row;
 }

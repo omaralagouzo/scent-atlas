@@ -57,6 +57,9 @@ python pipeline/make_deploy_db.py        # -> data/deploy/catalog.db (+ .gz, det
 git add data/deploy/catalog.db.gz
 ```
 
+After new tagging output: `python pipeline/tagging/merge_tags.py && python pipeline/make_deploy_db.py` (the merge writes the
+brand-tag / dupe-link tables into `master.db`, the deploy build carries them; memory stays about 150 MB).
+
 `data/deploy/catalog.db` is git-ignored; only the `.gz` is committed. The artifact keeps just what the app reads
 (no `sources`, no image files; notes carry an `image_remote` hotlink URL and the Wikipedia credit lines).
 

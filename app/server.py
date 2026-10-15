@@ -97,6 +97,10 @@ class SimilarFilters(BaseModel):
     countries: str | None = None
     rating_min: float | None = None
     votes_min: int | None = None
+    btags: str | None = None
+    btags_not: str | None = None
+    has_dupes: bool | str | None = None
+    is_dupe: bool | str | None = None
 
     def as_params(self) -> dict:
         return {k: ("1" if v is True else v) for k, v in self.model_dump().items() if v not in (None, "", False)}
@@ -271,6 +275,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     def status():
         d = {"ok": True, "kind": db_kind, "perfumes": cat.n_perf, "notes": cat.n_notes,
              "note_rows": int(len(cat.pn_note)), "load_seconds": round(cat.load_seconds, 2),
+             "brand_tags": bool(cat.tags_loaded), "dupe_links": int(len(cat.dl_target)),
              "image_mode": settings.image_mode, "users_db": store.eng.dialect.name}
         if db_kind != "deploy":
             d["db"] = str(used_db)  # local paths are fine to show locally, never on a public host
@@ -339,6 +344,14 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     def brands(q: str = "", limit: int = Query(20, ge=1, le=100)):
         return {"brands": cat.find_brands(q, limit)}
 
+    @app.get("/api/brands/info")
+    def brand_info(name: str = Query(..., min_length=1, max_length=120)):
+        """Tags, origin country, parent company, notes + confidence and sources of one brand (case-insensitive name)."""
+        d = cat.brand_info(name)
+        if d is None:
+            raise HTTPException(404, "brand not found")
+        return d
+
     @app.get("/api/notes/{slug}/variants")
     def note_variants(slug: str):
         """Every note whose name contains this note's name as a whole word (what the 'include variants' toggle adds)."""
@@ -375,14 +388,16 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         """Simple form: include / exclude (slug[@layer], comma list) + mode all|any.
         Advanced form: q ("top:tea*,mint~middle:rose,lily~base:amber*") + x (excluded notes) + gen (0|1).
         Filters: name year_min year_max year_unknown brands perfumers accords acc_any acc_main gender countries
-        rating_min votes_min must not (see query.py). ff=1 adds facet counts for the filter panel."""
+        rating_min votes_min must not  btags / btags_not (brand tags, `~` separated: niche designer dupe middle_eastern
+        middle_eastern_original middle_eastern_dupe untagged)  has_dupes=1  is_dupe=1  (see query.py).
+        sort also accepts `dupes`. ff=1 adds facet counts for the filter panel."""
         spec = spec_of(dict(request.query_params), layer_param(layer))
         return run_spec(spec, sort, page, per_page, facets, facet_limit, bool(ff), ff_limit)
 
     @app.get("/api/search/facet")
     def search_facet(request: Request, facet: str, fq: str = "", offset: int = Query(0, ge=0),
                      limit: int = Query(12, ge=1, le=100), layer: str | None = None):
-        """One facet list (brand | perfumer | accord | gender | country | note | year) for the same query parameters as
+        """One facet list (brand | perfumer | accord | gender | country | brand_tags | note | year) for the same query parameters as
         /api/search; `fq` filters the list by text so values beyond the top N can be found."""
         spec = spec_of(dict(request.query_params), layer_param(layer))
         return facet_of(query.evaluate(cat, spec), facet, fq, offset, limit)
@@ -427,18 +442,37 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         ev = query.evaluate_base(cat, score > 1e-9, filters_of(body.filters.as_params()))
         return facet_of(ev, body.facet, body.fq, body.offset, body.limit)
 
+    def alt_mask(i: int):
+        """'Only dupes / alternatives' for perfume i: perfumes linked to it (originals or dupes) plus, unless i itself
+        comes from a dupe house, every perfume of a dupe-tagged house."""
+        m = cat.linked_mask(i)
+        if not (int(cat.p_btags[i]) & cat_mod.BTAG_BITS["dupe"]):
+            m = m | ((cat.p_btags & cat_mod.BTAG_BITS["dupe"]) != 0)
+        return m
+
     @app.get("/api/perfumes/{pid}/similar")
     def perfume_similar(request: Request, pid: int, limit: int = Query(30, ge=1, le=200), offset: int = Query(0, ge=0),
-                        exclude_brand: bool = False, include_self: bool = False, ff: int = 0):
+                        exclude_brand: bool = False, include_self: bool = False, ff: int = 0, only_dupes: bool = False):
+        """Perfumes with similar notes. Filters as on /api/search; only_dupes=1 keeps the perfumes linked to this one
+        (its originals / its dupes) and all dupe-house perfumes. Each result carries `dupe_link` when it is linked."""
         i = get_idx(pid)
         flt = filters_of(dict(request.query_params))
         mask = query.filters_mask(cat, flt)
         extra = None
         if exclude_brand:
             extra = cat.p_brand_idx != cat.p_brand_idx[i]
+        if only_dupes:
+            alt = alt_mask(i)
+            extra = alt if extra is None else (extra & alt)
+        if extra is not None:
             mask = apply_extra(mask, extra)
         res, acc = sim.similar_to_perfume(cat, i, mask, offset, limit, include_self=include_self)
         out = sim_response(res, accord_vec=acc, source=i)
+        for r in out["results"]:
+            rel = cat.link_relation(i, cat.idx_of(r["id"]))
+            if rel:
+                r["dupe_link"] = {"relation": rel[0], "confidence": rel[1], "basis": rel[2],
+                                  "basis_label": cat_mod.BASIS_LABEL[rel[2]]}
         out.update(source=cat.detail(i), query=query_echo(res.items), offset=offset, limit=limit)
         if ff:
             base = res.all_score > 1e-9
@@ -449,12 +483,14 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     @app.get("/api/perfumes/{pid}/similar/facet")
     def perfume_similar_facet(request: Request, pid: int, facet: str, fq: str = "", offset: int = Query(0, ge=0),
-                              limit: int = Query(12, ge=1, le=100), exclude_brand: bool = False):
+                              limit: int = Query(12, ge=1, le=100), exclude_brand: bool = False, only_dupes: bool = False):
         i = get_idx(pid)
         res, _acc = sim.similar_to_perfume(cat, i, None, 0, 1)
         base = res.all_score > 1e-9
         if exclude_brand:
             base = base & (cat.p_brand_idx != cat.p_brand_idx[i])
+        if only_dupes:
+            base = base & alt_mask(i)
         ev = query.evaluate_base(cat, base, filters_of(dict(request.query_params)))
         return facet_of(ev, facet, fq, offset, limit)
 
@@ -465,7 +501,30 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     @app.get("/api/perfumes/{pid}")
     def perfume_detail(pid: int):
+        """Perfume card data + brand_tags / brand_info, dupe_of[] (its originals), dupes[] (first 24 known dupes, best
+        evidence first) with dupes_total / dupes_counts{high,medium,low} and dupe_status{researched,is_original,notes}."""
         return cat.detail(get_idx(pid))
+
+    @app.get("/api/perfumes/{pid}/dupes")
+    def perfume_dupes(pid: int, offset: int = Query(0, ge=0), limit: int = Query(24, ge=1, le=100)):
+        """Known dupes / alternatives of an original, confidence first, then popularity (paged)."""
+        return cat.dupes_of(get_idx(pid), limit, offset)
+
+    @app.get("/api/perfumes/{pid}/compare/{other}")
+    def perfume_compare(pid: int, other: int):
+        """Side-by-side note comparison of two perfumes: both pyramids, the notes they share and our 'smells like'
+        score of `other` against `pid` (see similarity.pair_score)."""
+        i, j = get_idx(pid), get_idx(other)
+        pa, pb = cat.pyramid(i), cat.pyramid(j)
+        same = {L: sorted({n["slug"] for n in pa[L]} & {n["slug"] for n in pb[L]}) for L in pa}
+        all_a = {n["slug"] for L in pa.values() for n in L}
+        all_b = {n["slug"] for L in pb.values() for n in L}
+        rel = cat.link_relation(i, j)
+        link = ({"relation": rel[0], "confidence": rel[1], "basis": rel[2], "basis_label": cat_mod.BASIS_LABEL[rel[2]]}
+                if rel else None)
+        return {"a": {**cat.summary(i), "pyramid": pa}, "b": {**cat.summary(j), "pyramid": pb},
+                "shared": sorted(all_a & all_b), "shared_same_layer": same,
+                "only_a": len(all_a - all_b), "only_b": len(all_b - all_a), **sim.pair_score(cat, i, j), "link": link}
 
     # ---------------------------------------------------------------- images
     def svg(text: str, max_age: int = 3600):

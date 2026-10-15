@@ -102,3 +102,24 @@ Combine page and the content of a saved search (flat dict of strings).
   list for the same query parameters (type-ahead beyond the top N). `GET /api/notes/{slug}/variants` lists what `*` expands to.
 * The catalog adds, at load: a perfumer index (CSR perfume → perfumer ids + the flat entry → perfume array, from the
   `perfumers` JSON column that the deploy DB keeps), accord entry arrays (row / column / rank) and a `p_flat` flag.
+
+## House types (brand tags) and dupe links
+
+Written by the web-research tagging pipeline (`pipeline/tagging/`, see its README) and merged into `master.db` by
+`pipeline/tagging/merge_tags.py` (validates, repairs, derives, idempotent). Tables: `brand_tags(brand PK, tags JSON, dupe_style,
+origin_country, parent_company, confidence, inferred, notes, sources JSON)`, `perfume_dupes(perfume_id, target_id, confidence,
+basis, sources JSON, rank)`, `perfume_dupe_status(perfume_id PK, is_original, notes)`. `make_deploy_db.py` copies them.
+
+* Tags: `niche`, `designer`, `dupe` ("dupe house"), `middle_eastern`, and derived `middle_eastern_original` (ME and not dupe),
+  `middle_eastern_dupe` (ME and dupe), plus `untagged`. The catalog keeps one uint8 bitmask per perfume (bits 1..64, 128 = inferred)
+  and dupe links as forward / reverse CSR arrays (`dl_*`, `dr_*`; reverse sorted by confidence, then votes) - about 1 MB.
+* Filters (every endpoint that takes filters, saved searches, URL hash): `btags` (`~`-separated, OR inside), `btags_not`,
+  `has_dupes=1` (originals with a known dupe), `is_dupe=1`. Facets: `brand_tags` {items[name,label,count,selected], available}
+  and `dupe_flags` in `filter_facets`; `/api/search/facet?facet=brand_tags`. Sort `dupes` = number of known dupes.
+* `GET /api/perfumes/{id}` adds `brand_tags`, `brand_info`, `is_dupe`, `n_dupes`, `dupe_of[]`, `dupes[]` (first 24) with
+  `dupes_total`, `dupes_counts{high,medium,low}`, `dupe_status`; link items are card summaries + `confidence`, `basis`
+  (`web|community|name|brand_stated`), `basis_label`, `sources`. Also `GET /api/perfumes/{id}/dupes` (paged),
+  `GET /api/perfumes/{a}/compare/{b}` (both pyramids, shared notes, similarity score), `GET /api/brands/info?name=`,
+  `/api/perfumes/{id}/similar?only_dupes=1` (linked perfumes + dupe-house perfumes; results carry `dupe_link`).
+* UI wording: "Inspired by" / "Alternative to"; the brand tag label is "Dupe house".
+

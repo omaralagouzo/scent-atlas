@@ -4,6 +4,7 @@ import { api, cacheNotes, session, mine, history } from './api.js';
 import { bottleImg, heart, accordBars, pyramidDiagram, ratingBadge, segmented } from './components.js';
 import { closeDrawer, go } from './router.js';
 import { openAuthModal } from './auth.js';
+import { brandLink, tagBadges, dupeSections, confLabel } from './brandtags.js';
 
 const drawer = () => document.getElementById('drawer');
 const scrim = () => document.getElementById('scrim');
@@ -65,7 +66,8 @@ function renderDetail(p) {
     h('div', { class: 'detail-hero' },
       h('div', { class: 'detail-bottle', style: { '--tint': (p.accords[0] && p.accords[0].color) || 'var(--accent)' } }, bottleImg(p, `${p.name} bottle`)),
       h('div', { class: 'detail-head' },
-        h('p', { class: 'eyebrow' }, p.brand),
+        h('p', { class: 'eyebrow' }, brandLink(p.brand)),
+        brandStrip(p),
         h('h2', { id: 'drawer-title' }, p.name),
         h('p', { class: 'detail-meta' }, meta.join(' · ')),
         h('div', { class: 'detail-rating' }, ratingBadge(p), p.rating_count ? h('span', { class: 'muted' }, `${plural(p.rating_count, 'vote')}`) : null),
@@ -76,9 +78,21 @@ function renderDetail(p) {
       h('a', { class: 'btn', href: p.link, target: '_blank', rel: 'noopener noreferrer', title: p.link_is_exact ? 'Open on Fragrantica' : 'Search on Fragrantica' },
         p.link_is_exact ? 'Fragrantica' : 'Search Fragrantica', svgIcon('external', 14)),
       heart('perfume', p.id, 'Add to favorites')),
+    dupeSections(p),
     personalPanel(p),
     p.accords.length ? h('section', { class: 'detail-sec' }, h('h3', { class: 'sec-title' }, 'Main accords'), accordBars(p.accords)) : null,
     h('section', { class: 'detail-sec' }, h('h3', { class: 'sec-title' }, 'Fragrance pyramid'), pyramidDiagram(p.pyramid, { onNote: () => {} })));
+}
+
+/** Brand tags (as links to the filtered list), origin country and the research note, right under the perfume name. */
+function brandStrip(p) {
+  const i = p.brand_info;
+  if (!i) return null;
+  const meta = [i.origin_country, i.parent_company ? `part of ${i.parent_company}` : null].filter(Boolean).join(' · ');
+  const badges = tagBadges({ brand: p.brand, brand_tags: p.brand_tags, brand_tags_inferred: i.inferred }, { mode: 'full', link: true });
+  if (!badges && !meta) return null;
+  return h('div', { class: 'brand-strip' }, badges, meta ? h('span', { class: 'muted small' }, meta) : null,
+    i.notes ? h('p', { class: 'brand-strip-notes muted small' }, i.notes, i.confidence ? ` (${confLabel(i.confidence).toLowerCase()} confidence${i.inferred ? ', inferred' : ''})` : '') : null);
 }
 
 // ---------------------------------------------------------------- "my" panel: status, rating, private note

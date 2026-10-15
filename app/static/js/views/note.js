@@ -40,7 +40,7 @@ export function mountNote(root, { args, params }) {
       { value: 'base', label: `Base · ${lc.base}`, cls: 'L-base' },
     ], layer, (v) => { layer = v; reload(); }, 'Show perfumes where this is a… note');
     const sortSel = h('select', { class: 'select', 'aria-label': 'Sort perfumes', onchange: (e) => { sort = e.target.value; reload(); } },
-      [['popularity', 'Most reviewed'], ['rating', 'Top rated'], ['year', 'Newest first'], ['year_asc', 'Oldest first'], ['name', 'Name A – Z'], ['brand', 'Brand A – Z']]
+      [['popularity', 'Most reviewed'], ['rating', 'Top rated'], ['year', 'Newest first'], ['year_asc', 'Oldest first'], ['name', 'Name A – Z'], ['brand', 'Brand A – Z'], ['dupes', 'Most known dupes']]
         .map(([v, l]) => h('option', { value: v, selected: v === sort }, l)));
     const inc = () => slug + (layer ? `@${layer}` : '');
     panel = createFilters({

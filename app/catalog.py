@@ -35,7 +35,33 @@ GENDERS = {"women": 1, "men": 2, "unisex": 3}
 GENDER_NAMES = {0: None, 1: "women", 2: "men", 3: "unisex"}
 LAYER_ALIASES = {"top": 0, "middle": 1, "mid": 1, "heart": 1, "base": 2, "general": 3}
 LAYER_LABEL = {0: "top", 1: "middle", 2: "base", 3: "general"}
-SORTS = ("popularity", "rating", "year", "year_asc", "name", "brand", "matches")
+SORTS = ("popularity", "rating", "year", "year_asc", "name", "brand", "matches", "dupes")
+
+# brand tags: one uint8 bitmask per perfume (via its brand).  Bits 1..64 are filterable tags, 128 flags "inferred".
+BTAG_BITS = {"niche": 1, "designer": 2, "dupe": 4, "middle_eastern": 8, "middle_eastern_original": 16,
+             "middle_eastern_dupe": 32, "untagged": 64}
+BTAG_LABELS = {"niche": "Niche", "designer": "Designer", "dupe": "Dupe house", "middle_eastern": "Middle Eastern",
+               "middle_eastern_original": "ME original", "middle_eastern_dupe": "ME dupe", "untagged": "Untagged"}
+BTAG_ALL = 127
+BTAG_INFERRED = 128
+CONF_CODE = {"low": 0, "medium": 1, "high": 2}
+CONF_NAME = ("low", "medium", "high")
+BASIS_CODE = {"name": 0, "community": 1, "brand_stated": 2, "web": 3}
+BASIS_NAME = ("name", "community", "brand_stated", "web")
+BASIS_LABEL = {"web": "web-verified", "community": "community votes", "name": "name match", "brand_stated": "brand-stated"}
+MAX_DUPES_OUT = 24
+
+
+def derive_tag_mask(tags) -> int:
+    """Base tags (niche / designer / dupe / middle_eastern; derived ones are recomputed) -> bitmask incl. derived bits."""
+    t = {x for x in tags if isinstance(x, str)}
+    m = 0
+    for name in ("niche", "designer", "dupe", "middle_eastern"):
+        if name in t:
+            m |= BTAG_BITS[name]
+    if "middle_eastern" in t:
+        m |= BTAG_BITS["middle_eastern_dupe" if "dupe" in t else "middle_eastern_original"]
+    return m or BTAG_BITS["untagged"]
 CHUNK = 20000
 
 
@@ -120,6 +146,7 @@ class Catalog:
         self._load_perfumes(con)
         self._load_notes(con)
         self._load_pyramids(con)
+        self._load_tags(con)
         con.close()
         self._finish()
 
@@ -393,6 +420,62 @@ class Catalog:
         # W(P): summed idf over the perfume's (note, layer) items
         self.p_weight = np.bincount(pi, weights=self.idf[ni], minlength=n).astype(np.float32)
 
+    def _load_tags(self, con):
+        """Brand tags -> one bitmask per brand / perfume; dupe links -> forward + reverse CSR arrays (all numpy, ~1 MB)."""
+        n, nb = self.n_perf, len(self.brand_list)
+        tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        self.tags_loaded = "brand_tags" in tables
+        self.brand_tagmask = np.zeros(nb, dtype=np.uint8)
+        self.brand_meta: dict[int, tuple] = {}     # brand idx -> (dupe_style, country, parent, confidence, notes)
+        if self.tags_loaded:
+            index = {b: k for k, b in enumerate(self.brand_list)}
+            self.brand_tagmask[:] = BTAG_BITS["untagged"]
+            for brand, tags, style, ctry, parent, conf, inferred, notes in con.execute(
+                    "SELECT brand, tags, dupe_style, origin_country, parent_company, confidence, inferred, notes FROM brand_tags"):
+                k = index.get(brand)
+                if k is None:
+                    continue
+                self.brand_tagmask[k] = derive_tag_mask(_loads(tags, [])) | (BTAG_INFERRED if inferred else 0)
+                self.brand_meta[k] = (style, ctry, parent, conf, notes)
+        self.p_btags = self.brand_tagmask[self.p_brand_idx] if n else np.zeros(0, np.uint8)
+        self._mask_names_cache: dict[int, list] = {}
+
+        z = np.zeros(0, np.int32)
+        self.dl_indptr = np.zeros(n + 1, np.int32)
+        self.dl_target, self.dl_conf, self.dl_basis = z, np.zeros(0, np.uint8), np.zeros(0, np.uint8)
+        self.dr_indptr = np.zeros(n + 1, np.int32)
+        self.dr_perf, self.dr_conf, self.dr_basis = z, np.zeros(0, np.uint8), np.zeros(0, np.uint8)
+        if "perfume_dupes" in tables and n:
+            rows = con.execute("SELECT perfume_id, target_id, confidence, basis FROM perfume_dupes ORDER BY perfume_id, rank").fetchall()
+            if rows:
+                pid = np.array([r[0] for r in rows], dtype=np.int64)
+                tid = np.array([r[1] for r in rows], dtype=np.int64)
+                conf = np.array([CONF_CODE.get(r[2], 0) for r in rows], dtype=np.uint8)
+                bas = np.array([BASIS_CODE.get(r[3], 0) for r in rows], dtype=np.uint8)
+                pi, ti = np.searchsorted(self.p_id, pid), np.searchsorted(self.p_id, tid)
+                pc, tc = np.minimum(pi, n - 1), np.minimum(ti, n - 1)
+                ok = (self.p_id[pc] == pid) & (self.p_id[tc] == tid) & (pc != tc)
+                pi, ti, conf, bas = pc[ok].astype(np.int32), tc[ok].astype(np.int32), conf[ok], bas[ok]
+                self.dl_indptr = np.concatenate([[0], np.cumsum(np.bincount(pi, minlength=n))]).astype(np.int32)
+                self.dl_target, self.dl_conf, self.dl_basis = ti, conf, bas
+                # reverse: per original, its dupes ordered by confidence, then popularity
+                order = np.lexsort((pi, -self.p_votes[pi].astype(np.int64), -conf.astype(np.int64), ti))
+                self.dr_indptr = np.concatenate([[0], np.cumsum(np.bincount(ti, minlength=n))]).astype(np.int32)
+                self.dr_perf, self.dr_conf, self.dr_basis = pi[order], conf[order], bas[order]
+        self.p_nlinks = np.diff(self.dl_indptr).astype(np.int32)     # originals this perfume is a dupe of
+        self.p_ndupes = np.diff(self.dr_indptr).astype(np.int32)     # known dupes of this perfume
+        # researched flag (bit 0) and "researched original" (bit 1)
+        self.p_dstatus = np.zeros(n, dtype=np.uint8)
+        if "perfume_dupe_status" in tables and n:
+            rows = con.execute("SELECT perfume_id, is_original FROM perfume_dupe_status").fetchall()
+            if rows:
+                pid = np.array([r[0] for r in rows], dtype=np.int64)
+                pi = np.minimum(np.searchsorted(self.p_id, pid), n - 1)
+                ok = self.p_id[pi] == pid
+                isorig = np.array([1 if r[1] else 0 for r in rows], dtype=np.uint8)
+                self.p_dstatus[pi[ok]] = 1 | (isorig[ok] << 1)
+        self.p_dstatus[self.p_nlinks > 0] |= 1
+
     def _finish(self):
         self.family_counts_all = None
 
@@ -504,8 +587,16 @@ class Catalog:
         d.update(extra)
         return d
 
+    def mask_names(self, mask: int) -> list[str]:
+        """Bitmask -> tag names (without 'untagged'), cached per distinct mask."""
+        mask = int(mask) & BTAG_ALL
+        got = self._mask_names_cache.get(mask)
+        if got is None:
+            got = self._mask_names_cache[mask] = [t for t, b in BTAG_BITS.items() if mask & b and t != "untagged"]
+        return got
+
     def summary(self, i: int) -> dict:
-        return {
+        d = {
             "id": int(self.p_id[i]),
             "name": self.name(i),
             "brand": self.brand(i),
@@ -516,6 +607,112 @@ class Catalog:
             "accords": self.accords_out(i, 5),
             "image": self.perfume_image(i),
         }
+        m = int(self.p_btags[i])
+        tags = self.mask_names(m)
+        if tags:
+            d["brand_tags"] = list(tags)
+            if m & BTAG_INFERRED:
+                d["brand_tags_inferred"] = True
+        if self.p_nlinks[i]:
+            d["is_dupe"] = True
+        if self.p_ndupes[i]:
+            d["n_dupes"] = int(self.p_ndupes[i])
+        return d
+
+    # ------------------------------------------------------------------ brand tags + dupe links
+    def brand_index(self, name: str):
+        ix = self.__dict__.get("_brand_ix")
+        if ix is None:
+            ix = self._brand_ix = {b: j for j, b in enumerate(self.brand_list)}
+            self._brand_ix_low = {}
+            for j, b in enumerate(self.brand_list):
+                self._brand_ix_low.setdefault(b.lower(), j)
+        got = ix.get(name)
+        return got if got is not None else self._brand_ix_low.get(str(name).lower())
+
+    def brand_info(self, name_or_idx, with_sources=True) -> dict | None:
+        """Tags + origin / parent / notes of one brand (None when the brand does not exist)."""
+        k = name_or_idx if isinstance(name_or_idx, (int, np.integer)) else self.brand_index(name_or_idx)
+        if k is None or not (0 <= int(k) < len(self.brand_list)):
+            return None
+        k = int(k)
+        m = int(self.brand_tagmask[k])
+        meta = self.brand_meta.get(k)
+        d = {"name": self.brand_list[k], "count": int(self.brand_count[k]), "tags": list(self.mask_names(m)),
+             "tagged": bool(m & BTAG_ALL) and not (m & BTAG_BITS["untagged"]), "inferred": bool(m & BTAG_INFERRED),
+             "dupe_style": None, "origin_country": None, "parent_company": None, "confidence": None, "notes": None,
+             "sources": []}
+        if meta:
+            d.update(dupe_style=meta[0], origin_country=meta[1], parent_company=meta[2], confidence=meta[3], notes=meta[4])
+            if with_sources:
+                with self._db_lock:
+                    r = self._con().execute("SELECT sources FROM brand_tags WHERE brand=?", (self.brand_list[k],)).fetchone()
+                d["sources"] = _loads(r[0], []) if r else []
+        return d
+
+    def _link_item(self, j: int, conf: int, basis: int, sources=None) -> dict:
+        d = self.summary(j)
+        d.update(confidence=CONF_NAME[int(conf)], basis=BASIS_NAME[int(basis)], basis_label=BASIS_LABEL[BASIS_NAME[int(basis)]],
+                 sources=sources or [])
+        return d
+
+    def dupe_of(self, i: int) -> list[dict]:
+        """The originals perfume i is a dupe of (best evidence first)."""
+        a, b = int(self.dl_indptr[i]), int(self.dl_indptr[i + 1])
+        if a == b:
+            return []
+        with self._db_lock:
+            src = dict(self._con().execute("SELECT target_id, sources FROM perfume_dupes WHERE perfume_id=?",
+                                           (int(self.p_id[i]),)).fetchall())
+        return [self._link_item(int(j), c, bs, _loads(src.get(int(self.p_id[j])), []))
+                for j, c, bs in zip(self.dl_target[a:b], self.dl_conf[a:b], self.dl_basis[a:b])]
+
+    def dupes_of(self, i: int, limit: int = MAX_DUPES_OUT, offset: int = 0) -> dict:
+        """Known dupes of perfume i: confidence, then popularity.  {total, counts{high,medium,low}, items}."""
+        a, b = int(self.dr_indptr[i]), int(self.dr_indptr[i + 1])
+        cc = np.bincount(self.dr_conf[a:b], minlength=3) if b > a else np.zeros(3, int)
+        out = {"total": b - a, "counts": {"high": int(cc[2]), "medium": int(cc[1]), "low": int(cc[0])}, "items": []}
+        lo, hi = a + max(offset, 0), min(b, a + max(offset, 0) + limit)
+        if hi > lo:
+            ids = [int(self.p_id[j]) for j in self.dr_perf[lo:hi]]
+            with self._db_lock:
+                src = {r[0]: r[1] for r in self._con().execute(
+                    f"SELECT perfume_id, sources FROM perfume_dupes WHERE target_id=? AND perfume_id IN ({','.join('?' * len(ids))})",
+                    (int(self.p_id[i]), *ids)).fetchall()}
+            out["items"] = [self._link_item(int(j), c, bs, _loads(src.get(int(self.p_id[j])), []))
+                            for j, c, bs in zip(self.dr_perf[lo:hi], self.dr_conf[lo:hi], self.dr_basis[lo:hi])]
+        return out
+
+    def dupe_status(self, i: int) -> dict:
+        st = int(self.p_dstatus[i])
+        notes = None
+        if st:
+            with self._db_lock:
+                try:
+                    r = self._con().execute("SELECT notes FROM perfume_dupe_status WHERE perfume_id=?", (int(self.p_id[i]),)).fetchone()
+                except sqlite3.Error:
+                    r = None
+            notes = r[0] if r else None
+        return {"researched": bool(st & 1), "is_original": bool(st & 2) and not self.p_nlinks[i], "notes": notes}
+
+    def linked_mask(self, i: int) -> np.ndarray:
+        """bool [n]: perfumes linked to perfume i as one of its originals or one of its dupes."""
+        m = np.zeros(self.n_perf, dtype=bool)
+        m[self.dl_target[self.dl_indptr[i]:self.dl_indptr[i + 1]]] = True
+        m[self.dr_perf[self.dr_indptr[i]:self.dr_indptr[i + 1]]] = True
+        return m
+
+    def link_relation(self, i: int, j: int):
+        """How perfume j relates to perfume i: ('dupe'|'original', confidence, basis) or None."""
+        a, b = int(self.dr_indptr[i]), int(self.dr_indptr[i + 1])
+        hit = np.flatnonzero(self.dr_perf[a:b] == j)
+        if hit.size:
+            return "dupe", CONF_NAME[int(self.dr_conf[a + hit[0]])], BASIS_NAME[int(self.dr_basis[a + hit[0]])]
+        a, b = int(self.dl_indptr[i]), int(self.dl_indptr[i + 1])
+        hit = np.flatnonzero(self.dl_target[a:b] == j)
+        if hit.size:
+            return "original", CONF_NAME[int(self.dl_conf[a + hit[0]])], BASIS_NAME[int(self.dl_basis[a + hit[0]])]
+        return None
 
     def pyramid(self, i: int) -> dict:
         out = {"top": [], "middle": [], "base": [], "general": []}
@@ -547,6 +744,14 @@ class Catalog:
             link_is_exact=bool(url),
             fragrantica_id=self.fragrantica_id(i),
         )
+        d["brand_tags"] = list(self.mask_names(int(self.p_btags[i])))
+        d["brand_info"] = self.brand_info(int(self.p_brand_idx[i]))
+        d["is_dupe"] = bool(self.p_nlinks[i])
+        d["n_dupes"] = int(self.p_ndupes[i])
+        d["dupe_of"] = self.dupe_of(i)
+        dd = self.dupes_of(i)
+        d["dupes"], d["dupes_total"], d["dupes_counts"] = dd["items"], dd["total"], dd["counts"]
+        d["dupe_status"] = self.dupe_status(i)
         return d
 
     def idx_of(self, pid: int):

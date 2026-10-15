@@ -206,3 +206,16 @@ def explain(cat, items, wq: float, i: int):
         out.append(entry)
     out.sort(key=lambda e: -e["contribution"])
     return out
+
+
+def pair_score(cat, i: int, j: int) -> dict:
+    """The 'smells like perfume i' score of perfume j (same formula as similar_to_perfume) + the accord cosine."""
+    items = cat.perfume_items(i)
+    acc = float(accord_cosine(cat, i)[j])
+    if items:
+        score, _wq = raw_scores(cat, dedupe_items(items))
+        s = float(score[j])
+        final = (1 - ACCORD_WEIGHT) * s + ACCORD_WEIGHT * acc if s > 0 else 0.0
+    else:
+        s, final = 0.0, acc
+    return {"score": round(final, 4), "note_score": round(s, 4), "accord_similarity": round(acc, 3)}

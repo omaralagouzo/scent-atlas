@@ -6,6 +6,7 @@
 import { h, svgIcon, debounce, compact, clamp } from './util.js';
 import { api, cacheNotes, resolveSlugs } from './api.js';
 import { noteChip, noteSearch } from './components.js';
+import { TAGS, CHIP_ORDER } from './brandtags.js';
 
 // ------------------------------------------------------------------ state <-> URL
 export const encList = (a) => a.map((x) => String(x).replace(/\\/g, '\\\\').replace(/~/g, '\\~')).join('~');
@@ -24,6 +25,7 @@ export const newFilters = () => ({
   name: '', year_min: '', year_max: '', year_unknown: false,
   brands: [], perfumers: [], accords: [], acc_any: false, acc_main: false, genders: [], countries: [],
   rating_min: '', votes_min: '', must: [], not: [], brandText: '',
+  btags: [], btags_not: [], has_dupes: false, is_dupe: false,
 });
 
 const noteTokens = (s) => (s || '').split(',').map((t) => t.trim()).filter(Boolean)
@@ -38,6 +40,7 @@ export function readFilters(params) {
     genders: g('gender').split(',').map((x) => x.trim()).filter(Boolean), countries: decList(g('countries')),
     rating_min: g('rating_min'), votes_min: g('votes_min'),
     must: noteTokens(g('must')), not: noteTokens(g('not')), brandText: g('brand'),
+    btags: decList(g('btags')), btags_not: decList(g('btags_not')), has_dupes: g('has_dupes') === '1', is_dupe: g('is_dupe') === '1',
   };
 }
 
@@ -52,6 +55,7 @@ export function filterParams(f) {
     accords: encList(f.accords), acc_any: f.accords.length > 1 && f.acc_any ? '1' : '', acc_main: f.accords.length && f.acc_main ? '1' : '',
     gender: f.genders.join(','), countries: encList(f.countries),
     rating_min: f.rating_min, votes_min: f.votes_min, must: noteList(f.must), not: noteList(f.not), brand: f.brandText,
+    btags: encList(f.btags), btags_not: encList(f.btags_not), has_dupes: f.has_dupes ? '1' : '', is_dupe: f.is_dupe ? '1' : '',
   };
 }
 
@@ -67,7 +71,8 @@ export async function hydrateFilters(f) {
 
 export function filterCount(f) {
   return [f.name.trim(), f.year_min || f.year_max, f.brands.length, f.perfumers.length, f.accords.length, f.genders.length,
-    f.countries.length, f.rating_min, f.votes_min, f.must.length, f.not.length, f.brandText].filter(Boolean).length;
+    f.countries.length, f.rating_min, f.votes_min, f.must.length, f.not.length, f.brandText, f.btags.length, f.btags_not.length,
+    f.has_dupes, f.is_dupe].filter(Boolean).length;
 }
 
 /** Same as filterParams but without empty values (for JSON request bodies). */
@@ -95,6 +100,10 @@ export function describeFilters(f) {
   f.countries.forEach((b) => one('c:' + b, b, () => { f.countries = f.countries.filter((x) => x !== b); }));
   if (f.rating_min) one('rating', `Rating ≥ ${f.rating_min}`, () => { f.rating_min = ''; });
   if (f.votes_min) one('votes', `≥ ${compact(Number(f.votes_min))} votes`, () => { f.votes_min = ''; });
+  f.btags.forEach((t) => one('bt:' + t, `House: ${TAGS[t] ? TAGS[t].label : t}`, () => { f.btags = f.btags.filter((x) => x !== t); }));
+  f.btags_not.forEach((t) => one('btn:' + t, `Not ${TAGS[t] ? TAGS[t].label.toLowerCase() : t}`, () => { f.btags_not = f.btags_not.filter((x) => x !== t); }));
+  if (f.has_dupes) one('has_dupes', 'Has known dupes', () => { f.has_dupes = false; });
+  if (f.is_dupe) one('is_dupe', 'Is a dupe', () => { f.is_dupe = false; });
   f.must.forEach((n) => one('must:' + n.slug, `Also ${n.name}${n.variants ? '-ish' : ''}`, () => { f.must = f.must.filter((x) => x.slug !== n.slug); }));
   f.not.forEach((n) => one('not:' + n.slug, `No ${n.name}${n.variants ? '-ish' : ''}`, () => { f.not = f.not.filter((x) => x.slug !== n.slug); }));
   return out;
@@ -166,6 +175,71 @@ export function createFilters({ f, features = {}, fetchFacet, onChange }) {
   const nameIn = h('input', { class: 'input', type: 'search', placeholder: 'Search results by perfume or brand…', 'aria-label': 'Search within results', value: f.name, autocomplete: 'off' });
   nameIn.addEventListener('input', () => { f.name = nameIn.value; fireSoon(); });
   body.append(h('div', { class: 'fsearch' }, svgIcon('search', 15), nameIn));
+
+  // ---- house type (brand tags) + dupe links
+  const sHouse = section('house', 'House type', {
+    open: true, count: () => f.btags.length + f.btags_not.length + (f.has_dupes ? 1 : 0) + (f.is_dupe ? 1 : 0),
+    hint: 'Tap a type to include it (any of the selected); the minus button excludes it.',
+  });
+  {
+    const chips = h('div', { class: 'hchips', role: 'group', 'aria-label': 'House type' });
+    const flags = h('div', { class: 'stack hflags' });
+    const counts = {};
+    const flagCounts = {};
+    const stateOf = (tag) => (f.btags.includes(tag) ? 'include' : f.btags_not.includes(tag) ? 'exclude' : null);
+    const setState = (tag, st) => {
+      f.btags = f.btags.filter((x) => x !== tag);
+      f.btags_not = f.btags_not.filter((x) => x !== tag);
+      if (st === 'include') f.btags.push(tag); else if (st === 'exclude') f.btags_not.push(tag);
+      sHouse.refreshBadge();
+      drawChips();
+      fire();
+    };
+    function drawChips() {
+      chips.replaceChildren(...CHIP_ORDER.map((tag) => {
+        const st = stateOf(tag);
+        const c = counts[tag];
+        const main = h('button', {
+          class: 'hchip-main', type: 'button', 'aria-pressed': String(st === 'include'), title: TAGS[tag].tip,
+          onclick: () => setState(tag, st === 'include' ? null : 'include'),
+        }, h('span', null, TAGS[tag].label), h('small', null, c == null ? '' : compact(c)));
+        const ex = h('button', {
+          class: 'hchip-ex', type: 'button', 'aria-pressed': String(st === 'exclude'), 'aria-label': `Exclude ${TAGS[tag].label}`,
+          title: st === 'exclude' ? `Stop excluding ${TAGS[tag].label}` : `Exclude ${TAGS[tag].label}`,
+          onclick: () => setState(tag, st === 'exclude' ? null : 'exclude'),
+        }, svgIcon('minus', 12));
+        return h('span', { class: `hchip t-${tag}${st ? ' ' + st : ''}${c === 0 && !st ? ' zero' : ''}` }, main, ex);
+      }));
+    }
+    const mkFlag = (key, label, hint) => {
+      const cb = h('input', { type: 'checkbox', checked: f[key] });
+      const cnt = h('span', { class: 'frow-count' });
+      cb.addEventListener('change', () => { f[key] = cb.checked; sHouse.refreshBadge(); fire(); });
+      const el = h('label', { class: 'frow', title: hint }, cb, h('span', { class: 'frow-name' }, label), cnt);
+      return { el, cb, cnt };
+    };
+    const hasD = mkFlag('has_dupes', 'Has known dupes', 'Originals that have at least one known inspired-by version');
+    const isD = mkFlag('is_dupe', 'Is a dupe', 'Perfumes linked as inspired by / an alternative to a known original');
+    flags.append(hasD.el, isD.el);
+    sHouse.inner.append(chips, flags);
+    sHouse.update = (fx) => {
+      const bt = fx && fx.brand_tags;
+      if (bt) {
+        for (const it of bt.items) counts[it.name] = it.count;
+        sHouse.det.hidden = bt.available === false;
+      }
+      const df = fx && fx.dupe_flags;
+      if (df) {
+        hasD.cnt.textContent = compact(df.has_dupes.count);
+        isD.cnt.textContent = compact(df.is_dupe.count);
+        flags.hidden = df.available === false;
+      }
+      drawChips();
+      sHouse.refreshBadge();
+    };
+    sHouse.redraw = () => { hasD.cb.checked = f.has_dupes; isD.cb.checked = f.is_dupe; drawChips(); };
+    drawChips();
+  }
 
   // ---- release year
   const yr = section('year', 'Release year', { open: true, count: () => (f.year_min || f.year_max ? 1 : 0) });
@@ -371,6 +445,7 @@ export function createFilters({ f, features = {}, fetchFacet, onChange }) {
   function redraw() {
     nameIn.value = f.name;
     yr.redraw && yr.redraw();
+    sHouse.redraw();
     sAcc.modeEls.rAll.checked = !f.acc_any; sAcc.modeEls.rAny.checked = f.acc_any; sAcc.modeEls.mainCb.checked = f.acc_main;
     sAcc.modeEls.mode.hidden = false;
     sRate.redraw && sRate.redraw();
@@ -389,6 +464,7 @@ export function createFilters({ f, features = {}, fetchFacet, onChange }) {
     facets = fx; total = tot;
     if (fx) {
       yr.update(fx);
+      sHouse.update(fx);
       sBrand.update(fx, 'brands');
       sPerf && sPerf.update(fx, 'perfumers');
       sAcc.update(fx, 'accords');

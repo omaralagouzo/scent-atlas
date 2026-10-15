@@ -37,7 +37,7 @@ import numpy as np
 LAYER_CODE = {"top": 0, "middle": 1, "mid": 1, "heart": 1, "base": 2}
 LAYER_NAME = {None: "any", 0: "top", 1: "middle", 2: "base"}
 GENDER_CODE = {"women": 1, "men": 2, "unisex": 3}
-SORT_KEYS = ("popularity", "rating", "year", "year_asc", "name", "brand", "matches")
+SORT_KEYS = ("popularity", "rating", "year", "year_asc", "name", "brand", "matches", "dupes")
 MAX_CLAUSES = 12
 MAX_CLAUSE_NOTES = 60
 MAX_MEMBERS = 600          # expanded notes per clause
@@ -253,6 +253,10 @@ class Filters:
     countries: list[int] = field(default_factory=list)
     rating_min: float | None = None
     votes_min: int | None = None
+    btags: list[int] = field(default_factory=list)       # brand-tag bits to include (OR)
+    btags_not: list[int] = field(default_factory=list)   # brand-tag bits to exclude
+    has_dupes: bool = False                              # originals with at least one known dupe
+    is_dupe: bool = False                                # perfumes linked as a dupe of something
 
 
 @dataclass
@@ -294,6 +298,22 @@ def _brand_lookup(cat):
     return d["_brand_by_name"], d["_brand_by_lower"]
 
 
+def _tag_bits(s, unknown: list[str]) -> list[int]:
+    """'dupe~middle_eastern' (or comma separated) -> brand-tag bit values, in canonical order, unknown names reported."""
+    from catalog import BTAG_BITS
+    out: list[int] = []
+    for tok in re.split(r"[~,]", str(s or "")):
+        tok = tok.strip().lower().replace(" ", "_").replace("-", "_")
+        if not tok:
+            continue
+        b = BTAG_BITS.get(tok)
+        if b is None:
+            unknown.append(tok)
+        elif b not in out:
+            out.append(b)
+    return sorted(out)
+
+
 def parse_filters(cat, p: Mapping) -> tuple[Filters, list[str]]:
     f = Filters()
     unknown: list[str] = []
@@ -330,6 +350,10 @@ def parse_filters(cat, p: Mapping) -> tuple[Filters, list[str]]:
     f.countries = _lookup_names(dec_list(p.get("countries")), ctry, ctry_low, unknown)
     f.rating_min = _float(p, "rating_min", 0.0, 5.0)
     f.votes_min = _int(p, "votes_min", 0, 10**9)
+    f.btags = _tag_bits(p.get("btags"), unknown)
+    f.btags_not = [b for b in _tag_bits(p.get("btags_not"), unknown)]
+    f.has_dupes = _flag(p, "has_dupes")
+    f.is_dupe = _flag(p, "is_dupe")
     return f, unknown
 
 
@@ -515,6 +539,17 @@ def filter_masks(cat, f: Filters, only: set | None = None) -> dict[str, np.ndarr
         out["rating"] = cat.p_rating >= f.rating_min
     if f.votes_min and want("votes"):
         out["votes"] = cat.p_votes >= f.votes_min
+    if (f.btags or f.btags_not) and want("btags"):
+        m = np.ones(n, dtype=bool)
+        if f.btags:
+            m &= (cat.p_btags & np.uint8(sum(f.btags))) != 0
+        if f.btags_not:
+            m &= (cat.p_btags & np.uint8(sum(f.btags_not))) == 0
+        out["btags"] = m
+    if f.has_dupes and want("has_dupes"):
+        out["has_dupes"] = cat.p_ndupes > 0
+    if f.is_dupe and want("is_dupe"):
+        out["is_dupe"] = cat.p_nlinks > 0
     return out
 
 
@@ -581,6 +616,8 @@ def sort_order(cat, cand: np.ndarray, counts, sort: str, k: int) -> np.ndarray:
         prim = cat.p_name_rank[cand].astype(np.int64)
     elif sort == "brand":
         prim = cat.p_brand_idx[cand].astype(np.int64) * (n + 1) + cat.p_name_rank[cand]
+    elif sort == "dupes":
+        prim = -(cat.p_ndupes[cand].astype(np.int64) * (int(cat.p_votes.max()) + 1) + cat.p_votes[cand])
     elif sort == "matches" and counts is not None:
         prim = -(counts[cand].astype(np.int64) * (int(cat.p_votes.max()) + 1) + cat.p_votes[cand])
     else:
@@ -723,6 +760,8 @@ def facet_list(cat, name: str, ev: Evaluation, limit=12, offset=0, fq: str = "")
         items = [{"name": cat.country_list[k], "count": int(counts[k]), "selected": k in f.countries}
                  for k in _page(order, sel, counts, offset, limit)]
         return {"items": items, "total": total, "unknown": unknown}
+    if name == "brand_tags":
+        return facet_brand_tags(cat, ev)
     if name == "note":  # notes inside the current result set (for the must-have / must-not pickers)
         counts = cat.counts_for(ev.mask)
         skip = {j for c in ev.spec.clauses for j, _ in c.members} | {r.j for r in ev.spec.must}
@@ -740,8 +779,30 @@ def facet_list(cat, name: str, ev: Evaluation, limit=12, offset=0, fq: str = "")
     raise QueryError(f"unknown facet {name!r}")
 
 
+def facet_brand_tags(cat, ev: Evaluation) -> dict:
+    """The brand-tag chips with counts over base AND every other filter (own group left out)."""
+    from catalog import BTAG_BITS, BTAG_LABELS
+    f = ev.spec.flt
+    m = ev.without("btags")
+    hist = np.bincount(cat.p_btags[m], minlength=256)
+    keys = np.arange(256)
+    items = []
+    for name, bit in BTAG_BITS.items():
+        items.append({"name": name, "label": BTAG_LABELS[name], "count": int(hist[(keys & bit) != 0].sum()),
+                      "selected": "exclude" if bit in f.btags_not else ("include" if bit in f.btags else None)})
+    return {"items": items, "total": len(items), "available": bool(cat.tags_loaded)}
+
+
+def facet_dupe_flags(cat, ev: Evaluation) -> dict:
+    return {"has_dupes": {"count": int((ev.without("has_dupes") & (cat.p_ndupes > 0)).sum()), "selected": ev.spec.flt.has_dupes},
+            "is_dupe": {"count": int((ev.without("is_dupe") & (cat.p_nlinks > 0)).sum()), "selected": ev.spec.flt.is_dupe},
+            "available": bool(len(cat.dl_target))}
+
+
 def all_facets(cat, ev: Evaluation, limit=10) -> dict:
     return {
+        "brand_tags": facet_brand_tags(cat, ev),
+        "dupe_flags": facet_dupe_flags(cat, ev),
         "years": facet_years(cat, ev.without("year"), ev.spec.flt),
         "brands": facet_list(cat, "brand", ev, limit),
         "perfumers": facet_list(cat, "perfumer", ev, limit),
@@ -844,7 +905,8 @@ def run(cat, spec: Spec, sort="popularity", page=1, per_page=48, facet_limit=30,
 
 # --------------------------------------------------------------------------------------- canonical state
 FILTER_KEYS = ("name", "year_min", "year_max", "year_unknown", "brands", "brand", "perfumers", "accords", "acc_any",
-               "acc_main", "gender", "countries", "rating_min", "votes_min", "must", "not")
+               "acc_main", "gender", "countries", "rating_min", "votes_min", "must", "not", "btags", "btags_not",
+               "has_dupes", "is_dupe")
 
 
 def _ser_clause(cat, c: Clause) -> str:
@@ -930,6 +992,16 @@ def canonical_filters(cat, p: Mapping[str, str]) -> dict[str, str]:
         out["rating_min"] = f"{f.rating_min:g}"
     if f.votes_min:
         out["votes_min"] = str(f.votes_min)
+    from catalog import BTAG_BITS
+    names = {b: nm for nm, b in BTAG_BITS.items()}
+    if f.btags:
+        out["btags"] = enc_list(names[b] for b in f.btags)
+    if f.btags_not:
+        out["btags_not"] = enc_list(names[b] for b in f.btags_not)
+    if f.has_dupes:
+        out["has_dupes"] = "1"
+    if f.is_dupe:
+        out["is_dupe"] = "1"
     return out
 
 

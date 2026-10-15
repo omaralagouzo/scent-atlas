@@ -65,6 +65,10 @@ def queries(get, post):
         ("perfume find 'chanel no 5'", lambda: get("/api/perfumes?q=chanel%20no%205")),
         ("perfume find typo 'sauvge'", lambda: get("/api/perfumes?q=sauvge")),
         ("perfume find gibberish (fuzzy)", lambda: get("/api/perfumes?q=zzqxjkv")),
+        ("brand tags: ME + dupe house, facets", lambda: get(f"/api/search?q=any:{a}*&btags=middle_eastern~dupe&btags_not=niche&ff=1&per_page=36")),
+        ("has_dupes, sort=dupes", lambda: get("/api/search?has_dupes=1&sort=dupes&ff=1&per_page=36")),
+        ("smells-like, only dupes", lambda: get(f"/api/perfumes/{pid}/similar?limit=24&only_dupes=1")),
+        ("brand info", lambda: get("/api/brands/info?name=Lattafa%20Perfumes")),
         ("brands", lambda: get("/api/brands?q=chan")),
         ("resolve names", lambda: post("/api/notes/resolve", {"names": ["bergamot", "pink pepper", "jasmin", "tonka"]})),
     ]
