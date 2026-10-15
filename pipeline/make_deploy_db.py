@@ -96,11 +96,11 @@ def build(src: Path, out_dir: Path, max_mb: float = 50.0) -> dict:
         con.executescript(TAG_SCHEMA)
         con.execute("INSERT INTO brand_tags SELECT brand, tags, dupe_style, origin_country, parent_company, confidence,"
                     " inferred, notes, sources FROM src.brand_tags ORDER BY brand")
-        con.execute("INSERT INTO perfume_dupes SELECT perfume_id, target_id, confidence, basis, sources, rank"
-                    " FROM src.perfume_dupes WHERE perfume_id IN (SELECT id FROM perfumes) AND target_id IN (SELECT id FROM perfumes)"
-                    " ORDER BY perfume_id, rank")
-        con.execute("INSERT INTO perfume_dupe_status SELECT perfume_id, is_original, notes FROM src.perfume_dupe_status"
-                    " WHERE perfume_id IN (SELECT id FROM perfumes) ORDER BY perfume_id")
+        con.execute("INSERT INTO perfume_dupes SELECT d.perfume_id, d.target_id, d.confidence, d.basis, d.sources, d.rank"
+                    " FROM src.perfume_dupes d JOIN main.perfumes a ON a.id = d.perfume_id JOIN main.perfumes b ON b.id = d.target_id"
+                    " ORDER BY d.perfume_id, d.rank")
+        con.execute("INSERT INTO perfume_dupe_status SELECT d.perfume_id, d.is_original, d.notes"
+                    " FROM src.perfume_dupe_status d JOIN main.perfumes a ON a.id = d.perfume_id ORDER BY d.perfume_id")
     con.commit()
     con.execute("DETACH DATABASE src")
     con.execute("PRAGMA journal_mode=DELETE")
