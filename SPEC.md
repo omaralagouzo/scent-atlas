@@ -15,7 +15,8 @@ scent-atlas/
     images/notes/         one image per note: <note_slug>.jpg|png|webp
     images/perfumes/      bottle image cache: <perfume_id>.jpg (filled lazily by the server)
   pipeline/               scripts that build master.db (re-runnable); make_deploy_db.py -> data/deploy/catalog.db(.gz)
-  app/                    the web app (FastAPI + vanilla JS); memcheck.py = RSS/latency check; tests: test_api.py, test_accounts.py
+  app/                    the web app (FastAPI + vanilla JS); memcheck.py = RSS/latency check; tests: test_*.py
+  docs/                   LAYERING.md (how layering is scored, evaluation) + layering-research.md (sources)
   data/deploy/            catalog.db.gz - slim, deployable copy of master.db (the only data file committed to git)
   start.bat               double-click launcher (Windows)
   requirements.txt        pinned runtime dependencies;  DEPLOY.md / render.yaml: Render deployment
@@ -24,6 +25,32 @@ scent-atlas/
 Accounts, favorites, personal status/ratings, saved searches and history are stored per user in `data/users.db`
 (SQLite) locally, or in the Postgres given by `DATABASE_URL`. `IMAGE_MODE=remote` makes the API return hotlink URLs for
 images instead of serving cached files. See DEPLOY.md for every environment variable.
+
+## My Collection (app/collection.py, user_api.py)
+
+The collection is every perfume the user marked `owned` (`perfume_status.status`). `perfume_status.rank_pos` (schema v2)
+is the 1-based place on the user's leaderboard, NULL = not ranked yet; leaving `owned` clears it and closes the gap.
+
+* `GET /api/me/collection` -> `items` (card summary + `my` + `rank` + `added_at`, ranked first), `order` (ranked ids),
+  `profile` (archetype title/blurb, families, favourite accords and notes, signature notes, houses, brands, perfumers,
+  era, community rating, gaps). Weights: rank (top 3 / top 10 count more) and the user's 1-5 rating.
+* `POST /api/me/collection {perfume_id, rank?}` marks owned (optionally placed at `rank`);
+  `PUT /api/me/collection/order {ids}` stores the whole ranked order (ids not owned are ignored, max 5000).
+* The UI ranks new bottles with head-to-head questions (binary insertion, ~log2(n) answers) and drag / arrow reordering.
+
+## Layering (app/layering.py, app/layer_api.py; method and evaluation: docs/LAYERING.md)
+
+* `GET /api/layering/{pid}?offset&limit` -> `source` (+ `traits`: role base/top/either, style), `collection` (signed in:
+  owned perfumes that clear the bar), `curated` (brand / perfumer / editor pairs with source), `community`, `catalog`
+  (`total`, `items` with `pair` = verdict, score, tags, one specific reason, caution). With `offset > 0` only `catalog`.
+* `GET /api/layering/{a}/with/{b}` -> both perfumes + `report` (verdict, `top` %, pros, cons, how_to, blend, shared
+  notes, components) + `community` (votes, my_vote).
+* `GET /api/me/collection/layering` -> recommendable pairs inside the user's collection; `GET /api/layering` -> top
+  community combos (Wilson lower bound) + a showcase of curated pairs.
+* `POST /api/layering/combos {a, b}` suggests a pair (starts with the author's thumbs up; an existing pair just gets the
+  vote; 30 new combos / account / day); `POST /api/layering/combos/{id}/vote {vote: 1|-1|0}`.
+* Tables (schema v2): `layer_combos(id, a_id < b_id unique, created_by, created_at, up, down)`,
+  `layer_votes(user_id, combo_id, vote, created_at)`; counts are recomputed from the votes on every change.
 
 ## master.db schema (SQLite)
 

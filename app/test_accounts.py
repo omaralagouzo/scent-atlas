@@ -302,6 +302,27 @@ def test_favorites_crud_and_isolation(app):
     assert a.post("/api/favorites", headers=H, json={"type": "banana", "id": 1}).status_code == 400
 
 
+def test_session_resolves_to_its_own_user_when_ids_differ(app):
+    """Regression: an unlabelled sessions.id used to shadow users.id when resolving the session cookie, so a user whose
+    session id differed from their user id was treated as another account (or got errors when that id did not exist)."""
+    first = TestClient(app)
+    signup(first, "alice")
+    for _ in range(3):                     # extra sessions push session ids past user ids
+        assert login(TestClient(app), "alice").status_code == 200
+    bob = TestClient(app)
+    signup(bob, "bobby")                   # user id 2, session id 5
+    assert bob.get("/api/me").json()["user"]["username"] == "bobby"
+    assert bob.post("/api/favorites", headers=H, json={"type": "perfume", "id": 3, "liked": True}).status_code == 200
+    assert bob.get("/api/me").json()["favorites"]["perfumes"] == [3]
+    assert first.get("/api/me").json()["favorites"]["perfumes"] == []
+    store = app.state.store
+    uid = store.find_user("bobby")["id"]
+    with store.eng.connect() as con:
+        import sqlalchemy as sa
+        sid = con.execute(sa.select(userdb.sessions.c.id).where(userdb.sessions.c.user_id == uid)).scalar()
+    assert sid != uid
+
+
 def test_status_rating_note_crud_and_isolation(app):
     a, b = two_users(app)
     r = a.put("/api/me/perfumes/1", headers=H, json={"status": "owned", "rating": 5, "note": " my signature "})
@@ -530,7 +551,8 @@ def test_schema_init_is_idempotent_and_recorded(tmp_path):
     assert s2.find_user("zed") and s2.count_users() == 1
     import sqlalchemy as sa
     with s2.eng.connect() as con:
-        assert con.execute(sa.select(userdb.schema_migrations.c.version)).scalars().all() == [userdb.SCHEMA_VERSION]
+        versions = con.execute(sa.select(userdb.schema_migrations.c.version).order_by(userdb.schema_migrations.c.version)).scalars().all()
+        assert versions == list(range(1, userdb.SCHEMA_VERSION + 1))
 
 
 def test_postgres_statements_compile():

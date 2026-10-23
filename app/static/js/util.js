@@ -47,6 +47,8 @@ export function svgIcon(name, size = 18) {
     save: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
+    thumb: '<path d="M7 10.5V20H4v-9.5z"/><path d="M7 10.5l3.6-6.3c1.4 0 2.4 1.1 2.2 2.5l-.5 3.3h5.4a2 2 0 0 1 2 2.4l-1.3 6A2 2 0 0 1 16.4 20H7"/>',
+    layers: '<path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/>',
   };
   const wrap = document.createElement('span');
   wrap.className = 'ico';
@@ -83,10 +85,12 @@ export function plural(n, one, many) {
   return `${n.toLocaleString()} ${n === 1 ? one : many || one + 's'}`;
 }
 
-export function toast(msg, ms = 3200) {
+/** action: optional { label, onClick } shown as a button inside the toast (e.g. Undo) */
+export function toast(msg, ms = 3200, action = null) {
   const box = document.getElementById('toasts');
   if (!box) return;
-  const t = h('div', { class: 'toast', role: 'status' }, msg);
+  const t = h('div', { class: `toast${action ? ' has-action' : ''}`, role: 'status' }, msg,
+    action ? h('button', { class: 'toast-act', type: 'button', onclick: () => { t.remove(); action.onClick(); } }, action.label) : null);
   box.append(t);
   setTimeout(() => t.classList.add('out'), ms);
   setTimeout(() => t.remove(), ms + 400);

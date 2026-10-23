@@ -147,6 +147,7 @@ export function mountAccountMenu(root) {
     const item = (label, fn) => h('button', { class: 'menu-item', type: 'button', role: 'menuitem', onclick: () => { close(); fn(); } }, label);
     const menu = menuOpen ? h('div', { class: 'menu', role: 'menu' },
       h('div', { class: 'menu-head' }, h('b', null, u.username), h('small', null, u.email)),
+      item('My Collection', () => go('/collection')),
       item('My Atlas', () => go('/atlas')),
       item('Change password', openPasswordDialog),
       item('Delete account…', openDeleteDialog),

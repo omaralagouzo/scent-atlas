@@ -56,6 +56,30 @@ perfume_status = sa.Table(
     sa.Column("rating", sa.SmallInteger),                       # 1..5 | NULL
     sa.Column("note", sa.Text),                                 # private, short
     sa.Column("updated_at", sa.BigInteger, nullable=False),
+    sa.Column("rank_pos", sa.Integer),                          # 1-based place on the owner's leaderboard (owned only), NULL = unranked
+)
+
+# community layering combos: one row per unordered perfume pair (a_id < b_id), votes counted from layer_votes
+layer_combos = sa.Table(
+    "layer_combos", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("a_id", sa.Integer, nullable=False),
+    sa.Column("b_id", sa.Integer, nullable=False),
+    sa.Column("created_by", BigInt, sa.ForeignKey("users.id", ondelete="SET NULL")),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("up", sa.Integer, nullable=False, default=0),
+    sa.Column("down", sa.Integer, nullable=False, default=0),
+    sa.UniqueConstraint("a_id", "b_id", name="uq_layer_combo_pair"),
+    sa.Index("ix_layer_combos_b", "b_id"),
+)
+
+layer_votes = sa.Table(
+    "layer_votes", metadata,
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("combo_id", BigInt, sa.ForeignKey("layer_combos.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("vote", sa.SmallInteger, nullable=False),          # +1 | -1
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Index("ix_layer_votes_combo", "combo_id"),
 )
 
 saved_searches = sa.Table(
@@ -95,9 +119,10 @@ schema_migrations = sa.Table(
     sa.Column("applied_at", sa.BigInteger, nullable=False),
 )
 
-SCHEMA_VERSION = 1  # bump + add a step in _MIGRATIONS when the schema changes
+SCHEMA_VERSION = 2  # bump + add a step in _MIGRATIONS when the schema changes
 HISTORY_CAP = 200
 SAVED_CAP = 100
+COLLECTION_CAP = 5000   # longest leaderboard accepted in one order update
 STATUSES = ("owned", "tried", "wishlist")
 
 
@@ -135,7 +160,16 @@ def _migrate_v1(conn):
     metadata.create_all(conn)  # CREATE TABLE IF NOT EXISTS semantics (checkfirst)
 
 
-_MIGRATIONS = {1: _migrate_v1}
+def _migrate_v2(conn):
+    """Collection leaderboard (perfume_status.rank_pos) + community layering combos / votes.
+    A database created after this change already has both from v1's create_all."""
+    cols = {c["name"] for c in sa.inspect(conn).get_columns("perfume_status")}
+    if "rank_pos" not in cols:
+        conn.execute(sa.text("ALTER TABLE perfume_status ADD COLUMN rank_pos INTEGER"))
+    metadata.create_all(conn, tables=[layer_combos, layer_votes])
+
+
+_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2}
 
 
 def init_schema(eng: sa.Engine) -> None:
@@ -269,6 +303,10 @@ class UserStore:
 
     def delete_user(self, uid: int):
         with self.eng.begin() as c:  # explicit deletes: do not depend on FK cascades being enabled
+            voted = [int(r[0]) for r in c.execute(sa.select(layer_votes.c.combo_id).where(layer_votes.c.user_id == uid))]
+            c.execute(layer_votes.delete().where(layer_votes.c.user_id == uid))
+            self._recount(c, voted)
+            c.execute(layer_combos.update().where(layer_combos.c.created_by == uid).values(created_by=None))
             for t in (sessions, favorites, perfume_status, saved_searches, history):
                 c.execute(t.delete().where(t.c.user_id == uid))
             c.execute(users.delete().where(users.c.id == uid))
@@ -285,18 +323,19 @@ class UserStore:
         """Resolve a session -> (user dict, refreshed: bool) or (None, False). Sliding expiry."""
         now = _now()
         with self.eng.begin() as c:
+            # the session columns are labelled: an unlabelled sessions.id would shadow users.id in the row mapping
             r = c.execute(
-                sa.select(sessions.c.id, sessions.c.expires_at, users)
+                sa.select(sessions.c.id.label("session_id"), sessions.c.expires_at.label("session_expires_at"), users)
                 .select_from(sessions.join(users, users.c.id == sessions.c.user_id))
                 .where(sessions.c.token_hash == token_hash)).mappings().first()
             if not r:
                 return None, False
-            if r["expires_at"] <= now:
+            if r["session_expires_at"] <= now:
                 c.execute(sessions.delete().where(sessions.c.token_hash == token_hash))
                 return None, False
             refreshed = False
-            if now + ttl - r["expires_at"] > refresh_after:
-                c.execute(sessions.update().where(sessions.c.id == r["id"]).values(expires_at=now + ttl, last_seen_at=now))
+            if now + ttl - r["session_expires_at"] > refresh_after:
+                c.execute(sessions.update().where(sessions.c.id == r["session_id"]).values(expires_at=now + ttl, last_seen_at=now))
                 refreshed = True
             user = {k: r[k] for k in users.c.keys()}
         return user, refreshed
@@ -361,11 +400,128 @@ class UserStore:
                     sa.and_(perfume_status.c.user_id == uid, perfume_status.c.perfume_id == pid)))
                 return None
             row["note"] = (row["note"] or "").strip() or None
+            old_rank = cur["rank_pos"] if cur else None
+            row["rank_pos"] = old_rank if row["status"] == "owned" else None   # only owned perfumes are ranked
             stmt = self._insert(perfume_status).values(user_id=uid, perfume_id=pid, updated_at=_now(), **row)
             c.execute(stmt.on_conflict_do_update(
                 index_elements=["user_id", "perfume_id"],
-                set_={k: stmt.excluded[k] for k in ("status", "rating", "note", "updated_at")}))
+                set_={k: stmt.excluded[k] for k in ("status", "rating", "note", "updated_at", "rank_pos")}))
+            if old_rank is not None and row["rank_pos"] is None:
+                self._close_rank_gap(c, uid, old_rank)
         return {"status": row["status"], "rating": row["rating"], "note": row["note"]}
+
+    @staticmethod
+    def _close_rank_gap(c, uid: int, removed: int):
+        c.execute(perfume_status.update().where(sa.and_(
+            perfume_status.c.user_id == uid, perfume_status.c.rank_pos > removed)).values(
+            rank_pos=perfume_status.c.rank_pos - 1))
+
+    # ------------------------------------------------------------------ collection leaderboard
+    def set_collection_order(self, uid: int, ids: list[int]) -> list[int]:
+        """The ranked part of the collection, best first. Ids that are not owned are ignored; owned perfumes left out
+        become unranked. Returns the stored order."""
+        with self.eng.begin() as c:
+            owned = {int(r[0]) for r in c.execute(sa.select(perfume_status.c.perfume_id).where(sa.and_(
+                perfume_status.c.user_id == uid, perfume_status.c.status == "owned")))}
+            order, seen = [], set()
+            for pid in ids:
+                if pid in owned and pid not in seen:
+                    seen.add(pid)
+                    order.append(pid)
+            c.execute(perfume_status.update().where(sa.and_(
+                perfume_status.c.user_id == uid, perfume_status.c.rank_pos.isnot(None))).values(rank_pos=None))
+            if order:
+                stmt = (perfume_status.update().where(sa.and_(
+                    perfume_status.c.user_id == uid, perfume_status.c.perfume_id == sa.bindparam("pid")))
+                    .values(rank_pos=sa.bindparam("pos")))
+                c.execute(stmt, [{"pid": pid, "pos": k + 1} for k, pid in enumerate(order)])
+        return order
+
+    def collection_order(self, uid: int) -> list[int]:
+        with self.eng.connect() as c:
+            return [int(r[0]) for r in c.execute(sa.select(perfume_status.c.perfume_id).where(sa.and_(
+                perfume_status.c.user_id == uid, perfume_status.c.status == "owned",
+                perfume_status.c.rank_pos.isnot(None))).order_by(perfume_status.c.rank_pos))]
+
+    # ------------------------------------------------------------------ community layering combos
+    @staticmethod
+    def _pair(a: int, b: int) -> tuple[int, int]:
+        return (a, b) if a < b else (b, a)
+
+    def find_combo(self, a: int, b: int):
+        a, b = self._pair(a, b)
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(layer_combos).where(sa.and_(
+                layer_combos.c.a_id == a, layer_combos.c.b_id == b))).mappings().first()
+        return dict(r) if r else None
+
+    def get_combo(self, cid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(layer_combos).where(layer_combos.c.id == cid)).mappings().first()
+        return dict(r) if r else None
+
+    def combos_created_since(self, uid: int, since: int) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(layer_combos).where(sa.and_(
+                layer_combos.c.created_by == uid, layer_combos.c.created_at >= since))).scalar() or 0)
+
+    def create_combo(self, uid: int, a: int, b: int) -> tuple[dict, bool]:
+        """(combo, created). An existing pair is returned as is; a new one starts with its author's thumbs up."""
+        a, b = self._pair(a, b)
+        try:
+            with self.eng.begin() as c:
+                r = c.execute(layer_combos.insert().values(a_id=a, b_id=b, created_by=uid, created_at=_now(), up=0, down=0))
+                cid = int(r.inserted_primary_key[0])
+        except IntegrityError:
+            return self.find_combo(a, b), False
+        self.vote_combo(uid, cid, 1)
+        return self.get_combo(cid), True
+
+    def vote_combo(self, uid: int, cid: int, vote: int):
+        """vote: +1, -1, or 0 (take the vote back). Counts are recomputed from layer_votes, so they never drift."""
+        with self.eng.begin() as c:
+            where = sa.and_(layer_votes.c.user_id == uid, layer_votes.c.combo_id == cid)
+            if vote == 0:
+                c.execute(layer_votes.delete().where(where))
+            else:
+                stmt = self._insert(layer_votes).values(user_id=uid, combo_id=cid, vote=vote, created_at=_now())
+                c.execute(stmt.on_conflict_do_update(index_elements=["user_id", "combo_id"],
+                                                     set_={"vote": stmt.excluded.vote, "created_at": stmt.excluded.created_at}))
+            self._recount(c, [cid])
+        return self.get_combo(cid)
+
+    @staticmethod
+    def _recount(c, cids):
+        for cid in cids:
+            def n(v):
+                return sa.select(sa.func.count()).select_from(layer_votes).where(sa.and_(
+                    layer_votes.c.combo_id == cid, layer_votes.c.vote == v)).scalar_subquery()
+            c.execute(layer_combos.update().where(layer_combos.c.id == cid).values(up=n(1), down=n(-1)))
+
+    def combos_for(self, pid: int, limit: int = 200):
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(layer_combos).where(sa.or_(layer_combos.c.a_id == pid, layer_combos.c.b_id == pid))
+                             .order_by((layer_combos.c.up - layer_combos.c.down).desc(), layer_combos.c.id).limit(limit)).mappings().all()
+        return [dict(r) for r in rows]
+
+    def top_combos(self, limit: int = 60, min_up: int = 1):
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(layer_combos).where(layer_combos.c.up >= min_up)
+                             .order_by((layer_combos.c.up - layer_combos.c.down).desc(), layer_combos.c.up.desc(), layer_combos.c.id)
+                             .limit(limit)).mappings().all()
+        return [dict(r) for r in rows]
+
+    def user_votes(self, uid: int, cids: list[int]) -> dict[int, int]:
+        if not cids:
+            return {}
+        with self.eng.connect() as c:
+            return {int(r[0]): int(r[1]) for r in c.execute(sa.select(layer_votes.c.combo_id, layer_votes.c.vote).where(sa.and_(
+                layer_votes.c.user_id == uid, layer_votes.c.combo_id.in_(list(cids)))))}
+
+    def delete_combo(self, cid: int) -> bool:
+        with self.eng.begin() as c:
+            c.execute(layer_votes.delete().where(layer_votes.c.combo_id == cid))
+            return c.execute(layer_combos.delete().where(layer_combos.c.id == cid)).rowcount > 0
 
     # ------------------------------------------------------------------ saved searches
     def list_saved(self, uid: int, kind: str | None = None):

@@ -7,7 +7,8 @@ as a Blueprint or create the resources by hand).
 The catalog (140k perfumes) is read-only and ships in the repo as `data/deploy/catalog.db.gz` (~19 MB). It is decompressed
 into the instance's temp dir at startup (about 90 MB on the ephemeral disk) and loaded into compact numpy arrays:
 **~150 MB RSS** for the whole server (measured with `python app/memcheck.py --serve`), peak ~250 MB during the 6-second load. Accounts, favorites, collection, saved
-searches and history live in Postgres.
+searches and history live in Postgres. The layering model (candidate pool + curated pairs, ~1 s) is built in a background
+thread at startup and adds about 15 MB.
 
 ## Build command
 
@@ -32,7 +33,7 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
 
 | variable | required | value / default | purpose |
 |---|---|---|---|
-| `DATABASE_URL` | yes | Render Postgres *internal* connection string (`postgres://...` or `postgresql://...`; both are accepted) | user data. When unset the app uses SQLite `data/users.db` (local use). Tables are created on startup; nothing to migrate by hand. |
+| `DATABASE_URL` | yes | Render Postgres *internal* connection string (`postgres://...` or `postgresql://...`; both are accepted) | user data. When unset the app uses SQLite `data/users.db` (local use). Tables are created and upgraded on startup (`schema_migrations`; v2 adds the leaderboard column and the layering combo / vote tables to an existing database in place); nothing to migrate by hand. |
 | `CATALOG_DB_GZ` | yes | `/opt/render/project/src/data/deploy/catalog.db.gz` | gzip catalog; decompressed once if the `.db` is missing (to `SCENT_WORK_DIR`, default the system temp dir). If unset and `data/master.db` is absent, the repo's `data/deploy/catalog.db.gz` is used anyway. |
 | `IMAGE_MODE` | yes | `remote` (default `local`) | `remote`: the API returns direct `fimgs.net` / Wikimedia URLs, the server never proxies or writes images; the frontend falls back to the generated SVG (`/img/...`) on `onerror`. |
 | `ALLOWED_HOSTS` | yes | e.g. `scent-atlas.onrender.com,example.com` (default `127.0.0.1,localhost`) | Host-header allow list (ports ignored, `*.suffix` and `*` supported). Requests to other hosts get 400. |
@@ -67,7 +68,7 @@ brand-tag / dupe-link tables into `master.db`, the deploy build carries them; me
 
 * Passwords: argon2id (19 MiB, t=2, p=1), at most two hashes in flight; min length 8 and a common-password list.
 * Sessions: HttpOnly, SameSite=Lax cookie (`Secure` off localhost), 30-day sliding expiry, only a SHA-256 of the token is stored.
-* CSRF: every state-changing `/api/auth|me|favorites` call needs `X-Requested-With: scent-atlas`, a JSON content type, and a
+* CSRF: every state-changing `/api/auth|me|favorites|layering` call needs `X-Requested-With: scent-atlas`, a JSON content type, and a
   same-origin `Origin` when one is sent.
 * Rate limits are in memory (single worker): per IP and per account on login/sign-up/password changes.
 * CSP: `default-src 'self'`, `img-src 'self' data: https://fimgs.net https://upload.wikimedia.org`, `frame-ancestors 'none'`,

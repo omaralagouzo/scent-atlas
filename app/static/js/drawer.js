@@ -74,6 +74,7 @@ function renderDetail(p) {
         p.perfumers && p.perfumers.length ? h('p', { class: 'perfumers' }, h('span', { class: 'muted' }, p.perfumers.length > 1 ? 'Perfumers ' : 'Perfumer '), p.perfumers.join(', ')) : null)),
     h('div', { class: 'detail-actions' },
       h('button', { class: 'btn btn-primary', type: 'button', onclick: () => go(`/like/${p.id}`) }, svgIcon('search', 16), 'Find similar'),
+      h('button', { class: 'btn', type: 'button', onclick: () => go(`/layering/${p.id}`), title: 'What to layer this fragrance with' }, svgIcon('layers', 16), 'Layering'),
       h('button', { class: 'btn', type: 'button', onclick: () => go('/pyramid', pyrParams), title: 'Load this pyramid into the builder' }, 'Edit as pyramid'),
       h('a', { class: 'btn', href: p.link, target: '_blank', rel: 'noopener noreferrer', title: p.link_is_exact ? 'Open on Fragrantica' : 'Search on Fragrantica' },
         p.link_is_exact ? 'Fragrantica' : 'Search Fragrantica', svgIcon('external', 14)),

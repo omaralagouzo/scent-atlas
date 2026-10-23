@@ -8,6 +8,8 @@ import { mountCombine } from './views/combine.js';
 import { mountPyramid } from './views/pyramid.js';
 import { mountLike } from './views/like.js';
 import { mountAtlas } from './views/atlas.js';
+import { mountCollection } from './views/collection.js';
+import { mountLayering } from './views/layering.js';
 import { mountAbout } from './views/about.js';
 import { mountAccountMenu } from './auth.js';
 
@@ -37,6 +39,10 @@ route('/pyramid', mountPyramid);
 route('/like', mountLike);
 route('/like/:id', mountLike);
 route('/atlas', mountAtlas);
+route('/collection', mountCollection);
+route('/layering', mountLayering);
+route('/layering/:id', mountLayering);
+route('/layering/:id/:other', mountLayering);
 route('/favorites', () => { location.replace('#/atlas'); });  // old bookmark
 route('/about', mountAbout);
 setDrawer({ open: showDrawer, close: hideDrawer });
