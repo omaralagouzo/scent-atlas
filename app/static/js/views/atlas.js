@@ -98,7 +98,8 @@ export function mountAtlas(root) {
       grid.replaceChildren(...(items.length ? items.map((it) => perfumeCard(it, { extra: myExtra(it) }))
         : [h('p', { class: 'muted' }, k === 'rated' ? 'Perfumes you rated without marking a status appear here.' : 'Nothing here yet. Use the bookmark on any perfume card to add it.')]));
     };
-    sec.append(h('div', { class: 'toolbar' }, h('h2', { class: 'sec-title inline' }, 'My collection'), segmented(tabs, first, draw, 'Collection')), grid);
+    sec.append(h('div', { class: 'toolbar' }, h('h2', { class: 'sec-title inline' }, 'My collection'), segmented(tabs, first, draw, 'Collection'),
+      h('a', { class: 'btn btn-sm', href: '#/collection' }, svgIcon('star', 15), 'Leaderboard & scent profile')), grid);
     draw(first);
     return sec;
   }

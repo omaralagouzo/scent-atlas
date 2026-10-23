@@ -28,6 +28,7 @@ import auth  # noqa: E402
 import catalog as cat_mod  # noqa: E402
 import config  # noqa: E402
 import images  # noqa: E402
+import layering  # noqa: E402
 import palette  # noqa: E402
 import query  # noqa: E402
 import similarity as sim  # noqa: E402
@@ -172,6 +173,8 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # build the layering model (pool features, curated pairs: ~1 s, ~4 MB) off the request path
+        threading.Thread(target=layering.model, args=(cat,), daemon=True, name="layering-warmup").start()
         if os.environ.get("SCENT_OPEN") == "1":
             threading.Timer(0.8, lambda: webbrowser.open(f"http://{settings.host}:{settings.port}/")).start()
         yield

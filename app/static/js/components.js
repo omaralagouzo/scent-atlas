@@ -261,6 +261,50 @@ export function noteSearch({ placeholder = 'Add a note…', onPick, allowExclude
   return { el: wrap, input };
 }
 
+// ---------------------------------------------------------------- perfume picker (search box + suggestion list)
+/** opts: onPick(perfume), placeholder, label, clearOnPick (keep the box ready for the next one), skip(): Set of ids to hide */
+export function perfumePicker({ onPick, placeholder = 'Search a perfume or brand — Aventus, Shalimar, Tom Ford…', label = 'Search for a perfume', clearOnPick = false, skip = () => new Set(), autofocus = false } = {}) {
+  const input = h('input', { class: 'input big', type: 'search', placeholder, 'aria-label': label, autocomplete: 'off', 'data-search': '', role: 'combobox', 'aria-expanded': 'false', 'aria-autocomplete': 'list' });
+  const list = h('ul', { class: 'pick-list', role: 'listbox', hidden: true });
+  let items = [], active = -1, seq = 0;
+  const setActive = (i) => { active = i; [...list.children].forEach((li, k) => li.setAttribute('aria-selected', String(k === i))); if (list.children[i]) list.children[i].scrollIntoView({ block: 'nearest' }); };
+  const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); };
+  const choose = (p) => { if (clearOnPick) { input.value = ''; close(); input.focus(); } onPick(p); };
+  const draw = () => {
+    list.replaceChildren(...items.map((p, i) => {
+      const li = h('li', { class: 'pick-item', role: 'option', 'aria-selected': 'false' },
+        bottleImg(p, '', 'pick-img'),
+        h('span', { class: 'pick-text' }, h('b', null, p.name), h('small', null, `${p.brand}${p.year ? ' · ' + p.year : ''}`)),
+        h('span', { class: 'pick-rate' }, p.rating ? `★ ${p.rating.toFixed(2)}` : ''));
+      li.addEventListener('mousedown', (e) => { e.preventDefault(); choose(p); });
+      li.addEventListener('mousemove', () => setActive(i));
+      return li;
+    }));
+    if (!items.length) list.replaceChildren(h('li', { class: 'ac-empty' }, 'No perfume found'));
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    setActive(items.length ? 0 : -1);
+  };
+  const fetchNow = async () => {
+    const q = input.value.trim();
+    if (q.length < 2) { close(); return; }
+    const my = ++seq;
+    try { const r = await api.get('/api/perfumes', { q, limit: 10 }); if (my !== seq) return; const sk = skip(); items = r.results.filter((p) => !sk.has(p.id)).slice(0, 8); draw(); } catch (e) { /* ignore */ }
+  };
+  input.addEventListener('input', debounce(fetchNow, 140));
+  input.addEventListener('blur', () => setTimeout(close, 120));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) fetchNow(); else setActive((active + 1) % Math.max(items.length, 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((active - 1 + items.length) % Math.max(items.length, 1)); }
+    else if (e.key === 'Enter' && !list.hidden && items[active]) { e.preventDefault(); choose(items[active]); }
+    else if (e.key === 'Escape' && !list.hidden) { e.stopPropagation(); close(); }
+  });
+  if (autofocus) setTimeout(() => input.focus(), 0);
+  const el = h('div', { class: 'picker' }, h('span', { class: 'ac-ico' }, svgIcon('search', 18)), input, list);
+  el.input = input;
+  return el;
+}
+
 // ---------------------------------------------------------------- segmented control
 export function segmented(options, value, onChange, label = '') {
   const el = h('div', { class: 'seg', role: 'group', 'aria-label': label });

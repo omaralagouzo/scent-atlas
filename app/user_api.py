@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 import auth
+import collection
+import layer_api
 import query
 import taste
 import userdb
@@ -150,6 +152,15 @@ class StatusBody(BaseModel):
     status: str | None = None
     rating: int | None = Field(default=None, ge=1, le=5)
     note: str | None = Field(default=None, max_length=500)
+
+
+class CollectionAddBody(BaseModel):
+    perfume_id: int
+    rank: int | None = Field(default=None, ge=1, le=userdb.COLLECTION_CAP)
+
+
+class OrderBody(BaseModel):
+    ids: list[int] = Field(max_length=userdb.COLLECTION_CAP)
 
 
 class SavedBody(BaseModel):
@@ -373,6 +384,38 @@ def make_router(ctx: Ctx) -> APIRouter:
         store.put_status(user["id"], pid, {"status": None, "rating": None, "note": None})
         return status_out(None)
 
+    # ---- My Collection: owned perfumes, the leaderboard order and the scent profile -----------------
+    def collection_out(uid):
+        rows = [r for r in store.list_status(uid, "owned") if cat.idx_of(r["perfume_id"]) is not None]
+        rows.sort(key=lambda r: (r["rank_pos"] is None, r["rank_pos"] or 0, -r["updated_at"]))
+        items = [{**cat.summary(cat.idx_of(r["perfume_id"])), "my": status_out(r), "rank": r["rank_pos"],
+                  "added_at": r["updated_at"]} for r in rows]
+        return {"items": items, "order": [r["perfume_id"] for r in rows if r["rank_pos"]],
+                "profile": collection.build(cat, rows)}
+
+    @router.get("/me/collection")
+    def my_collection(response: Response, user=Depends(require_user)):
+        response.headers["Cache-Control"] = "no-store"
+        return collection_out(user["id"])
+
+    @router.post("/me/collection")
+    def add_to_collection(body: CollectionAddBody, user=Depends(require_user)):
+        """Mark a perfume as owned; with `rank` it is also placed on the leaderboard at that position (1 = best)."""
+        if cat.idx_of(body.perfume_id) is None:
+            raise HTTPException(404, "perfume not found")
+        uid = user["id"]
+        store.put_status(uid, body.perfume_id, {"status": "owned"})
+        if body.rank is not None:
+            order = [p for p in store.collection_order(uid) if p != body.perfume_id]
+            order.insert(min(body.rank, len(order) + 1) - 1, body.perfume_id)
+            store.set_collection_order(uid, order)
+        return collection_out(uid)
+
+    @router.put("/me/collection/order")
+    def set_order(body: OrderBody, user=Depends(require_user)):
+        store.set_collection_order(user["id"], body.ids)
+        return collection_out(user["id"])
+
     # ---- saved searches ------------------------------------------------------------------------
     def saved_out(r):
         notes = []
@@ -521,4 +564,5 @@ def make_router(ctx: Ctx) -> APIRouter:
             except Exception:
                 pass  # a malformed legacy file must never block sign-up
 
+    router.include_router(layer_api.make_router(ctx, current_user, require_user))
     return router

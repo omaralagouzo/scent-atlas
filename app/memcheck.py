@@ -70,6 +70,10 @@ def queries(get, post):
         ("smells-like, only dupes", lambda: get(f"/api/perfumes/{pid}/similar?limit=24&only_dupes=1")),
         ("brand info", lambda: get("/api/brands/info?name=Lattafa%20Perfumes")),
         ("brands", lambda: get("/api/brands?q=chan")),
+        (f"layering for perfume {pid}", lambda: get(f"/api/layering/{pid}?limit=12")),
+        (f"layering page 2", lambda: get(f"/api/layering/{pid}?limit=12&offset=12")),
+        ("layering pair page", lambda: get(f"/api/layering/{pid}/with/{get('/api/search?per_page=2')['results'][1]['id']}")),
+        ("layering home", lambda: get("/api/layering")),
         ("resolve names", lambda: post("/api/notes/resolve", {"names": ["bergamot", "pink pepper", "jasmin", "tonka"]})),
     ]
 

@@ -108,6 +108,12 @@ export function render() {
       if (on) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     });
+    // on narrow screens the nav scrolls sideways: keep the current page's link in view (horizontally only)
+    const nav = document.querySelector('.nav'), cur = document.querySelector('.nav a[aria-current]');
+    if (nav && cur && nav.scrollWidth > nav.clientWidth) {
+      const l = cur.offsetLeft - nav.offsetLeft, r = l + cur.offsetWidth;
+      if (l < nav.scrollLeft || r > nav.scrollLeft + nav.clientWidth) nav.scrollTo({ left: Math.max(0, l - 24), behavior: 'smooth' });
+    }
     if (prevPath !== path) window.scrollTo(0, 0);
   }
   const p = params.get('p');
