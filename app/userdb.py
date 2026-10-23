@@ -285,18 +285,19 @@ class UserStore:
         """Resolve a session -> (user dict, refreshed: bool) or (None, False). Sliding expiry."""
         now = _now()
         with self.eng.begin() as c:
+            # the session columns are labelled: an unlabelled sessions.id would shadow users.id in the row mapping
             r = c.execute(
-                sa.select(sessions.c.id, sessions.c.expires_at, users)
+                sa.select(sessions.c.id.label("session_id"), sessions.c.expires_at.label("session_expires_at"), users)
                 .select_from(sessions.join(users, users.c.id == sessions.c.user_id))
                 .where(sessions.c.token_hash == token_hash)).mappings().first()
             if not r:
                 return None, False
-            if r["expires_at"] <= now:
+            if r["session_expires_at"] <= now:
                 c.execute(sessions.delete().where(sessions.c.token_hash == token_hash))
                 return None, False
             refreshed = False
-            if now + ttl - r["expires_at"] > refresh_after:
-                c.execute(sessions.update().where(sessions.c.id == r["id"]).values(expires_at=now + ttl, last_seen_at=now))
+            if now + ttl - r["session_expires_at"] > refresh_after:
+                c.execute(sessions.update().where(sessions.c.id == r["session_id"]).values(expires_at=now + ttl, last_seen_at=now))
                 refreshed = True
             user = {k: r[k] for k in users.c.keys()}
         return user, refreshed
