@@ -229,6 +229,7 @@ def test_community_combos_and_votes(app):
 
     combo = a.post("/api/layering/combos", headers=H, json={"a": 2, "b": 1}).json()
     assert (combo["up"], combo["down"], combo["my_vote"]) == (1, 0, 1)                        # author's thumbs up
+    assert combo["by"] == "alice" and combo["created_at"] > 0                                # for the feed card
     assert {combo["a"]["id"], combo["b"]["id"]} == {1, 2} and "verdict" in combo["ours"]
     again = b.post("/api/layering/combos", headers=H, json={"a": 1, "b": 2}).json()          # same pair = a vote
     assert again["id"] == combo["id"] and again["up"] == 2
@@ -246,6 +247,7 @@ def test_community_combos_and_votes(app):
     assert b.get("/api/layering/2/with/1").json()["community"]["my_vote"] == 0
     assert TestClient(app).get("/api/layering").json()["community"][0]["my_vote"] == 0
     assert a.get("/api/layering").json()["community"][0]["id"] == cid
+    assert a.get("/api/layering/1").json()["community"][0]["by"] == "alice"
 
 
 def test_combo_creation_is_rate_limited(app, monkeypatch):

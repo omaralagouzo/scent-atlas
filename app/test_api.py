@@ -416,3 +416,18 @@ def test_frontend_is_served(tiny):
     r = tiny.get("/")
     assert r.status_code == 200 and "Scent Atlas" in r.text
     assert tiny.get("/js/main.js").status_code == 200
+
+
+def test_new_frontend_is_served(tiny):
+    """The React build (web/ -> app/static/next) is served at /next/; link previews and the favicon at the root."""
+    r = tiny.get("/next/")
+    assert r.status_code == 200 and 'id="root"' in r.text and "/next/assets/" in r.text
+    asset = r.text.split('src="/next/assets/')[1].split('"')[0]
+    assert tiny.get(f"/next/assets/{asset}").status_code == 200
+    for page in (r.text, tiny.get("/").text):
+        assert 'property="og:image"' in page and 'name="twitter:card"' in page
+    assert tiny.get("/og.jpg").headers["content-type"] == "image/jpeg"
+    assert tiny.get("/favicon.svg").status_code == 200
+    # inline style attributes are allowed (React/Radix set them); inline scripts are not
+    csp = r.headers["content-security-policy"]
+    assert "style-src 'self' 'unsafe-inline'" in csp and "script-src 'self';" in csp

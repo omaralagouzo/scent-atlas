@@ -71,6 +71,7 @@ def make_router(ctx, current_user, require_user) -> APIRouter:
         rep = L.pair_report(cat, ia, ib)
         d = {"id": c["id"], "up": c["up"], "down": c["down"], "rank": round(wilson(c["up"], c["down"]), 4),
              "my_vote": (votes or {}).get(c["id"], 0) if me else 0,
+             "by": c.get("by"), "created_at": c["created_at"],
              "a": cat.summary(ia), "b": cat.summary(ib),
              "ours": {"verdict": rep["verdict"], "verdict_label": rep["verdict_label"], "recommended": rep["recommended"]}}
         if anchor is not None:

@@ -451,13 +451,13 @@ class UserStore:
     def find_combo(self, a: int, b: int):
         a, b = self._pair(a, b)
         with self.eng.connect() as c:
-            r = c.execute(sa.select(layer_combos).where(sa.and_(
+            r = c.execute(self._combo_select().where(sa.and_(
                 layer_combos.c.a_id == a, layer_combos.c.b_id == b))).mappings().first()
         return dict(r) if r else None
 
     def get_combo(self, cid: int):
         with self.eng.connect() as c:
-            r = c.execute(sa.select(layer_combos).where(layer_combos.c.id == cid)).mappings().first()
+            r = c.execute(self._combo_select().where(layer_combos.c.id == cid)).mappings().first()
         return dict(r) if r else None
 
     def combos_created_since(self, uid: int, since: int) -> int:
@@ -498,15 +498,21 @@ class UserStore:
                     layer_votes.c.combo_id == cid, layer_votes.c.vote == v)).scalar_subquery()
             c.execute(layer_combos.update().where(layer_combos.c.id == cid).values(up=n(1), down=n(-1)))
 
+    @staticmethod
+    def _combo_select():
+        """Combo rows plus the author's username as `by` (None once the author deleted their account)."""
+        return sa.select(layer_combos, users.c.username.label("by")).select_from(
+            layer_combos.outerjoin(users, users.c.id == layer_combos.c.created_by))
+
     def combos_for(self, pid: int, limit: int = 200):
         with self.eng.connect() as c:
-            rows = c.execute(sa.select(layer_combos).where(sa.or_(layer_combos.c.a_id == pid, layer_combos.c.b_id == pid))
+            rows = c.execute(self._combo_select().where(sa.or_(layer_combos.c.a_id == pid, layer_combos.c.b_id == pid))
                              .order_by((layer_combos.c.up - layer_combos.c.down).desc(), layer_combos.c.id).limit(limit)).mappings().all()
         return [dict(r) for r in rows]
 
     def top_combos(self, limit: int = 60, min_up: int = 1):
         with self.eng.connect() as c:
-            rows = c.execute(sa.select(layer_combos).where(layer_combos.c.up >= min_up)
+            rows = c.execute(self._combo_select().where(layer_combos.c.up >= min_up)
                              .order_by((layer_combos.c.up - layer_combos.c.down).desc(), layer_combos.c.up.desc(), layer_combos.c.id)
                              .limit(limit)).mappings().all()
         return [dict(r) for r in rows]
