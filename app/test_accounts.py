@@ -505,7 +505,9 @@ def test_security_headers(app):
     r = TestClient(app).get("/")
     csp = r.headers["content-security-policy"]
     assert "img-src 'self' data: https://fimgs.net https://upload.wikimedia.org" in csp
-    assert "frame-ancestors 'none'" in csp and "default-src 'self'" in csp and "'unsafe-inline'" not in csp
+    assert "frame-ancestors 'none'" in csp and "default-src 'self'" in csp
+    # scripts stay strictly same-origin; inline *styles* are allowed (React / Radix set style attributes)
+    assert "script-src 'self';" in csp and csp.count("'unsafe-inline'") == 1 and "style-src 'self' 'unsafe-inline'" in csp
     assert r.headers["x-content-type-options"] == "nosniff"
     assert r.headers["referrer-policy"] == "strict-origin-when-cross-origin"
     assert r.headers["x-frame-options"] == "DENY"
