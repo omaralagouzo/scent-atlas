@@ -283,9 +283,9 @@ function OnePage({ id }: { id: number }) {
   return (
     <Page>
       <Crumb href="#/layering">Layering</Crumb>
-      <div className="mb-10 grid grid-cols-[minmax(0,1fr)] gap-6 rounded-2xl border bg-card p-4 sm:p-6 lg:grid-cols-[200px_minmax(0,1fr)_280px]">
-        <button type="button" onClick={() => openPerfume(s.id)} aria-label={`${s.name} details`} className="mx-auto grid aspect-square w-40 place-items-center overflow-hidden rounded-[23%] bg-white ring-1 ring-border sm:w-48 lg:w-full dark:bg-sand-100">
-          <BottleImg p={s} className="h-[86%] w-[86%] mix-blend-multiply" />
+      <div className="mb-10 grid grid-cols-[minmax(0,1fr)] gap-6 rounded-2xl border bg-card p-4 sm:p-6 lg:grid-cols-[300px_minmax(0,1fr)_280px]">
+        <button type="button" onClick={() => openPerfume(s.id)} aria-label={`${s.name} details`} className="mx-auto grid aspect-[4/5] w-56 place-items-center overflow-hidden rounded-xl bg-white sm:w-64 lg:w-full dark:bg-sand-100">
+          <BottleImg p={s} className="h-full w-full mix-blend-multiply" />
         </button>
         <div className="flex min-w-0 flex-col gap-3">
           <div>
@@ -497,8 +497,8 @@ function PairPage({ a, b }: { a: number; b: number }) {
       className="group flex min-w-0 flex-1 flex-col items-center gap-2 rounded-xl p-2 text-center transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <span className="font-mono text-[11px] tracking-[.06em] text-muted-foreground uppercase">{order === 1 ? '1 · apply first' : '2 · then on top'}</span>
-      <span className="grid aspect-square w-full max-w-44 place-items-center overflow-hidden rounded-[23%] bg-white ring-1 ring-border dark:bg-sand-100">
-        <BottleImg p={p} className="h-[86%] w-[86%] mix-blend-multiply transition-transform duration-200 group-hover:scale-[1.03]" />
+      <span className="grid aspect-[4/5] w-full max-w-72 place-items-center overflow-hidden rounded-xl bg-white dark:bg-sand-100">
+        <BottleImg p={p} className="h-full w-full mix-blend-multiply transition-transform duration-200 group-hover:scale-[1.03]" />
       </span>
       <b className="font-serif text-[22px] leading-tight font-normal sm:text-[26px]">{p.name}</b>
       <span className="-mt-1.5 text-xs text-muted-foreground">{p.brand}</span>

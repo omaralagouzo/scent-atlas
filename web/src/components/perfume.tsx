@@ -6,7 +6,7 @@ import type { Perfume } from '@/lib/types'
 import { HeartButton, StatusButton } from './actions'
 import { MiniAccords, RatingBadge } from './accords'
 import { BrandLink, DupeBadges, LinkBadge, TagBadges } from './brandtags'
-import { BottleImg, BottleThumb } from './media'
+import { BottleImg } from './media'
 import { LAYER_COLOR } from './notes'
 
 const isControl = (t: EventTarget) => !!(t as HTMLElement).closest('button, a, [role="menu"], [data-no-open]')
@@ -38,13 +38,13 @@ export function PerfumeCard({ p, extra, className }: { p: Perfume; extra?: React
       )}
     >
       <div className="relative aspect-[4/5] bg-white dark:bg-sand-100">
-        <BottleImg p={p} className="absolute inset-0 m-auto h-[82%] w-[82%] mix-blend-multiply" />
+        <BottleImg p={p} className="absolute inset-0 m-auto h-[96%] w-[96%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
         <div className="absolute top-1.5 right-1.5 flex gap-0.5 rounded-full bg-card/80 backdrop-blur-sm">
           <StatusButton pid={p.id} />
           <HeartButton id={p.id} />
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-1.5 border-t p-3">
+      <div className="flex flex-1 flex-col gap-1.5 px-3 pt-1 pb-3">
         <h3 className="line-clamp-2 font-serif text-[19px] leading-[1.1]">{p.name}</h3>
         <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
           <BrandLink name={p.brand} />
@@ -103,57 +103,36 @@ export function Legend() {
 export function ResultRow({ r, rank }: { r: any; rank: number }) {
   const matched = r.explanation.filter((e: any) => e.matched)
   const missing = r.explanation.filter((e: any) => !e.matched)
-  const totalNotes = Object.values(r.pyramid || {}).reduce((s: number, a: any) => s + a.length, 0)
   const pct = Math.round(r.score * 100)
   return (
     <article
       {...openProps(r.id, `${r.name} by ${r.brand}, ${pct}% match`)}
-      className="group grid cursor-pointer grid-cols-[auto_1fr_auto] items-start gap-3 rounded-xl border bg-card p-3 transition-shadow hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:grid-cols-[2rem_auto_1fr_auto] sm:gap-4 sm:p-4"
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border bg-card transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <div className="hidden pt-1 text-center font-mono text-sm text-muted-foreground sm:block">{rank}</div>
-      <BottleThumb p={r} size={64} />
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="font-serif text-xl leading-tight">{r.name}</h3>
-          <span className="text-[13px] text-muted-foreground">
-            <BrandLink name={r.brand} />
-            {r.year ? ` · ${r.year}` : ''}
-          </span>
-          <TagBadges p={r} />
-          {r.dupe_link ? <LinkBadge link={r.dupe_link} /> : r.is_dupe || r.n_dupes ? <DupeBadges p={r} /> : null}
-        </div>
-        <MiniAccords accords={r.accords} className="max-w-sm" />
-        <div className="flex flex-wrap items-center gap-1.5" aria-label="Why it matched">
-          {matched.map((e: any) => (
-            <ExplainChip key={e.name + e.layer} e={e} />
-          ))}
-          {missing.length > 0 && (
-            <span className="text-xs text-destructive/80" title="Query notes this perfume lacks">
-              missing: {missing.map((m: any) => m.name).join(', ')}
-            </span>
-          )}
-          {totalNotes > 0 && <span className="text-xs text-muted-foreground">{totalNotes} notes total</span>}
-        </div>
-      </div>
-      <div className="flex flex-col items-end gap-1.5">
-        <div className="flex">
+      <div className="relative aspect-square bg-white dark:bg-sand-100">
+        <BottleImg p={r} className="absolute inset-0 m-auto h-[96%] w-[96%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+        <span className="absolute top-2 left-2 font-mono text-xs text-muted-foreground">#{rank}</span>
+        <span className="absolute top-2 right-2 rounded-full bg-card/90 px-2 py-0.5 font-mono text-sm font-semibold shadow-xs backdrop-blur-sm" title={`Raw similarity ${r.score.toFixed(3)}`}>
+          {pct}%
+        </span>
+        <div className="absolute right-1.5 bottom-1.5 flex gap-0.5 rounded-full bg-card/85 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           <StatusButton pid={r.id} />
           <HeartButton id={r.id} />
         </div>
-        <div className="font-mono text-2xl font-semibold leading-none" title={`Raw similarity ${r.score.toFixed(3)}`}>
-          {pct}
-          <small className="text-sm text-muted-foreground">%</small>
+      </div>
+      <div className="flex flex-1 flex-col gap-1 px-3 pt-1 pb-3">
+        <h3 className="line-clamp-2 font-serif text-[19px] leading-[1.1]">{r.name}</h3>
+        <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
+          <BrandLink name={r.brand} />
+          {r.year ? <span className="font-mono text-xs">{r.year}</span> : null}
+          <TagBadges p={r} />
         </div>
-        <div className="h-1 w-16 overflow-hidden rounded-full bg-muted">
-          <span className="block h-full rounded-full bg-foreground/80" style={{ width: `${Math.max(3, Math.round(r.relative * 100))}%` }} />
-        </div>
-        {r.shared_accords?.length > 0 && (
-          <div className="flex gap-1">
-            {r.shared_accords.slice(0, 3).map((a: any) => (
-              <i key={a.name} className="size-2.5 rounded-full" style={{ background: a.color }} title={`shared accord: ${a.name}`} />
-            ))}
-          </div>
-        )}
+        {r.dupe_link ? <LinkBadge link={r.dupe_link} /> : r.is_dupe || r.n_dupes ? <DupeBadges p={r} /> : null}
+        <p className="mt-auto line-clamp-2 pt-1 text-xs text-muted-foreground" title={missing.length ? `Missing: ${missing.map((m: any) => m.name).join(', ')}` : undefined}>
+          <span className="text-foreground">{matched.map((e: any) => e.name).join(' · ') || 'No shared notes'}</span>
+          {missing.length > 0 && <span> · {missing.length} missing</span>}
+        </p>
+        <MiniAccords accords={r.accords} className="h-1" />
       </div>
     </article>
   )

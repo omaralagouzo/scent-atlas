@@ -6,11 +6,14 @@ Tokens are in `web/src/index.css`; shadcn primitives in `web/src/components/ui/`
 
 ## Principles
 
-1. **Calm canvas, loud moments.** The site already carries a lot of colour (note photos, bottles, accord colours).
+1. **The bottle is the hero.** Wherever a perfume appears, its photo leads: large, frameless, filling its tile
+   (photos have white backgrounds, so they sit on a white tile with `mix-blend-multiply`). Scores, notes and
+   accords come after the image and stay quieter than it. Prefer image cards in a grid over text rows.
+2. **Calm canvas, loud moments.** The site already carries a lot of colour (note photos, bottles, accord colours).
    The UI chrome stays neutral (sand) so that colour always means *data*.
-2. **Game meets social.** Feeds, profiles and combos behave like a social app (avatars, handles, counts, relative
+3. **Game meets social.** Feeds, profiles and combos behave like a social app (avatars, handles, counts, relative
    time). Ranks, podiums, scores and votes are the game layer: they get mono numerals, medal colours and motion.
-3. **No glare.** Gradients are directional colour shifts only: no radial highlights, white hotspots, inner shine or
+4. **No glare.** Gradients are directional colour shifts only: no radial highlights, white hotspots, inner shine or
    glow. Brand surfaces get 15% monochrome static (`grain` utility).
 
 ## Colour budget
@@ -34,9 +37,10 @@ Tokens are in `web/src/index.css`; shadcn primitives in `web/src/components/ui/`
 
 ## Shape & elevation
 
-- `--radius` 14px. Cards `rounded-xl`, chips/pills `rounded-full`, bottle thumbs `rounded-[23%]` (the logo's squircle).
+- `--radius` 14px. Cards `rounded-xl`, chips/pills `rounded-full`, bottle tiles `rounded-lg` (avatars and the app icon keep the logo's 23% squircle).
 - Cards are flat with a 1px border; hover lifts with `shadow-md`. Popovers/dialogs use shadcn defaults.
-- Bottle photos sit on a white tile (`bg-white`, `mix-blend-multiply`) because the photos have white backgrounds.
+- Bottle photos fill a white tile edge to edge (no ring, no inner padding), `mix-blend-multiply` so the photo's white
+  background merges with the tile.
 
 ## Components
 

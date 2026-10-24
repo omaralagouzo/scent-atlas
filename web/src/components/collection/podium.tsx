@@ -131,8 +131,8 @@ function PodiumCard({ it, place, actions, className }: { it: Item; place: number
       >
         {place}
       </span>
-      <span className={cn('mt-3 grid aspect-square w-full place-items-center overflow-hidden rounded-[23%] bg-white ring-1 ring-border dark:bg-sand-100', place === 1 ? 'max-w-48' : 'max-w-40')}>
-        <BottleImg p={it} alt={`${it.name} bottle`} className="h-[86%] w-[86%] mix-blend-multiply transition-transform duration-300 ease-spring group-hover:scale-105" />
+      <span className={cn('mt-3 grid aspect-[4/5] w-full place-items-center overflow-hidden rounded-lg bg-white dark:bg-sand-100', place === 1 ? 'max-w-72' : 'max-w-60')}>
+        <BottleImg p={it} alt={`${it.name} bottle`} className="h-full w-full mix-blend-multiply transition-transform duration-300 ease-spring group-hover:scale-105" />
       </span>
       <h3 className={cn('max-w-full font-serif leading-tight font-normal break-words', place === 1 ? 'text-[26px]' : 'text-[19px] sm:text-[22px]')}>{it.name}</h3>
       <span className="-mt-1.5 text-xs text-muted-foreground">
@@ -156,12 +156,12 @@ export function RankNum({ n }: { n: number | null }) {
 
 export function RankRow({ it, place, trailing, lead, className, ref, ...rest }: { it: Item; place: number | null; trailing?: React.ReactNode; lead?: React.ReactNode; className?: string; ref?: React.Ref<HTMLLIElement> } & React.HTMLAttributes<HTMLLIElement>) {
   return (
-    <li ref={ref} {...rest} className={cn('flex items-center gap-3 border-b px-2 py-2 last:border-b-0 sm:px-3', className)}>
+    <li ref={ref} {...rest} className={cn('flex items-center gap-4 border-b px-2 py-2.5 last:border-b-0 sm:px-4', className)}>
       {lead}
       <RankNum n={place} />
-      <BottleThumb p={it} size={44} />
+      <BottleThumb p={it} size={84} />
       <button type="button" onClick={() => openPerfume(it.id)} className="flex min-w-0 flex-1 flex-col items-start text-left focus-visible:underline focus-visible:outline-none">
-        <b className="max-w-full truncate font-serif text-[18px] leading-tight font-normal hover:underline hover:underline-offset-2">{it.name}</b>
+        <b className="max-w-full truncate font-serif text-[22px] leading-tight font-normal hover:underline hover:underline-offset-2">{it.name}</b>
         <span className="max-w-full truncate text-xs text-muted-foreground">
           {it.brand}
           {it.year ? (

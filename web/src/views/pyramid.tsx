@@ -389,7 +389,7 @@ export default function PyramidView({ params }: ViewProps) {
           </div>
           <WithFilters panel={{ f, onChange: setFilters, facets, total, fetchFacet, features: { notes: false, perfumers: true } }} open={sheet} onOpenChange={setSheet}>
             <PillsBar f={f} onChange={setFilters} className="mb-3" />
-            <div className="flex flex-col gap-2.5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
               {list.items.map((it) => (
                 <ResultRow key={it.id} r={it} rank={it._rank} />
               ))}

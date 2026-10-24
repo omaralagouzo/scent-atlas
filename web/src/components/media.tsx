@@ -43,10 +43,10 @@ export function NoteImg({ n, alt = '', className }: { n: Pick<Note, 'slug' | 'im
 export function BottleThumb({ p, size = 48, className }: { p: { id: number; image: string; name?: string }; size?: number; className?: string }) {
   return (
     <span
-      className={cn('grid shrink-0 place-items-center overflow-hidden rounded-[23%] bg-white ring-1 ring-border dark:bg-sand-100', className)}
+      className={cn('grid shrink-0 place-items-center overflow-hidden rounded-lg bg-white dark:bg-sand-100', className)}
       style={{ width: size, height: size }}
     >
-      <BottleImg p={p} className="h-[88%] w-[88%] mix-blend-multiply" />
+      <BottleImg p={p} className="h-full w-full mix-blend-multiply" />
     </span>
   )
 }

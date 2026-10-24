@@ -10,7 +10,7 @@ import { plural, timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Perfume } from '@/lib/types'
 import { MiniAccords } from './accords'
-import { BottleThumb } from './media'
+import { BottleImg, BottleThumb } from './media'
 import { EmptyState } from './page'
 
 export const pairHref = (a: number, b: number) => `#/layering/${a}/${b}`
@@ -84,10 +84,12 @@ export function PartnerCard({ anchorId, p, compact = false }: { anchorId: number
     <a
       href={pairHref(anchorId, p.id)}
       aria-label={`${p.name} by ${p.brand}: ${pr.verdict_label || ''}`}
-      className="group flex gap-3 rounded-xl border bg-card p-3 transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <BottleThumb p={p} size={compact ? 56 : 72} />
-      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <span className={cn('relative block w-full bg-white dark:bg-sand-100', compact ? 'aspect-square' : 'aspect-[4/3]')}>
+        <BottleImg p={p} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pt-1 pb-3">
         <span className="flex flex-wrap items-center gap-1.5">
           <VerdictBadge v={pr.verdict} label={pr.verdict_label} />
           {pr.curated && (
@@ -131,7 +133,7 @@ export function PartnerGrid({ children }: { children: React.ReactNode }) {
 }
 
 // ---------------------------------------------------------------- two bottles with a plus
-export function Bottles({ a, b, size = 48 }: { a: Perfume; b: Perfume; size?: number }) {
+export function Bottles({ a, b, size = 88 }: { a: Perfume; b: Perfume; size?: number }) {
   return (
     <span className="flex shrink-0 items-center">
       <BottleThumb p={a} size={size} />
@@ -274,8 +276,17 @@ export function ComboCard({ c, anchorId, onChange }: { c: Combo; anchorId?: numb
           <VerdictBadge v={c.ours.verdict} label={c.ours.verdict_label} />
         </span>
       </header>
+      <a href={pairHref(first.id, partner.id)} aria-hidden="true" tabIndex={-1} className="group relative grid grid-cols-2 gap-1 overflow-hidden rounded-lg">
+        {[first, partner].map((x) => (
+          <span key={x.id} className="relative aspect-square bg-white dark:bg-sand-100">
+            <BottleImg p={x} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+          </span>
+        ))}
+        <span className="absolute top-1/2 left-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border bg-card text-muted-foreground shadow-xs">
+          <Plus className="size-3.5" />
+        </span>
+      </a>
       <a href={pairHref(first.id, partner.id)} className="group flex items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-        <Bottles a={first} b={partner} size={56} />
         <span className="flex min-w-0 flex-col gap-0.5">
           <b className="font-serif text-[18px] leading-tight font-normal group-hover:underline group-hover:underline-offset-2">
             {first.name}

@@ -85,11 +85,11 @@ function Detail({ p }: { p: any }) {
   const meta = [p.year, gender, p.country].filter(Boolean)
   return (
     <article className="flex flex-col">
-      <div className="flex flex-col gap-5 border-b p-5 pt-12 sm:flex-row sm:p-6 sm:pt-6">
-        <div className="relative mx-auto grid aspect-square w-full max-w-60 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white ring-1 ring-border sm:mx-0 sm:w-52 sm:max-w-none dark:bg-sand-100">
-          <BottleImg p={p} className="h-[86%] w-[86%] mix-blend-multiply" />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2 sm:pr-8">
+      <div className="relative aspect-[5/4] w-full shrink-0 bg-white dark:bg-sand-100">
+        <BottleImg p={p} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply" />
+      </div>
+      <div className="flex flex-col gap-5 border-b p-5 sm:p-6">
+        <div className="flex min-w-0 flex-col gap-2">
           <div className="text-sm text-muted-foreground">
             <BrandLink name={p.brand} className="font-medium text-foreground" />
           </div>

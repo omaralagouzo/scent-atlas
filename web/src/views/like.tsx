@@ -116,11 +116,11 @@ function SourceCard({ p }: { p: any }) {
     go('/pyramid', q)
   }
   return (
-    <article className="grid gap-5 rounded-xl border bg-card p-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:p-5 lg:grid-cols-[200px_minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-6">
-      <div className="relative mx-auto aspect-[4/5] w-40 overflow-hidden rounded-[23%] border bg-white sm:w-full dark:bg-sand-100">
-        <BottleImg p={p} alt={p.name} className="absolute inset-0 m-auto h-[84%] w-[84%] mix-blend-multiply" />
+    <article className="grid gap-5 overflow-hidden rounded-xl border bg-card sm:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)_minmax(0,1fr)] lg:gap-8">
+      <div className="relative aspect-[4/5] w-full bg-white dark:bg-sand-100">
+        <BottleImg p={p} alt={p.name} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply" />
       </div>
-      <div className="flex min-w-0 flex-col gap-2.5">
+      <div className="flex min-w-0 flex-col gap-2.5 px-5 pb-5 sm:py-6 sm:pl-0">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <BrandLink name={p.brand} className="font-medium text-foreground/80" />
           <TagBadges p={p} mode="full" link />
@@ -156,7 +156,7 @@ function SourceCard({ p }: { p: any }) {
           </span>
         </div>
       </div>
-      <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+      <div className="min-w-0 px-5 pb-5 sm:col-span-2 lg:col-span-1 lg:py-6 lg:pl-0">
         <PyramidDiagram pyr={p.pyramid || {}} />
       </div>
     </article>
@@ -257,7 +257,7 @@ function Similar({ pid, params }: { pid: number; params: URLSearchParams }) {
       </div>
       <WithFilters panel={{ f, onChange: setFilters, facets, total, fetchFacet, features: { notes: false, perfumers: true } }} open={sheet} onOpenChange={setSheet}>
         <PillsBar f={f} onChange={setFilters} className="mb-3" />
-        <div className="flex flex-col gap-2.5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
           {list.items.map((it) => (
             <ResultRow key={it.id} r={it} rank={it._rank} />
           ))}

@@ -179,8 +179,8 @@ function DuelCard({ p, tag, onPick, keyHint, side, was, ref }: { p: Perfume; tag
         {tag}
         <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">{keyHint}</span>
       </span>
-      <span className="grid aspect-square w-full max-w-48 place-items-center overflow-hidden rounded-[23%] bg-white ring-1 ring-border dark:bg-sand-100">
-        <BottleImg p={p} alt="" className="h-[86%] w-[86%] mix-blend-multiply transition-transform duration-300 ease-spring group-hover:scale-105" />
+      <span className="grid aspect-[4/5] w-full max-w-72 place-items-center overflow-hidden rounded-xl bg-white dark:bg-sand-100">
+        <BottleImg p={p} alt="" className="h-full w-full mix-blend-multiply transition-transform duration-300 ease-spring group-hover:scale-105" />
       </span>
       <b className="line-clamp-2 font-serif text-[18px] leading-tight font-normal sm:text-[22px]">{p.name}</b>
       <small className="-mt-1 truncate text-xs text-muted-foreground">{p.brand}</small>
