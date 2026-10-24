@@ -252,7 +252,7 @@ function MiniCard({ it, active, onCompare }: { it: any; active: boolean; onCompa
     >
       <BottleThumb p={it} size={52} />
       <div className="flex min-w-0 flex-col gap-1">
-        <h4 className="truncate font-serif text-[17px] leading-tight">{it.name}</h4>
+        <h4 className="truncate font-semibold tracking-[-0.015em] text-[15px] leading-tight">{it.name}</h4>
         <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <BrandLink name={it.brand} />
           <TagBadges p={it} />
@@ -423,7 +423,7 @@ export function ComparePanel({ r, onClose }: { r: any; onClose: () => void }) {
     <div className="flex items-center gap-2">
       <BottleThumb p={x} size={40} />
       <div className="min-w-0">
-        <b className="block truncate font-serif text-base font-normal">{x.name}</b>
+        <b className="block truncate font-semibold tracking-[-0.015em] text-[15px]">{x.name}</b>
         <small className="text-muted-foreground">{x.brand}</small>
       </div>
     </div>

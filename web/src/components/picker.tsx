@@ -126,7 +126,7 @@ export function PerfumePicker({
             >
               <BottleThumb p={p} size={40} />
               <span className="flex min-w-0 flex-1 flex-col">
-                <b className="truncate font-serif text-[17px] font-normal leading-tight">{p.name}</b>
+                <b className="truncate font-semibold tracking-[-0.015em] text-[15px] leading-tight">{p.name}</b>
                 <small className="truncate text-xs text-muted-foreground">
                   {p.brand}
                   {p.year ? ' · ' + p.year : ''}

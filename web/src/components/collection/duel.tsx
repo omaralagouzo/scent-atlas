@@ -86,7 +86,7 @@ function DuelBody({ req, rankOf }: { req: DuelRequest; rankOf: (id: number) => n
       <DialogHeader className="gap-1 border-b px-5 pt-5 pb-4 text-left sm:px-6">
         <DialogTitle className="text-lg tracking-[-0.02em]">Which do you love more?</DialogTitle>
         <DialogDescription className="text-xs">
-          Placing <span className="font-serif text-[15px] text-foreground">{it.name}</span>
+          Placing <span className="font-semibold tracking-[-0.015em] text-[14px] text-foreground">{it.name}</span>
           {batch ? (
             <>
               {' '}
@@ -113,13 +113,13 @@ function DuelBody({ req, rankOf }: { req: DuelRequest; rankOf: (id: number) => n
             {placed + 1}
           </span>
           <p className="text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-1 duration-300">
-            <span className="font-serif text-[18px] text-foreground">{it.name}</span> lands at <b className="font-mono font-medium text-foreground">#{placed + 1}</b>
+            <span className="font-semibold tracking-[-0.015em] text-[16px] text-foreground">{it.name}</span> lands at <b className="font-mono font-medium text-foreground">#{placed + 1}</b>
           </p>
         </div>
       ) : (
         <div key={`${lo}-${hi}`} className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 px-4 py-5 sm:gap-4 sm:px-6 sm:py-6">
           <DuelCard ref={first} p={it} tag={<span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-ink">New</span>} onPick={() => pick(true)} keyHint="←" side="left" was={picked === 'new'} />
-          <span className="self-center font-serif text-xl text-muted-foreground italic animate-in fade-in zoom-in-75 duration-300" aria-hidden="true">
+          <span className="self-center font-semibold tracking-[-0.015em] text-xl text-muted-foreground italic animate-in fade-in zoom-in-75 duration-300" aria-hidden="true">
             or
           </span>
           <DuelCard
@@ -179,10 +179,10 @@ function DuelCard({ p, tag, onPick, keyHint, side, was, ref }: { p: Perfume; tag
         {tag}
         <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">{keyHint}</span>
       </span>
-      <span className="grid aspect-[4/5] w-full max-w-72 place-items-center overflow-hidden rounded-xl bg-white dark:bg-sand-100">
-        <BottleImg p={p} alt="" className="h-full w-full mix-blend-multiply transition-transform duration-300 ease-spring group-hover:scale-105" />
+      <span className="grid aspect-[4/5] w-full max-w-72 place-items-center overflow-hidden rounded-xl bg-mat">
+        <BottleImg p={p} alt="" className="h-[90%] w-[90%] mix-blend-multiply transition-transform duration-300 ease-spring group-hover:scale-105" />
       </span>
-      <b className="line-clamp-2 font-serif text-[18px] leading-tight font-normal sm:text-[22px]">{p.name}</b>
+      <b className="line-clamp-2 font-semibold tracking-[-0.015em] text-[16px] leading-tight sm:text-[19px]">{p.name}</b>
       <small className="-mt-1 truncate text-xs text-muted-foreground">{p.brand}</small>
       <MiniAccords accords={p.accords} className="mt-auto w-full max-w-36" />
     </button>

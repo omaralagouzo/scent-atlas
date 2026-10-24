@@ -250,12 +250,11 @@ export default function CollectionView({ params }: ViewProps) {
   return (
     <Page>
       <header className="mb-6">
-        <div className="mb-1.5 font-mono text-xs tracking-[.08em] text-muted-foreground uppercase">Your shelf</div>
         <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] sm:text-[32px]">
           My Collection
           {count > 0 && <span className="ml-2 align-middle font-mono text-lg font-normal text-muted-foreground">· {count}</span>}
         </h1>
-        <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">Everything you own, ranked your way. Add a bottle, settle where it belongs with a few quick “which do you love more?” questions, and see what your shelf says about your taste.</p>
+        <p className="mt-1 text-[15px] text-muted-foreground">Everything you own, ranked your way, and what it says about your taste.</p>
       </header>
 
       {signedOut ? (
@@ -351,7 +350,7 @@ function MoveDialog({ it, n, onClose, onMove }: { it: Item | null; n: number; on
         <DialogHeader>
           <DialogTitle>Move to position</DialogTitle>
           <DialogDescription>
-            Where should <span className="font-serif text-[15px] text-foreground">{it?.name}</span> sit? <span className="font-mono">1</span> is your favourite.
+            Where should <span className="font-semibold tracking-[-0.015em] text-[14px] text-foreground">{it?.name}</span> sit? <span className="font-mono">1</span> is your favourite.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -476,12 +475,12 @@ function Board({ data, show, setShow, editing, setEditing, actions, saveOrder, r
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             {u.map((it) => (
               <li key={it.id} className="group relative flex flex-col overflow-hidden rounded-xl border bg-card">
-                <button type="button" onClick={() => openPerfume(it.id)} className="relative aspect-[4/5] bg-white dark:bg-sand-100" aria-label={`${it.name} details`}>
-                  <BottleImg p={it} alt="" className="absolute inset-0 m-auto h-[96%] w-[96%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+                <button type="button" onClick={() => openPerfume(it.id)} className="relative aspect-square bg-mat" aria-label={`${it.name} details`}>
+                  <BottleImg p={it} alt="" className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
                 </button>
                 <MoreMenu it={it} actions={actions} className="absolute top-2 right-2 bg-card/85 backdrop-blur-sm" />
                 <div className="flex flex-1 flex-col gap-0.5 px-3 pt-1 pb-3">
-                  <b className="line-clamp-2 font-serif text-[19px] leading-[1.1] font-normal">{it.name}</b>
+                  <b className="line-clamp-2 font-semibold tracking-[-0.015em] text-[16px] leading-[1.1]">{it.name}</b>
                   <span className="truncate text-[13px] text-muted-foreground">{it.brand}</span>
                   <Button size="sm" variant="outline" className="mt-2" onClick={() => rankOne(it)}>
                     Rank it
@@ -668,7 +667,7 @@ function ProfileTab({ p, onLayering }: { p: Profile; onLayering: () => void }) {
       {/* the one mesh-soft moment on the site: the personal summary */}
       <section className="mesh-soft overflow-hidden rounded-2xl px-5 py-7 text-sand-900 sm:px-8 sm:py-9 dark:text-foreground">
         <p className="font-mono text-xs tracking-[.08em] uppercase opacity-70">Your scent profile</p>
-        <h2 className="mt-2 font-serif text-[40px] leading-[1.02] font-normal tracking-[-0.01em] sm:text-[56px]">{p.archetype.title}</h2>
+        <h2 className="mt-2 text-[34px] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-[44px]">{p.archetype.title}</h2>
         <p className="mt-3 max-w-2xl text-[15px] leading-relaxed opacity-85">{p.archetype.blurb}</p>
         <div
           role="img"

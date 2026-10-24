@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import type { Note } from '@/lib/types'
 import { useInfinite } from '@/hooks/use-infinite'
 import { NoteTile } from '@/components/notes'
+import { OneLine } from '@/components/one-line'
 import { ListStatus, Page, PageHeader } from '@/components/page'
 import { Segmented } from '@/components/segmented'
 
@@ -61,7 +62,7 @@ export default function NotesView({ params }: ViewProps) {
 
   return (
     <Page wide>
-      <PageHeader eyebrow="The raw materials" title="Note Library" description="Every ingredient in the atlas. Pick one to see the perfumes that carry it and the notes it keeps company with." />
+      <PageHeader title="Note Library" description="Every ingredient in the atlas, and the perfumes that carry it." />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-64 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" />
@@ -92,10 +93,10 @@ export default function NotesView({ params }: ViewProps) {
           {total != null && plural(total, 'note')}
         </span>
       </div>
-      <div role="group" aria-label="Filter by family" className="-mx-4 mb-6 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:px-0">
+      <OneLine label="Filter by family" className="mb-6">
         {families.length > 0 && famChip('', 'All', all)}
         {families.map((f) => famChip(f.name, f.name, f.count, f.color))}
-      </div>
+      </OneLine>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
         {list.items.map((n) => (
           <NoteTile key={n.slug} n={n} />

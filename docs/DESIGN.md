@@ -7,7 +7,7 @@ Tokens are in `web/src/index.css`; shadcn primitives in `web/src/components/ui/`
 ## Principles
 
 1. **The bottle is the hero.** Wherever a perfume appears, its photo leads: large, frameless, filling its tile
-   (photos have white backgrounds, so they sit on a white tile with `mix-blend-multiply`). Scores, notes and
+   (photos have white backgrounds, so they are multiplied onto the warm `bg-mat` backdrop). Scores, notes and
    accords come after the image and stay quieter than it. Prefer image cards in a grid over text rows.
 2. **Calm canvas, loud moments.** The site already carries a lot of colour (note photos, bottles, accord colours).
    The UI chrome stays neutral (sand) so that colour always means *data*.
@@ -32,15 +32,25 @@ Tokens are in `web/src/index.css`; shadcn primitives in `web/src/components/ui/`
 ## Type
 
 - **Geist** (UI): headings 600 with negative tracking (`tracking-[-0.03em]` for H1, `-0.02em` for H2).
-- **Instrument Serif** (`font-serif`): perfume names only, and the occasional editorial headline.
+- Perfume names: Geist semibold with slight negative tracking (clean, not condensed).
 - **Geist Mono** (`font-mono`): anything that reads as a score: ranks, %, vote counts, years, XP.
 
 ## Shape & elevation
 
 - `--radius` 14px. Cards `rounded-xl`, chips/pills `rounded-full`, bottle tiles `rounded-lg` (avatars and the app icon keep the logo's 23% squircle).
 - Cards are flat with a 1px border; hover lifts with `shadow-md`. Popovers/dialogs use shadcn defaults.
-- Bottle photos fill a white tile edge to edge (no ring, no inner padding), `mix-blend-multiply` so the photo's white
-  background merges with the tile.
+- Bottle photos sit on `bg-mat` (a soft warm backdrop, a touch lighter in the middle for depth) at about 90% of the
+  tile, `mix-blend-multiply` so the photo's white background disappears into it. No rings or frames.
+- Image tiles are square (or as tall as the content beside them), never much taller than the text they belong to.
+
+## Page headers
+
+One title and at most one line of explanation (it may wrap on phones). No small eyebrow line above the title.
+
+## Scores
+
+Match percentages use `ScoreRing`: a thin ring gauge (full circle = 100%) coloured from red (≤ 50%) through yellow
+(~70%) to green (≥ 90%). Long chip rows (note families, suggested notes) show one line with "Show more" (`OneLine`).
 
 ## Components
 

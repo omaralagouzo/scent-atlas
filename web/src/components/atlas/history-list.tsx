@@ -91,7 +91,7 @@ export function HistoryList({ items, onChange }: { items: HistoryItem[]; onChang
                 <span className="w-full truncate text-sm hover:underline">
                   {it.perfume ? (
                     <>
-                      <span className="font-serif text-[17px]">{it.perfume.name}</span>
+                      <span className="font-semibold tracking-[-0.015em] text-[15px]">{it.perfume.name}</span>
                       <span className="text-muted-foreground"> · {it.perfume.brand}</span>
                     </>
                   ) : (
