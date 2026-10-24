@@ -9,5 +9,13 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   build: { outDir: '../app/static/next', emptyOutDir: true, chunkSizeWarningLimit: 700 },
-  server: { proxy: { '/api': 'http://127.0.0.1:8765', '/img': 'http://127.0.0.1:8765' } },
+  // dev only: proxy to the local backend; drop Origin so its same-origin CSRF check sees a plain same-site request
+  server: {
+    proxy: Object.fromEntries(
+      ['/api', '/img'].map((p) => [
+        p,
+        { target: 'http://127.0.0.1:8765', configure: (proxy: any) => proxy.on('proxyReq', (req: any) => req.removeHeader('origin')) },
+      ]),
+    ),
+  },
 })
