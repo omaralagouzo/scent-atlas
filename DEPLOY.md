@@ -43,7 +43,8 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
 | `DATABASE_URL` | yes | Render Postgres *internal* connection string (`postgres://...` or `postgresql://...`; both are accepted) | user data. When unset the app uses SQLite `data/users.db` (local use). Tables are created and upgraded on startup (`schema_migrations`; v2 adds the leaderboard column and the layering combo / vote tables to an existing database in place); nothing to migrate by hand. |
 | `CATALOG_DB_GZ` | yes | `/opt/render/project/src/data/deploy/catalog.db.gz` | gzip catalog; decompressed once if the `.db` is missing (to `SCENT_WORK_DIR`, default the system temp dir). If unset and `data/master.db` is absent, the repo's `data/deploy/catalog.db.gz` is used anyway. |
 | `IMAGE_MODE` | yes | `remote` (default `local`) | `remote`: the API returns direct `fimgs.net` / Wikimedia URLs, the server never proxies or writes images; the frontend falls back to the generated SVG (`/img/...`) on `onerror`. |
-| `ALLOWED_HOSTS` | yes | e.g. `scent-atlas.onrender.com,example.com` (default `127.0.0.1,localhost`) | Host-header allow list (ports ignored, `*.suffix` and `*` supported). Requests to other hosts get 400. |
+| `ALLOWED_HOSTS` | yes | `scentatlas.app,www.scentatlas.app,scent-atlas.onrender.com` (default `127.0.0.1,localhost`) | Host-header allow list (ports ignored, `*.suffix` and `*` supported). Requests to other hosts get 400. |
+| `CANONICAL_HOST` | optional | `scentatlas.app` | when set, GET/HEAD page visits on any other allowed host (the `*.onrender.com` address) get a 301 to `https://<CANONICAL_HOST>/...`; writes and `/api/status` are left alone. Set it only once the custom domain resolves and has its certificate. |
 | `TRUST_PROXY` | recommended | `true` (auto-`true` when `RENDER=true`, which Render sets) | honour `X-Forwarded-Proto` (Secure cookies / HSTS) and `X-Forwarded-For` (rate limits). |
 | `PROXY_HOPS` | recommended | `1` | how many trusted proxies append to `X-Forwarded-For`; the client IP is taken that many entries from the right. Verify after the first deploy: set `DEBUG_CLIENT_IP=1`, open `/api/whoami` and check that `client_ip_used_for_rate_limits` is your IP (adjust `PROXY_HOPS`), then **unset `DEBUG_CLIENT_IP`**. |
 | `ADMIN_PASSWORD` | optional | a string of **>= 8 characters** | enables the owner-only `/admin` page (list accounts, reset a password, sign a user out everywhere, rename/change email, delete). Unset or shorter than 8 chars = admin fully disabled (`/admin` says so, `/api/admin/*` return 404). Set it as a secret (Render: *sync: false* / dashboard), never in the repo. There is no link to `/admin` in the UI; share the URL only with yourself. |
@@ -55,6 +56,21 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
 | `ENABLE_DOCS` | optional | unset | `1` serves `/api/docs` (Swagger). |
 | `MALLOC_ARENA_MAX` | optional | `2` | keeps glibc's per-thread arenas (and RSS) small. |
 | `PYTHON_VERSION` | yes | `3.11.11` | Render Python version. |
+
+## Custom domain (scentatlas.app, registered at Spaceship)
+
+1. Render → the `scent-atlas` service → **Settings → Custom Domains** → add `scentatlas.app` (Render offers to add
+   `www.scentatlas.app` too, redirecting to the apex). Render then shows the DNS records it expects.
+2. Spaceship → the domain → **DNS / Advanced DNS**: delete the default parking records (any `A`, `AAAA` or `CNAME`
+   on `@` and `www`), then add the records Render shows. At the time of writing:
+   - `@` → `A` record `216.24.57.1` (or an `ALIAS`/`ANAME` to `scent-atlas.onrender.com` if offered)
+   - `www` → `CNAME` `scent-atlas.onrender.com`
+   - no `AAAA` records on `@` (Render answers IPv4).
+3. Back in Render press **Verify**; the TLS certificate is issued automatically (`.app` is HTTPS-only, so the site
+   works once the certificate is in place).
+4. Environment: `ALLOWED_HOSTS=scentatlas.app,www.scentatlas.app,scent-atlas.onrender.com`, and once
+   https://scentatlas.app loads, `CANONICAL_HOST=scentatlas.app` so the old address redirects. Sessions are per host,
+   so people signed in on the old address sign in once more on the new one.
 
 ## Rebuilding the catalog artifact
 

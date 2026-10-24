@@ -23,7 +23,9 @@ services:
           name: scent-atlas-db
           property: connectionString
       - key: ALLOWED_HOSTS            # comma separated; your onrender.com host and any custom domain
-        value: scent-atlas.onrender.com
+        value: scentatlas.app,www.scentatlas.app,scent-atlas.onrender.com
+      - key: CANONICAL_HOST           # page visits on the other hosts are 301-redirected here (add once DNS works)
+        value: scentatlas.app
       - key: TRUST_PROXY              # honour X-Forwarded-Proto / X-Forwarded-For from Render's proxy
         value: "true"
       - key: PROXY_HOPS               # entries Render's edge appends to X-Forwarded-For (verify with DEBUG_CLIENT_IP=1)
