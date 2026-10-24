@@ -18,6 +18,13 @@ pip install -r requirements.txt
 
 Use Python 3.11+ (`PYTHON_VERSION=3.11.11`; `numpy 2.x` needs 3.11 or newer).
 
+The redesigned front end (React + shadcn, see `docs/DESIGN.md`) lives in `web/` and is served at `/next/`. Its
+build output `app/static/next/` is committed, so Render needs no Node.js step. After changing anything in `web/`:
+
+```
+cd web && npm ci && npm run build      # typechecks, then writes app/static/next/
+```
+
 ## Start command
 
 ```

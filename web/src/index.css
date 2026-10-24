@@ -1,0 +1,299 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Scent Atlas design tokens (see docs/DESIGN.md).
+   A calm sand canvas, perfume colours as the heroes, ember orange only for brand + reward moments.
+   Gradients are directional colour shifts only: no radial highlights, white hotspots, inner shine or glow. */
+:root {
+  --ember-50: #fff7f0;
+  --ember-100: #ffecdb;
+  --ember-200: #ffd5b3;
+  --ember-300: #ffb983;
+  --ember-400: #ff9b52;
+  --ember-500: #f77f2f;
+  --ember-600: #e0651f;
+  --ember-700: #b94e18;
+  --ember-800: #923f19;
+  --ember-900: #763518;
+
+  --sand-25: #fdfbf9;
+  --sand-50: #faf7f3;
+  --sand-100: #f4efe9;
+  --sand-200: #ebe4dc;
+  --sand-300: #dbd2c8;
+  --sand-400: #b6aca1;
+  --sand-500: #8f857a;
+  --sand-600: #6f665d;
+  --sand-700: #554d46;
+  --sand-800: #39332e;
+  --sand-850: #2a2521;
+  --sand-900: #201c19;
+  --sand-950: #151210;
+
+  --radius: 0.875rem;
+  --background: var(--sand-25);
+  --foreground: var(--sand-900);
+  --card: #ffffff;
+  --card-foreground: var(--sand-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--sand-900);
+  --primary: var(--sand-900);
+  --primary-foreground: var(--sand-25);
+  --secondary: var(--sand-100);
+  --secondary-foreground: var(--sand-900);
+  --muted: var(--sand-100);
+  --muted-foreground: var(--sand-600);
+  --accent: var(--ember-50);
+  --accent-foreground: var(--ember-800);
+  --destructive: #dc3d3a;
+  --border: var(--sand-200);
+  --input: var(--sand-200);
+  --ring: var(--ember-400);
+  --chart-1: #f08a3c;
+  --chart-2: #3f9c8f;
+  --chart-3: #6c7fd8;
+  --chart-4: #d4a72c;
+  --chart-5: #c2588a;
+
+  --brand: var(--ember-500);
+  --brand-foreground: #ffffff;
+  --brand-soft: var(--ember-100);
+  --brand-ink: var(--ember-700);
+  --success: #2b9a66;
+  --warning: #c98a12;
+  --info: #3b7fd9;
+  --gold: #d9a52c;
+  --silver: #9aa3b0;
+  --bronze: #c47f4a;
+  --note-top: #c99212;
+  --note-middle: #cb5276;
+  --note-base: #96643c;
+  --note-general: #5a7a99;
+
+  --brand-gradient: linear-gradient(135deg, #ff9a4d 0%, #f77f2f 50%, #e0651f 100%);
+  --grain-opacity: 0.15;
+
+  /* brand ("house") type tags: data colours, muted so they never outshine a bottle */
+  --t-niche: #7a4fb0;
+  --t-designer: #2d6aa6;
+  --t-dupe: #b4561e;
+  --t-middle_eastern: #1f7f63;
+  --t-middle_eastern_original: #357f2d;
+  --t-middle_eastern_dupe: #8d6a0b;
+  --t-untagged: #6f665d;
+}
+
+.dark {
+  --background: var(--sand-950);
+  --foreground: #f6f1eb;
+  --card: #1b1714;
+  --card-foreground: #f6f1eb;
+  --popover: #1f1a17;
+  --popover-foreground: #f6f1eb;
+  --primary: #f6f1eb;
+  --primary-foreground: var(--sand-950);
+  --secondary: var(--sand-850);
+  --secondary-foreground: #f6f1eb;
+  --muted: #241f1c;
+  --muted-foreground: #a69c92;
+  --accent: #2c211a;
+  --accent-foreground: var(--ember-200);
+  --destructive: #f0625d;
+  --border: #2e2824;
+  --input: #3a332e;
+  --ring: var(--ember-400);
+
+  --brand: var(--ember-400);
+  --brand-soft: #3a2416;
+  --brand-ink: var(--ember-300);
+  --success: #4cc28a;
+  --warning: #e8b54a;
+  --gold: #e8bd4f;
+  --silver: #b9c0cb;
+  --bronze: #d6945e;
+  --note-top: #eec35a;
+  --note-middle: #ea8aa5;
+  --note-base: #c99c74;
+  --note-general: #8fa9c4;
+
+  --t-niche: #b99be0;
+  --t-designer: #7db3e8;
+  --t-dupe: #ee9b63;
+  --t-middle_eastern: #5cc9a7;
+  --t-middle_eastern_original: #86cf7c;
+  --t-middle_eastern_dupe: #e3bd55;
+  --t-untagged: #a69c92;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  --color-note-top: var(--note-top);
+  --color-note-middle: var(--note-middle);
+  --color-note-base: var(--note-base);
+  --color-note-general: var(--note-general);
+
+  --color-ember-50: var(--ember-50);
+  --color-ember-100: var(--ember-100);
+  --color-ember-200: var(--ember-200);
+  --color-ember-300: var(--ember-300);
+  --color-ember-400: var(--ember-400);
+  --color-ember-500: var(--ember-500);
+  --color-ember-600: var(--ember-600);
+  --color-ember-700: var(--ember-700);
+  --color-ember-800: var(--ember-800);
+  --color-ember-900: var(--ember-900);
+  --color-sand-25: var(--sand-25);
+  --color-sand-50: var(--sand-50);
+  --color-sand-100: var(--sand-100);
+  --color-sand-200: var(--sand-200);
+  --color-sand-300: var(--sand-300);
+  --color-sand-400: var(--sand-400);
+  --color-sand-500: var(--sand-500);
+  --color-sand-600: var(--sand-600);
+  --color-sand-700: var(--sand-700);
+  --color-sand-800: var(--sand-800);
+  --color-sand-900: var(--sand-900);
+  --color-sand-950: var(--sand-950);
+
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--ember-300) 45%, transparent);
+  }
+}
+
+/* ---- brand surfaces (use sparingly; see docs/DESIGN.md "Colour budget") -------------------------------------- */
+@utility bg-brand-gradient {
+  background-image: var(--brand-gradient);
+}
+
+/* 15% monochrome static, layered over a brand surface */
+@utility grain {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='3' intercept='-1'/%3E%3CfeFuncG type='linear' slope='3' intercept='-1'/%3E%3CfeFuncB type='linear' slope='3' intercept='-1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* The toned-down mesh: pale ember and rose tints of equal lightness (no hotspot), for at most one hero per page. */
+@utility mesh-soft {
+  background-color: #fbe6d6;
+  background-image:
+    radial-gradient(60% 90% at 0% 0%, #f9dccb 0%, transparent 70%),
+    radial-gradient(50% 80% at 100% 10%, #f6dde2 0%, transparent 70%),
+    radial-gradient(60% 90% at 70% 100%, #fae3cf 0%, transparent 70%),
+    radial-gradient(50% 80% at 20% 100%, #f5dfe0 0%, transparent 70%);
+  &:where(.dark *) {
+    background-color: #2a1c15;
+    background-image:
+      radial-gradient(60% 90% at 0% 0%, #34201a 0%, transparent 70%),
+      radial-gradient(50% 80% at 100% 10%, #33202a 0%, transparent 70%),
+      radial-gradient(60% 90% at 70% 100%, #36231a 0%, transparent 70%),
+      radial-gradient(50% 80% at 20% 100%, #2f1e24 0%, transparent 70%);
+  }
+}
+
+/* The full mesh: reserved for brand moments (link-preview card, the signed-out welcome). */
+@utility mesh {
+  background-color: #e2652c;
+  background-image:
+    radial-gradient(55% 80% at 0% 0%, #d9572a 0%, transparent 70%),
+    radial-gradient(45% 75% at 28% 100%, #c9667e 0%, transparent 70%),
+    radial-gradient(50% 80% at 42% 10%, #f08a3c 0%, transparent 70%),
+    radial-gradient(45% 75% at 75% 90%, #e2622c 0%, transparent 70%),
+    radial-gradient(40% 70% at 90% 5%, #cb5e78 0%, transparent 70%);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* images fade in once loaded */
+img.lazy {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+img.lazy.loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

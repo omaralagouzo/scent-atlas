@@ -39,7 +39,7 @@ ROOT = HERE.parent
 DATA_DIR = ROOT / "data"
 
 CSP = (
-    "default-src 'self'; script-src 'self'; style-src 'self'; "
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: https://fimgs.net https://upload.wikimedia.org; "
     "connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; "
     "form-action 'self'; frame-ancestors 'none'"
