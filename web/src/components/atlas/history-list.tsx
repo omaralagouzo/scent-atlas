@@ -76,7 +76,7 @@ export function HistoryList({ items, onChange }: { items: HistoryItem[]; onChang
           {items.map((it) => (
             <li key={it.id} className="flex items-center gap-3 px-3 py-2">
               {it.perfume ? (
-                <BottleThumb p={it.perfume} size={40} />
+                <BottleThumb p={it.perfume} size={56} />
               ) : (
                 <span className="grid size-10 shrink-0 place-items-center rounded-[23%] bg-muted text-muted-foreground">
                   <Search className="size-4" />

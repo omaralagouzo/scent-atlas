@@ -5,12 +5,13 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, GripVertical, Laye
 import { toast } from 'sonner'
 import type { ViewProps } from '@/App'
 import { api, errorText } from '@/lib/api'
-import { go, sync } from '@/lib/router'
+import { go, sync, openPerfume } from '@/lib/router'
 import { authDialog, mine, useSession } from '@/lib/store'
 import { plural } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Note, Perfume } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { BottleImg } from '@/components/media'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { NoteImg } from '@/components/media'
@@ -472,23 +473,23 @@ function Board({ data, show, setShow, editing, setEditing, actions, saveOrder, r
             }
           />
           <p className="mb-3 text-sm text-muted-foreground">{r.length ? 'Answer a few “which do you love more?” questions and each one drops into its place.' : 'Pick your favourite first, then each next bottle is placed with a couple of quick questions.'}</p>
-          <ol className="overflow-hidden rounded-xl border border-dashed bg-card">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             {u.map((it) => (
-              <RankRow
-                key={it.id}
-                it={it}
-                place={null}
-                trailing={
-                  <span className="flex items-center gap-1">
-                    <Button size="sm" variant="outline" onClick={() => rankOne(it)}>
-                      Rank
-                    </Button>
-                    <MoreMenu it={it} actions={actions} />
-                  </span>
-                }
-              />
+              <li key={it.id} className="group relative flex flex-col overflow-hidden rounded-xl border bg-card">
+                <button type="button" onClick={() => openPerfume(it.id)} className="relative aspect-[4/5] bg-white dark:bg-sand-100" aria-label={`${it.name} details`}>
+                  <BottleImg p={it} alt="" className="absolute inset-0 m-auto h-[96%] w-[96%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+                </button>
+                <MoreMenu it={it} actions={actions} className="absolute top-2 right-2 bg-card/85 backdrop-blur-sm" />
+                <div className="flex flex-1 flex-col gap-0.5 px-3 pt-1 pb-3">
+                  <b className="line-clamp-2 font-serif text-[19px] leading-[1.1] font-normal">{it.name}</b>
+                  <span className="truncate text-[13px] text-muted-foreground">{it.brand}</span>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => rankOne(it)}>
+                    Rank it
+                  </Button>
+                </div>
+              </li>
             ))}
-          </ol>
+          </ul>
         </section>
       )}
     </div>
