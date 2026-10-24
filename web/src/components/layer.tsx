@@ -86,8 +86,8 @@ export function PartnerCard({ anchorId, p, compact = false }: { anchorId: number
       aria-label={`${p.name} by ${p.brand}: ${pr.verdict_label || ''}`}
       className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <span className={cn('relative block w-full bg-white dark:bg-sand-100', compact ? 'aspect-square' : 'aspect-[4/3]')}>
-        <BottleImg p={p} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+      <span className={cn('relative block w-full bg-mat', compact ? 'aspect-square' : 'aspect-[4/3]')}>
+        <BottleImg p={p} className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pt-1 pb-3">
         <span className="flex flex-wrap items-center gap-1.5">
@@ -99,7 +99,7 @@ export function PartnerCard({ anchorId, p, compact = false }: { anchorId: number
           )}
         </span>
         <span className="min-w-0">
-          <b className="block truncate font-serif text-[19px] leading-tight font-normal">{p.name}</b>
+          <b className="block truncate font-semibold tracking-[-0.015em] text-[16px] leading-tight">{p.name}</b>
           <span className="block truncate text-xs text-muted-foreground">{p.brand}</span>
         </span>
         <MiniAccords accords={p.accords} className="max-w-48" />
@@ -152,7 +152,7 @@ export function PairRow({ a, b, verdict, label, why, note, source, extra }: { a:
       <a href={pairHref(a.id, b.id)} aria-label={`${a.name} with ${b.name}`} className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
         <Bottles a={a} b={b} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <b className="font-serif text-[18px] leading-tight font-normal group-hover:underline group-hover:underline-offset-2">
+          <b className="font-semibold tracking-[-0.015em] text-[16px] leading-tight group-hover:underline group-hover:underline-offset-2">
             {a.name}
             <span className="font-sans text-sm text-muted-foreground"> + </span>
             {b.name}
@@ -278,8 +278,8 @@ export function ComboCard({ c, anchorId, onChange }: { c: Combo; anchorId?: numb
       </header>
       <a href={pairHref(first.id, partner.id)} aria-hidden="true" tabIndex={-1} className="group relative grid grid-cols-2 gap-1 overflow-hidden rounded-lg">
         {[first, partner].map((x) => (
-          <span key={x.id} className="relative aspect-square bg-white dark:bg-sand-100">
-            <BottleImg p={x} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+          <span key={x.id} className="relative aspect-square bg-mat">
+            <BottleImg p={x} className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
           </span>
         ))}
         <span className="absolute top-1/2 left-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border bg-card text-muted-foreground shadow-xs">
@@ -288,7 +288,7 @@ export function ComboCard({ c, anchorId, onChange }: { c: Combo; anchorId?: numb
       </a>
       <a href={pairHref(first.id, partner.id)} className="group flex items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
         <span className="flex min-w-0 flex-col gap-0.5">
-          <b className="font-serif text-[18px] leading-tight font-normal group-hover:underline group-hover:underline-offset-2">
+          <b className="font-semibold tracking-[-0.015em] text-[16px] leading-tight group-hover:underline group-hover:underline-offset-2">
             {first.name}
             <span className="font-sans text-sm text-muted-foreground"> + </span>
             {partner.name}
@@ -389,7 +389,7 @@ export function LayeringIdeas({ items }: { items: Perfume[] }) {
                 className={cn('inline-flex max-w-full items-center gap-2 rounded-full border bg-card py-1 pr-3 pl-1 text-sm transition-colors hover:bg-muted', !n && 'opacity-55 hover:opacity-100')}
               >
                 <BottleThumb p={it} size={28} className="rounded-full" />
-                <span className="truncate font-serif text-[16px] leading-none">{it.name}</span>
+                <span className="truncate font-semibold tracking-[-0.015em] text-[15px] leading-none">{it.name}</span>
                 {n ? <span className="font-mono text-[11px] text-muted-foreground">{n}</span> : null}
               </a>
             )

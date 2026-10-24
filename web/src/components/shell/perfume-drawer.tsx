@@ -85,8 +85,8 @@ function Detail({ p }: { p: any }) {
   const meta = [p.year, gender, p.country].filter(Boolean)
   return (
     <article className="flex flex-col">
-      <div className="relative aspect-[5/4] w-full shrink-0 bg-white dark:bg-sand-100">
-        <BottleImg p={p} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply" />
+      <div className="relative aspect-[16/10] w-full shrink-0 bg-mat">
+        <BottleImg p={p} className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply" />
       </div>
       <div className="flex flex-col gap-5 border-b p-5 sm:p-6">
         <div className="flex min-w-0 flex-col gap-2">
@@ -94,7 +94,7 @@ function Detail({ p }: { p: any }) {
             <BrandLink name={p.brand} className="font-medium text-foreground" />
           </div>
           <BrandStrip p={p} />
-          <SheetTitle className="font-serif text-[34px] leading-[1.02] font-normal tracking-[-0.01em]">{p.name}</SheetTitle>
+          <SheetTitle className="font-semibold tracking-[-0.02em] text-[30px] leading-[1.05]">{p.name}</SheetTitle>
           <SheetDescription className="text-sm">{meta.join(' · ')}</SheetDescription>
           <div className="flex items-center gap-2 text-sm">
             <RatingBadge p={p} className="text-sm" />

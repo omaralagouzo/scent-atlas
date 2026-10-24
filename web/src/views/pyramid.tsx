@@ -292,9 +292,8 @@ export default function PyramidView({ params }: ViewProps) {
   return (
     <Page wide>
       <PageHeader
-        eyebrow="Build a pyramid"
         title="Compose a scent"
-        description="Place notes in the top, heart and base. Rare notes weigh more than ubiquitous ones; a note in the right layer counts fully, in a neighbouring layer a little less."
+        description="Place notes in the top, heart and base to find perfumes built the same way."
       />
 
       <div className="mb-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">

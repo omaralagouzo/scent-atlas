@@ -181,48 +181,55 @@ export default function NoteView({ args, params }: ViewProps) {
         <ArrowLeft className="size-4" />
         Note library
       </a>
-      <header className="mb-10 grid grid-cols-[auto_minmax(0,1fr)] items-end gap-x-4 gap-y-4 sm:gap-x-7">
-        <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl border bg-muted sm:row-span-2 sm:size-44">
-          <NoteImg n={note} alt={note.name} className="h-full w-full" />
+      <header className="relative mb-10 overflow-hidden rounded-2xl border bg-card" style={{ '--fam': note.color } as React.CSSProperties}>
+        {/* the note's own photo, blurred into a colour wash, fading into the page */}
+        <div className="absolute inset-0" aria-hidden="true">
+          <NoteImg n={note} className="h-full w-full scale-150 opacity-50 blur-[34px] saturate-[1.3]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/40" />
         </div>
-        <div className="min-w-0">
-          <p className="mb-1.5 inline-flex items-center gap-2 font-mono text-xs tracking-[.08em] text-muted-foreground uppercase">
-            <i className="size-2 rounded-full" style={{ background: note.color }} />
-            {note.family}
-          </p>
-          <h1 className="text-[32px] leading-tight font-semibold tracking-[-0.03em] break-words sm:text-[44px]">{note.name}</h1>
-          <p className="mt-1 text-[15px] text-muted-foreground">
-            Found in <span className="font-mono text-foreground">{(note.count || 0).toLocaleString()}</span> {note.count === 1 ? 'perfume' : 'perfumes'}
-          </p>
-        </div>
-        <div className="col-span-2 flex flex-col gap-3 sm:col-span-1 sm:col-start-2">
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground" aria-label="Where it sits in the pyramid">
-            {stats.map(([k, v]) => (
-              <span key={k} className="inline-flex items-center gap-1.5">
-                <i className="size-2 rounded-full" style={{ background: LAYER_COLOR[k] }} />
-                <b className="font-mono font-medium text-foreground">{v.toLocaleString()}</b>
-                {layerLabel(k)}
-              </span>
-            ))}
-            {lc.general > 0 && (
-              <span className="inline-flex items-center gap-1.5">
-                <i className="size-2 rounded-full" style={{ background: LAYER_COLOR.general }} />
-                <b className="font-mono font-medium text-foreground">{lc.general.toLocaleString()}</b>
-                unlayered
-              </span>
-            )}
+        <div className="relative flex flex-wrap items-center gap-5 p-5 sm:gap-8 sm:p-8">
+          <div className="size-28 shrink-0 overflow-hidden rounded-full border-[3px] border-(--fam) bg-muted shadow-[0_18px_44px_-16px_rgb(0_0_0/.55),0_0_0_7px_color-mix(in_srgb,var(--fam)_18%,transparent)] sm:size-44">
+            <NoteImg n={note} alt={note.name} className="h-full w-full" />
           </div>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Button asChild>
-              <a href={href('/combine', { include: note.slug })}>
-                <Layers />
-                Combine with other notes
-              </a>
-            </Button>
-            <Button asChild variant="outline">
-              <a href={href('/pyramid', { any: note.slug })}>Build a pyramid</a>
-            </Button>
-            <HeartButton type="note" id={note.slug} label="Favorite this note" className="size-9 border bg-card" />
+          <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-card/70 px-2.5 py-0.5 text-xs font-medium capitalize backdrop-blur-sm">
+              <i className="size-2 rounded-full bg-(--fam)" />
+              {note.family}
+            </span>
+            <h1 className="text-[34px] leading-tight font-semibold tracking-[-0.03em] break-words sm:text-[48px]">{note.name}</h1>
+            <p className="-mt-1 text-[15px] text-muted-foreground">
+              Found in <span className="font-mono text-foreground">{(note.count || 0).toLocaleString()}</span> {note.count === 1 ? 'perfume' : 'perfumes'}
+            </p>
+            <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground" aria-label="Where it sits in the pyramid">
+              {stats.map(([k, v]) => (
+                <span key={k} className="inline-flex items-center gap-1.5">
+                  <i className="size-2 rounded-full" style={{ background: LAYER_COLOR[k] }} />
+                  <b className="font-mono font-medium text-foreground">{v.toLocaleString()}</b>
+                  {layerLabel(k)}
+                </span>
+              ))}
+              {lc.general > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="size-2 rounded-full" style={{ background: LAYER_COLOR.general }} />
+                  <b className="font-mono font-medium text-foreground">{lc.general.toLocaleString()}</b>
+                  unlayered
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button asChild>
+                <a href={href('/combine', { include: note.slug })}>
+                  <Layers />
+                  Combine with other notes
+                </a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={href('/pyramid', { any: note.slug })}>Build a pyramid</a>
+              </Button>
+              <HeartButton type="note" id={note.slug} label="Favorite this note" className="size-9 border bg-card" />
+            </div>
+            </div>
           </div>
         </div>
       </header>
@@ -231,9 +238,7 @@ export default function NoteView({ args, params }: ViewProps) {
       {pairs.length > 0 && (
         <section className="mb-10">
           <SectionTitle className="mb-1">Pairs well with</SectionTitle>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Notes that most often appear alongside {note.name}. Click to explore it, or + to search the two together.
-          </p>
+          <p className="mb-3 text-sm text-muted-foreground">Notes most often found with {note.name}; + searches the two together.</p>
           <div className="flex flex-wrap gap-1.5">
             {pairs.map((p) => (
               <NoteChip

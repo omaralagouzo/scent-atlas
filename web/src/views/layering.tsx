@@ -1,6 +1,6 @@
 // Layering: what to wear with a fragrance. Home (#/layering), one perfume (#/layering/:id), a pair (#/layering/:id/:other).
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Layers, Loader2, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ViewProps } from '@/App'
 import { api, errorText } from '@/lib/api'
@@ -117,14 +117,8 @@ function Home() {
   return (
     <Page>
       <PageHeader
-        eyebrow={
-          <span className="inline-flex items-center gap-1.5">
-            <Layers className="size-3.5" />
-            Layering
-          </span>
-        }
         title="Wear two at once"
-        description="Pick a fragrance and we will find what it layers with: from your own shelf, from what brands and perfumers recommend by name, from the community, and from the whole catalogue. Only pairs that clear our bar are suggested."
+        description="Pick a fragrance and find what it layers with, from your shelf, the experts, the community and the catalogue."
       />
       <PerfumePicker placeholder="Pick a fragrance to layer…" label="Pick a fragrance to layer" onPick={(p) => go(`/layering/${p.id}`)} autoFocus className={pickerInput} />
       {!ready ? (
@@ -284,13 +278,13 @@ function OnePage({ id }: { id: number }) {
     <Page>
       <Crumb href="#/layering">Layering</Crumb>
       <div className="mb-10 grid grid-cols-[minmax(0,1fr)] gap-6 rounded-2xl border bg-card p-4 sm:p-6 lg:grid-cols-[300px_minmax(0,1fr)_280px]">
-        <button type="button" onClick={() => openPerfume(s.id)} aria-label={`${s.name} details`} className="mx-auto grid aspect-[4/5] w-56 place-items-center overflow-hidden rounded-xl bg-white sm:w-64 lg:w-full dark:bg-sand-100">
-          <BottleImg p={s} className="h-full w-full mix-blend-multiply" />
+        <button type="button" onClick={() => openPerfume(s.id)} aria-label={`${s.name} details`} className="mx-auto grid aspect-[4/5] w-56 place-items-center overflow-hidden rounded-xl bg-mat sm:w-64 lg:w-full">
+          <BottleImg p={s} className="h-[90%] w-[90%] mix-blend-multiply" />
         </button>
         <div className="flex min-w-0 flex-col gap-3">
           <div>
             <p className="font-mono text-xs tracking-[.08em] text-muted-foreground uppercase">Layering with</p>
-            <h1 className="mt-1 font-serif text-[36px] leading-[1.05] font-normal sm:text-[44px]">{s.name}</h1>
+            <h1 className="mt-1 font-semibold tracking-[-0.015em] text-[30px] leading-[1.05] sm:text-[36px]">{s.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               <BrandLink name={s.brand} />
               {s.year ? (
@@ -497,10 +491,10 @@ function PairPage({ a, b }: { a: number; b: number }) {
       className="group flex min-w-0 flex-1 flex-col items-center gap-2 rounded-xl p-2 text-center transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <span className="font-mono text-[11px] tracking-[.06em] text-muted-foreground uppercase">{order === 1 ? '1 · apply first' : '2 · then on top'}</span>
-      <span className="grid aspect-[4/5] w-full max-w-72 place-items-center overflow-hidden rounded-xl bg-white dark:bg-sand-100">
-        <BottleImg p={p} className="h-full w-full mix-blend-multiply transition-transform duration-200 group-hover:scale-[1.03]" />
+      <span className="grid aspect-[4/5] w-full max-w-72 place-items-center overflow-hidden rounded-xl bg-mat">
+        <BottleImg p={p} className="h-[90%] w-[90%] mix-blend-multiply transition-transform duration-200 group-hover:scale-[1.03]" />
       </span>
-      <b className="font-serif text-[22px] leading-tight font-normal sm:text-[26px]">{p.name}</b>
+      <b className="font-semibold tracking-[-0.015em] text-[19px] leading-tight sm:text-[22px]">{p.name}</b>
       <span className="-mt-1.5 text-xs text-muted-foreground">{p.brand}</span>
       <Trait>{p.traits.role_label}</Trait>
       <MiniAccords accords={p.accords} className="w-full max-w-40" />
@@ -629,12 +623,12 @@ function PairPage({ a, b }: { a: number; b: number }) {
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" asChild>
           <a href={`#/layering/${r.a.id}`}>
-            More for <span className="font-serif text-[16px]">{r.a.name}</span>
+            More for <span className="font-semibold tracking-[-0.015em] text-[15px]">{r.a.name}</span>
           </a>
         </Button>
         <Button variant="outline" asChild>
           <a href={`#/layering/${r.b.id}`}>
-            More for <span className="font-serif text-[16px]">{r.b.name}</span>
+            More for <span className="font-semibold tracking-[-0.015em] text-[15px]">{r.b.name}</span>
           </a>
         </Button>
       </div>

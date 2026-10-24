@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { Perfume } from '@/lib/types'
 import { HeartButton, StatusButton } from './actions'
 import { MiniAccords, RatingBadge } from './accords'
+import { ScoreRing } from './score'
 import { BrandLink, DupeBadges, LinkBadge, TagBadges } from './brandtags'
 import { BottleImg } from './media'
 import { LAYER_COLOR } from './notes'
@@ -37,15 +38,15 @@ export function PerfumeCard({ p, extra, className }: { p: Perfume; extra?: React
         className,
       )}
     >
-      <div className="relative aspect-[4/5] bg-white dark:bg-sand-100">
-        <BottleImg p={p} className="absolute inset-0 m-auto h-[96%] w-[96%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+      <div className="relative aspect-square bg-mat">
+        <BottleImg p={p} className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
         <div className="absolute top-1.5 right-1.5 flex gap-0.5 rounded-full bg-card/80 backdrop-blur-sm">
           <StatusButton pid={p.id} />
           <HeartButton id={p.id} />
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 px-3 pt-1 pb-3">
-        <h3 className="line-clamp-2 font-serif text-[19px] leading-[1.1]">{p.name}</h3>
+        <h3 className="line-clamp-2 font-semibold tracking-[-0.015em] text-[16px] leading-[1.1]">{p.name}</h3>
         <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
           <BrandLink name={p.brand} />
           <TagBadges p={p} />
@@ -109,19 +110,17 @@ export function ResultRow({ r, rank }: { r: any; rank: number }) {
       {...openProps(r.id, `${r.name} by ${r.brand}, ${pct}% match`)}
       className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border bg-card transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      <div className="relative aspect-square bg-white dark:bg-sand-100">
-        <BottleImg p={r} className="absolute inset-0 m-auto h-[96%] w-[96%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
+      <div className="relative aspect-square bg-mat">
+        <BottleImg p={r} className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]" />
         <span className="absolute top-2 left-2 font-mono text-xs text-muted-foreground">#{rank}</span>
-        <span className="absolute top-2 right-2 rounded-full bg-card/90 px-2 py-0.5 font-mono text-sm font-semibold shadow-xs backdrop-blur-sm" title={`Raw similarity ${r.score.toFixed(3)}`}>
-          {pct}%
-        </span>
+        <ScoreRing pct={pct} className="absolute top-2 right-2" title={`${pct}% match (raw similarity ${r.score.toFixed(3)})`} />
         <div className="absolute right-1.5 bottom-1.5 flex gap-0.5 rounded-full bg-card/85 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           <StatusButton pid={r.id} />
           <HeartButton id={r.id} />
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-1 px-3 pt-1 pb-3">
-        <h3 className="line-clamp-2 font-serif text-[19px] leading-[1.1]">{r.name}</h3>
+        <h3 className="line-clamp-2 font-semibold tracking-[-0.015em] text-[16px] leading-[1.1]">{r.name}</h3>
         <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
           <BrandLink name={r.brand} />
           {r.year ? <span className="font-mono text-xs">{r.year}</span> : null}

@@ -41,7 +41,7 @@ export default function AboutView(_: ViewProps) {
 
   return (
     <Page className="max-w-4xl">
-      <PageHeader eyebrow="About" title="About & credits" description="Scent Atlas is a non-commercial personal project for exploring fragrance notes." className="mb-8" />
+      <PageHeader title="About & credits" description="Scent Atlas is a non-commercial personal project for exploring fragrance notes." className="mb-8" />
 
       <Section title="Data">
         <p>

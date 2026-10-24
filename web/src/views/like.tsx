@@ -29,9 +29,8 @@ export default function LikeView({ args, params }: ViewProps) {
   return (
     <Page wide={!!pid}>
       <PageHeader
-        eyebrow="Smells like…"
         title={pid ? 'Kindred fragrances' : 'What do you love wearing?'}
-        description="Pick a perfume and we will read its pyramid, then find the ones that share its notes — in the same layers first."
+        description="Pick a perfume and find the ones that share its notes, layer by layer."
       />
       <PerfumePicker onPick={(p) => go(`/like/${p.id}`)} className="mb-8 max-w-2xl" autoFocus={!pid} />
       {pid ? <Similar pid={pid} params={params} /> : <Home />}
@@ -116,16 +115,16 @@ function SourceCard({ p }: { p: any }) {
     go('/pyramid', q)
   }
   return (
-    <article className="grid gap-5 overflow-hidden rounded-xl border bg-card sm:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)_minmax(0,1fr)] lg:gap-8">
-      <div className="relative aspect-[4/5] w-full bg-white dark:bg-sand-100">
-        <BottleImg p={p} alt={p.name} className="absolute inset-0 m-auto h-[94%] w-[94%] mix-blend-multiply" />
+    <article className="grid gap-5 overflow-hidden rounded-xl border bg-card sm:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)_minmax(0,1fr)] lg:gap-8">
+      <div className="relative aspect-square w-full bg-mat sm:aspect-auto sm:min-h-64 sm:self-stretch">
+        <BottleImg p={p} alt={p.name} className="absolute inset-0 m-auto h-[90%] w-[90%] mix-blend-multiply" />
       </div>
       <div className="flex min-w-0 flex-col gap-2.5 px-5 pb-5 sm:py-6 sm:pl-0">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <BrandLink name={p.brand} className="font-medium text-foreground/80" />
           <TagBadges p={p} mode="full" link />
         </div>
-        <h2 className="font-serif text-[34px] leading-[1.05] sm:text-[40px]">{p.name}</h2>
+        <h2 className="font-semibold tracking-[-0.015em] text-[30px] leading-[1.05] sm:text-[34px]">{p.name}</h2>
         <DupeBadges p={p} />
         <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
           {[p.year ? <span key="y" className="font-mono">{p.year}</span> : null, gen || null, p.country || null]

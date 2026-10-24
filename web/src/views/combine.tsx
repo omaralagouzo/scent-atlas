@@ -16,6 +16,7 @@ import { useInfinite } from '@/hooks/use-infinite'
 import { AdvancedBuilder, useOwnDrop } from '@/components/advanced'
 import { BrandHeader } from '@/components/brandtags'
 import { FiltersButton, PillsBar, WithFilters } from '@/components/filters'
+import { OneLine } from '@/components/one-line'
 import { NoteChip, NoteSearch, useDropZone } from '@/components/notes'
 import { ListStatus, Page, PageHeader, SectionTitle } from '@/components/page'
 import { PerfumeCard, PerfumeGrid } from '@/components/perfume'
@@ -223,9 +224,8 @@ export default function CombineView({ params }: ViewProps) {
   return (
     <Page wide>
       <PageHeader
-        eyebrow="Combination search"
-        title="Find the notes together"
-        description="Build a tray of notes and see every perfume that carries them. Pin a note to a layer, exclude what you cannot stand — or switch to Advanced for AND / OR conditions per layer."
+        title="Combination search"
+        description="Build a tray of notes and see every perfume that carries them."
       />
 
       <section aria-label="Your query" className="mb-6 rounded-2xl border bg-card p-4 shadow-xs sm:p-5">
@@ -324,7 +324,7 @@ export default function CombineView({ params }: ViewProps) {
       {suggestions.length > 0 && (
         <section className="mb-8">
           <SectionTitle>{hasQuery ? 'Add another note' : 'Start with a popular note'}</SectionTitle>
-          <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:px-0">
+          <OneLine label={hasQuery ? 'Add another note' : 'Popular notes'}>
             {suggestions.slice(0, 28).map((n) => (
               <NoteChip
                 key={n.slug}
@@ -351,7 +351,7 @@ export default function CombineView({ params }: ViewProps) {
                 }
               />
             ))}
-          </div>
+          </OneLine>
         </section>
       )}
 

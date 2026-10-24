@@ -7,13 +7,13 @@ export function Page({ children, className, wide = false }: { children: React.Re
   return <div className={cn('mx-auto w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-8', wide ? 'max-w-[1400px]' : 'max-w-6xl', className)}>{children}</div>
 }
 
-export function PageHeader({ title, description, actions, eyebrow, className }: { title: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode; eyebrow?: React.ReactNode; className?: string }) {
+/** One title and at most one line of explanation (it may wrap on narrow screens). */
+export function PageHeader({ title, description, actions, className }: { title: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode; className?: string }) {
   return (
     <div className={cn('mb-6 flex flex-wrap items-end justify-between gap-4', className)}>
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1.5 font-mono text-xs tracking-[.08em] text-muted-foreground uppercase">{eyebrow}</div>}
         <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] sm:text-[32px]">{title}</h1>
-        {description && <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{description}</p>}
+        {description && <p className="mt-1 text-[15px] text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>

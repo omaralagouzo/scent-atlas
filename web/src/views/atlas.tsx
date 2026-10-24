@@ -102,11 +102,8 @@ export default function AtlasView(_: ViewProps) {
 
   const header = (
     <div className="mb-6">
-      <div className="mb-1.5 font-mono text-xs tracking-[.08em] text-muted-foreground uppercase">Your corner of the atlas</div>
       <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] sm:text-[32px]">My Atlas</h1>
-      <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">
-        Your favorites, what you own and have tried, saved searches and recent history, and the notes you keep coming back to.
-      </p>
+      <p className="mt-1 text-[15px] text-muted-foreground">Your favorites, shelf, saved searches and history in one place.</p>
     </div>
   )
 

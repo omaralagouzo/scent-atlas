@@ -69,7 +69,7 @@ export function CommandPalette() {
               <CommandItem key={`p${p.id}`} value={`p${p.id}`} onSelect={() => run(() => openPerfume(p.id))} className="gap-3">
                 <BottleThumb p={p} size={36} />
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate font-serif text-[17px] leading-tight">{p.name}</span>
+                  <span className="truncate font-semibold tracking-[-0.015em] text-[15px] leading-tight">{p.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {p.brand}
                     {p.year ? ` · ${p.year}` : ''}
