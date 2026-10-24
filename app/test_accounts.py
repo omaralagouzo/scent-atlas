@@ -501,6 +501,20 @@ def test_first_account_adopts_legacy_user_json(tmp_path, tiny_db):
 
 
 # ============================================================================ headers / hosts
+def test_canonical_host_redirect(tmp_path, tiny_db):
+    """With CANONICAL_HOST set, page visits on another allowed host (the old *.onrender.com) move to the domain."""
+    app = make_app(tmp_path, tiny_db, allowed_hosts=("scentatlas.app", "old.onrender.com", "testserver"), canonical_host="scentatlas.app")
+    c = TestClient(app, follow_redirects=False)
+    r = c.get("/next/?x=1", headers={"host": "old.onrender.com"})
+    assert r.status_code == 301 and r.headers["location"] == "https://scentatlas.app/next/?x=1"
+    assert c.get("/", headers={"host": "scentatlas.app"}).status_code == 200                   # already canonical
+    assert c.get("/api/status", headers={"host": "old.onrender.com"}).status_code == 200      # health check stays
+    assert c.post("/api/auth/login", headers={**H, "host": "old.onrender.com"}, json={}).status_code != 301
+    assert c.get("/", headers={"host": "evil.example.com"}).status_code == 400                 # still host-guarded
+    # unset by default: nothing redirects
+    assert TestClient(make_app(tmp_path, tiny_db), follow_redirects=False).get("/").status_code == 200
+
+
 def test_security_headers(app):
     r = TestClient(app).get("/")
     csp = r.headers["content-security-policy"]

@@ -45,6 +45,7 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 8765
     allowed_hosts: tuple = ("127.0.0.1", "localhost")
+    canonical_host: str | None = None        # e.g. scentatlas.app: page visits on any other allowed host are redirected
     image_mode: str = "local"                # local | remote
     database_url: str | None = None          # users DB; None -> data/users.db (SQLite)
     catalog_db: str | None = None            # explicit catalog SQLite file (also: legacy SCENT_DB)
@@ -69,6 +70,7 @@ class Settings:
             host=e.get("SCENT_HOST", "127.0.0.1"),
             port=_int(e.get("PORT"), 8765),
             allowed_hosts=hosts or ("127.0.0.1", "localhost"),
+            canonical_host=((e.get("CANONICAL_HOST") or "").strip().lower() or None),
             image_mode=mode if mode in ("local", "remote") else "local",
             database_url=(e.get("DATABASE_URL") or None),
             catalog_db=(e.get("CATALOG_DB") or e.get("SCENT_DB") or None),

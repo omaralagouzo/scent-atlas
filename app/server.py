@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import RedirectResponse, FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -196,8 +196,14 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         """Host allow-list, body cap, security headers, sliding session cookie."""
         path = request.url.path
         # the platform health check (/api/status) is exempt from the host list: it exposes only counts
-        if path != "/api/status" and not host_allowed(request.headers.get("host", ""), settings.allowed_hosts):
+        host = request.headers.get("host", "")
+        if path != "/api/status" and not host_allowed(host, settings.allowed_hosts):
             resp = JSONResponse({"detail": "bad host"}, status_code=400)
+        elif (settings.canonical_host and request.method in ("GET", "HEAD") and path != "/api/status"
+              and auth.host_only(host.lower()) != settings.canonical_host):
+            # e.g. the old *.onrender.com address -> the custom domain (writes are left alone so open pages keep working)
+            q = request.url.query
+            resp = RedirectResponse(f"https://{settings.canonical_host}{path}{'?' + q if q else ''}", status_code=301)
         elif request.method in ("POST", "PUT", "PATCH") and int(request.headers.get("content-length") or 0) > MAX_BODY:
             resp = JSONResponse({"detail": "request too large"}, status_code=413)
         else:
