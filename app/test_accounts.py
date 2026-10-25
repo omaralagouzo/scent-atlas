@@ -507,7 +507,8 @@ def test_canonical_host_redirect(tmp_path, tiny_db):
     c = TestClient(app, follow_redirects=False)
     r = c.get("/next/?x=1", headers={"host": "old.onrender.com"})
     assert r.status_code == 301 and r.headers["location"] == "https://scentatlas.app/next/?x=1"
-    assert c.get("/", headers={"host": "scentatlas.app"}).status_code == 200                   # already canonical
+    home = c.get("/", headers={"host": "scentatlas.app"})                                     # already canonical
+    assert home.status_code == 200 and 'content="https://scentatlas.app/next/og-logo.png"' in home.text
     assert c.get("/api/status", headers={"host": "old.onrender.com"}).status_code == 200      # health check stays
     assert c.post("/api/auth/login", headers={**H, "host": "old.onrender.com"}, json={}).status_code != 301
     assert c.get("/", headers={"host": "evil.example.com"}).status_code == 400                 # still host-guarded
