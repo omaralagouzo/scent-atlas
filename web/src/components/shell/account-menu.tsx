@@ -68,7 +68,9 @@ export function AccountMenu() {
             <small className="font-normal text-muted-foreground">{user.email}</small>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => go(`/u/${encodeURIComponent(user.username)}`)}>My profile</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => go('/collection')}>My Collection</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => go('/friends')}>Friends</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => go('/atlas')}>My Atlas</DropdownMenuItem>
           <DropdownMenuItem onSelect={toggle} className="sm:hidden">
             {theme === 'dark' ? <Sun /> : <Moon />}

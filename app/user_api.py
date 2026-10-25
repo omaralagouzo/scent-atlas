@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 import auth
 import collection
 import layer_api
+import social_api
 import query
 import taste
 import userdb
@@ -565,4 +566,5 @@ def make_router(ctx: Ctx) -> APIRouter:
                 pass  # a malformed legacy file must never block sign-up
 
     router.include_router(layer_api.make_router(ctx, current_user, require_user))
+    router.include_router(social_api.make_router(ctx, current_user, require_user, collection_out))
     return router

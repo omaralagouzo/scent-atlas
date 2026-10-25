@@ -52,6 +52,15 @@ One title and at most one line of explanation (it may wrap on phones). No small 
 Match percentages use `ScoreRing`: a thin ring gauge (full circle = 100%) coloured from red (≤ 50%) through yellow
 (~70%) to green (≥ 90%). Long chip rows (note families, suggested notes) show one line with "Show more" (`OneLine`).
 
+## The shelf
+
+My Collection (and a friend's profile) opens on the shelf: the whole collection in one frame, bottles standing in lit
+niches on wooden boards (`components/shelf/shelf.tsx`, styles under "the fragrance shelf" in `index.css`). The furniture
+levels up with the collection: Floating ledge (1-5), Twin shelves (6-10), Wall cabinet (11-20), Display wall (21-40),
+Collector's vault (41+). Niches stay light in both themes (plaster by day, warm LED-backlit at night, with LED strips
+under the boards) because the bottle photos are multiplied onto them. Never use `transform` or `z-index` on a bottle
+or its row: either starts a new stacking context and the photo's white background reappears.
+
 ## Components
 
 Use shadcn primitives first (`Button`, `Badge`, `Dialog`, `Sheet`, `DropdownMenu`, `Tabs`, `Tooltip`, `Command`,

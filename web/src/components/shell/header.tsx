@@ -1,5 +1,6 @@
 import { Moon, Search, Sun } from 'lucide-react'
 import { useLocation } from '@/lib/router'
+import { useFriends } from '@/lib/social'
 import { useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,13 @@ import { NAV } from './nav'
 export function Header() {
   const { path } = useLocation()
   const { theme, toggle } = useTheme()
+  const incoming = useFriends()?.incoming.length || 0
+  const badge = (href: string) =>
+    href === '/friends' && incoming > 0 ? (
+      <span className="ml-1 inline-grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 font-mono text-[10px] font-semibold text-brand-foreground" aria-label={`${incoming} friend requests`}>
+        {incoming}
+      </span>
+    ) : null
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:h-16 sm:gap-5 sm:px-6">
@@ -32,6 +40,7 @@ export function Header() {
                 )}
               >
                 {n.label}
+                {badge(n.href)}
               </a>
             )
           })}
@@ -69,6 +78,7 @@ export function Header() {
             >
               <n.icon className="size-3.5" />
               {n.label}
+              {badge(n.href)}
             </a>
           )
         })}

@@ -413,18 +413,23 @@ def test_host_guard(tiny):
 
 
 def test_frontend_is_served(tiny):
+    """The React app is the site at /; the previous UI stays at /classic.html; the old /next/ preview redirects."""
     r = tiny.get("/")
-    assert r.status_code == 200 and "Scent Atlas" in r.text
-    assert tiny.get("/js/main.js").status_code == 200
+    assert r.status_code == 200 and 'id="root"' in r.text and "/next/assets/" in r.text
+    assert r.headers["cache-control"] == "no-cache"
+    old = tiny.get("/classic.html")
+    assert old.status_code == 200 and "/js/main.js" in old.text and tiny.get("/js/main.js").status_code == 200
+    nx = tiny.get("/next/", follow_redirects=False)
+    assert nx.status_code == 301 and nx.headers["location"] == "/"
 
 
 def test_new_frontend_is_served(tiny):
-    """The React build (web/ -> app/static/next) is served at /next/; link previews and the favicon at the root."""
-    r = tiny.get("/next/")
+    """The React build (web/ -> app/static/next) with link previews, the favicon and its CSP."""
+    r = tiny.get("/")
     assert r.status_code == 200 and 'id="root"' in r.text and "/next/assets/" in r.text
     asset = r.text.split('src="/next/assets/')[1].split('"')[0]
     assert tiny.get(f"/next/assets/{asset}").status_code == 200
-    for page in (r.text, tiny.get("/").text):
+    for page in (r.text, tiny.get("/classic.html").text):
         assert 'property="og:image"' in page and 'name="twitter:card"' in page
     assert tiny.get("/og.jpg").headers["content-type"] == "image/jpeg"
     assert tiny.get("/favicon.svg").status_code == 200

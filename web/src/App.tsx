@@ -25,6 +25,8 @@ const Layering = lazy(() => import('@/views/layering'))
 const Collection = lazy(() => import('@/views/collection'))
 const Atlas = lazy(() => import('@/views/atlas'))
 const About = lazy(() => import('@/views/about'))
+const Friends = lazy(() => import('@/views/friends'))
+const Profile = lazy(() => import('@/views/profile'))
 
 const ROUTES: [string, React.ComponentType<ViewProps>][] = [
   ['/notes', Notes],
@@ -39,6 +41,8 @@ const ROUTES: [string, React.ComponentType<ViewProps>][] = [
   ['/layering/:id', Layering],
   ['/layering/:id/:other', Layering],
   ['/about', About],
+  ['/friends', Friends],
+  ['/u/:username', Profile],
 ]
 
 function Router() {

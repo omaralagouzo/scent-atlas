@@ -188,7 +188,7 @@ export default function NoteView({ args, params }: ViewProps) {
           <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/40" />
         </div>
         <div className="relative flex flex-wrap items-center gap-5 p-5 sm:gap-8 sm:p-8">
-          <div className="size-28 shrink-0 overflow-hidden rounded-full border-[3px] border-(--fam) bg-muted shadow-[0_18px_44px_-16px_rgb(0_0_0/.55),0_0_0_7px_color-mix(in_srgb,var(--fam)_18%,transparent)] sm:size-44">
+          <div className="size-28 shrink-0 overflow-hidden rounded-full bg-muted sm:size-44">
             <NoteImg n={note} alt={note.name} className="h-full w-full" />
           </div>
           <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
