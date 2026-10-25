@@ -708,3 +708,11 @@ def test_memory_layout_is_compact(tiny_db):
     # accord cosine: a perfume is most similar to itself
     for i in range(cat.n_perf):
         assert cat.accord_cosine(i)[i] == pytest.approx(1.0, abs=1e-5)
+
+
+def test_canonical_host_is_always_allowed():
+    s = config.Settings.from_env({"ALLOWED_HOSTS": "scent-atlas.onrender.com", "CANONICAL_HOST": " scentatlas.app "})
+    assert s.canonical_host == "scentatlas.app"
+    assert {"scent-atlas.onrender.com", "scentatlas.app", "www.scentatlas.app"} <= set(s.allowed_hosts)
+    quoted = config.Settings.from_env({"ALLOWED_HOSTS": '"scentatlas.app, www.scentatlas.app"'})
+    assert quoted.allowed_hosts == ("scentatlas.app", "www.scentatlas.app")

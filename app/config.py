@@ -63,14 +63,19 @@ class Settings:
     @classmethod
     def from_env(cls, env=None) -> "Settings":
         e = os.environ if env is None else env
-        hosts = tuple(h.strip().lower() for h in (e.get("ALLOWED_HOSTS") or "127.0.0.1,localhost").split(",") if h.strip())
+        # tolerate pasted quotes / spaces: "scentatlas.app, www.scentatlas.app" works too
+        hosts = tuple(h.strip().strip("'\"").strip().lower() for h in (e.get("ALLOWED_HOSTS") or "127.0.0.1,localhost").strip().strip("'\"").split(","))
+        hosts = tuple(h for h in hosts if h)
+        canonical = (e.get("CANONICAL_HOST") or "").strip().strip("'\"").strip().lower() or None
+        if canonical:  # the canonical domain (and its www) is always allowed: it is where everyone gets sent
+            hosts += tuple(h for h in (canonical, f"www.{canonical}") if h not in hosts)
         mode = (e.get("IMAGE_MODE") or "local").strip().lower()
         on_render = _bool(e.get("RENDER"))
         return cls(
             host=e.get("SCENT_HOST", "127.0.0.1"),
             port=_int(e.get("PORT"), 8765),
             allowed_hosts=hosts or ("127.0.0.1", "localhost"),
-            canonical_host=((e.get("CANONICAL_HOST") or "").strip().lower() or None),
+            canonical_host=canonical,
             image_mode=mode if mode in ("local", "remote") else "local",
             database_url=(e.get("DATABASE_URL") or None),
             catalog_db=(e.get("CATALOG_DB") or e.get("SCENT_DB") or None),
