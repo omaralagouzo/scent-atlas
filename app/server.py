@@ -577,10 +577,15 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     @app.get("/", include_in_schema=False)
     @app.get("/index.html", include_in_schema=False)
-    def spa_index():
+    def spa_index(request: Request):
         if not app_index.is_file():
             return FileResponse(static_dir / "classic.html", headers={"Cache-Control": "no-cache"})
-        return FileResponse(app_index, headers={"Cache-Control": "no-cache"})
+        # link previews (WhatsApp, iMessage, ...) need absolute URLs: use the canonical domain when one is set,
+        # otherwise the host this request came in on (the host list has already vetted it)
+        host = settings.canonical_host or request.headers.get("host", "").strip().lower() or "localhost"
+        scheme = "https" if (settings.canonical_host or user_api.is_https(request, settings)) else "http"
+        html = app_index.read_text(encoding="utf-8").replace("__SITE__", f"{scheme}://{host}")
+        return Response(html, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
     @app.get("/next", include_in_schema=False)
     @app.get("/next/", include_in_schema=False)

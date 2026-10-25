@@ -432,6 +432,10 @@ def test_new_frontend_is_served(tiny):
     for page in (r.text, tiny.get("/classic.html").text):
         assert 'property="og:image"' in page and 'name="twitter:card"' in page
     assert tiny.get("/og.jpg").headers["content-type"] == "image/jpeg"
+    # the small logo card, with absolute URLs on this site's own origin (WhatsApp needs absolute links)
+    assert "__SITE__" not in r.text and 'name="twitter:card" content="summary"' in r.text
+    assert 'property="og:image" content="http://testserver/next/og-logo.png"' in r.text
+    assert tiny.get("/next/og-logo.png").headers["content-type"] == "image/png"
     assert tiny.get("/favicon.svg").status_code == 200
     # inline style attributes are allowed (React/Radix set them); inline scripts are not
     csp = r.headers["content-security-policy"]
