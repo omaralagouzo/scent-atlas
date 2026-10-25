@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import type { Note, Perfume } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { BottleImg } from '@/components/media'
+import { Shelf, ShelfProgress } from '@/components/shelf/shelf'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { NoteImg } from '@/components/media'
@@ -410,8 +411,13 @@ function Board({ data, show, setShow, editing, setEditing, actions, saveOrder, r
   const top = r.slice(0, Math.min(3, lim))
   return (
     <div className="flex flex-col gap-8">
+      <section aria-label="Your shelf">
+        <ShelfProgress count={data.items.length} className="mb-4" />
+        <Shelf items={data.items} />
+      </section>
       {r.length > 0 && (
         <div>
+          <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em]">Leaderboard</h2>
           <div className="mb-5 flex flex-wrap items-center gap-3">
             {editing ? (
               <p className="text-sm text-muted-foreground">Drag the handles, or use the arrows. Changes save as you go.</p>

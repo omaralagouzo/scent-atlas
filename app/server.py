@@ -573,6 +573,21 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     # ---------------------------------------------------------------- frontend (must be last)
     static_dir = HERE / "static"
     static_dir.mkdir(exist_ok=True)
+    app_index = static_dir / "next" / "index.html"   # the React app (built from web/); the old UI is /classic.html
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
+    def spa_index():
+        if not app_index.is_file():
+            return FileResponse(static_dir / "classic.html", headers={"Cache-Control": "no-cache"})
+        return FileResponse(app_index, headers={"Cache-Control": "no-cache"})
+
+    @app.get("/next", include_in_schema=False)
+    @app.get("/next/", include_in_schema=False)
+    def next_moved():
+        # the preview address from before the switch; the #fragment survives the redirect in browsers
+        return RedirectResponse("/", status_code=301)
+
     app.mount("/", NoCacheStatic(directory=static_dir, html=True), name="static")
     return app
 

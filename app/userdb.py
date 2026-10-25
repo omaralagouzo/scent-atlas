@@ -113,13 +113,24 @@ meta = sa.Table(
     sa.Column("value", sa.Text, nullable=False),
 )
 
+# Friends: one row per pair. A pending request goes requester -> addressee; accepting flips status to accepted.
+friendships = sa.Table(
+    "friendships", metadata,
+    sa.Column("requester_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("addressee_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("status", sa.String(10), nullable=False),          # pending | accepted
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("updated_at", sa.BigInteger, nullable=False),
+    sa.Index("ix_friendships_addressee", "addressee_id"),
+)
+
 schema_migrations = sa.Table(
     "schema_migrations", metadata,
     sa.Column("version", sa.Integer, primary_key=True),
     sa.Column("applied_at", sa.BigInteger, nullable=False),
 )
 
-SCHEMA_VERSION = 2  # bump + add a step in _MIGRATIONS when the schema changes
+SCHEMA_VERSION = 3  # bump + add a step in _MIGRATIONS when the schema changes
 HISTORY_CAP = 200
 SAVED_CAP = 100
 COLLECTION_CAP = 5000   # longest leaderboard accepted in one order update
@@ -169,7 +180,12 @@ def _migrate_v2(conn):
     metadata.create_all(conn, tables=[layer_combos, layer_votes])
 
 
-_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2}
+def _migrate_v3(conn):
+    """Friends (friend requests and friendships)."""
+    metadata.create_all(conn, tables=[friendships])
+
+
+_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3}
 
 
 def init_schema(eng: sa.Engine) -> None:
@@ -230,6 +246,26 @@ class UserStore:
         with self.eng.connect() as c:
             r = c.execute(sa.select(users).where(users.c.id == uid)).mappings().first()
         return dict(r) if r else None
+
+    def user_by_username(self, username: str):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(users).where(users.c.username_lower == username.strip().lower())).mappings().first()
+        return dict(r) if r else None
+
+    def search_users(self, q: str, limit: int = 10, exclude: int | None = None):
+        """Usernames starting with q first, then containing it. Never matches on email."""
+        qn = q.strip().lower()
+        if not qn:
+            return []
+        like = qn.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        cond = users.c.username_lower.like(f"%{like}%", escape="\\")
+        if exclude is not None:
+            cond = sa.and_(cond, users.c.id != exclude)
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(users.c.id, users.c.username, users.c.created_at).where(cond)
+                             .order_by(sa.case((users.c.username_lower.like(f"{like}%", escape="\\"), 0), else_=1),
+                                       sa.func.length(users.c.username), users.c.username_lower).limit(limit)).mappings().all()
+        return [dict(r) for r in rows]
 
     def find_user(self, identifier: str):
         ident = identifier.strip().lower()
@@ -309,7 +345,78 @@ class UserStore:
             c.execute(layer_combos.update().where(layer_combos.c.created_by == uid).values(created_by=None))
             for t in (sessions, favorites, perfume_status, saved_searches, history):
                 c.execute(t.delete().where(t.c.user_id == uid))
+            c.execute(friendships.delete().where(sa.or_(friendships.c.requester_id == uid, friendships.c.addressee_id == uid)))
             c.execute(users.delete().where(users.c.id == uid))
+
+    # ------------------------------------------------------------------ friends
+    def _friend_row(self, c, a: int, b: int):
+        return c.execute(sa.select(friendships).where(sa.or_(
+            sa.and_(friendships.c.requester_id == a, friendships.c.addressee_id == b),
+            sa.and_(friendships.c.requester_id == b, friendships.c.addressee_id == a)))).mappings().first()
+
+    def relation(self, me: int, other: int) -> str:
+        """self | friends | outgoing (I asked) | incoming (they asked) | none"""
+        if me == other:
+            return "self"
+        with self.eng.connect() as c:
+            r = self._friend_row(c, me, other)
+        if not r:
+            return "none"
+        if r["status"] == "accepted":
+            return "friends"
+        return "outgoing" if r["requester_id"] == me else "incoming"
+
+    def request_friend(self, me: int, other: int) -> str:
+        """Send a request, or accept theirs if they already asked. Returns the new relation."""
+        now = _now()
+        with self.eng.begin() as c:
+            r = self._friend_row(c, me, other)
+            if not r:
+                c.execute(friendships.insert().values(requester_id=me, addressee_id=other, status="pending",
+                                                      created_at=now, updated_at=now))
+                return "outgoing"
+            if r["status"] == "accepted":
+                return "friends"
+            if r["requester_id"] == other:
+                c.execute(friendships.update().where(sa.and_(friendships.c.requester_id == other,
+                                                             friendships.c.addressee_id == me)).values(status="accepted", updated_at=now))
+                return "friends"
+            return "outgoing"
+
+    def remove_friend(self, me: int, other: int) -> None:
+        """Unfriend, cancel my request or decline theirs."""
+        with self.eng.begin() as c:
+            c.execute(friendships.delete().where(sa.or_(
+                sa.and_(friendships.c.requester_id == me, friendships.c.addressee_id == other),
+                sa.and_(friendships.c.requester_id == other, friendships.c.addressee_id == me))))
+
+    def pending_outgoing(self, me: int) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(friendships).where(sa.and_(
+                friendships.c.requester_id == me, friendships.c.status == "pending"))).scalar() or 0)
+
+    def list_friends(self, me: int) -> dict:
+        """{friends, incoming, outgoing}: lists of {id, username, since}, newest first."""
+        out = {"friends": [], "incoming": [], "outgoing": []}
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(friendships).where(sa.or_(
+                friendships.c.requester_id == me, friendships.c.addressee_id == me))
+                .order_by(friendships.c.updated_at.desc())).mappings().all()
+            ids = {r["addressee_id"] if r["requester_id"] == me else r["requester_id"] for r in rows}
+            names = dict(c.execute(sa.select(users.c.id, users.c.username).where(users.c.id.in_(ids))).all()) if ids else {}
+        for r in rows:
+            other = r["addressee_id"] if r["requester_id"] == me else r["requester_id"]
+            if other not in names:
+                continue
+            kind = "friends" if r["status"] == "accepted" else ("outgoing" if r["requester_id"] == me else "incoming")
+            out[kind].append({"id": other, "username": names[other], "since": r["updated_at"]})
+        return out
+
+    def friend_count(self, uid: int) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(friendships).where(sa.and_(
+                friendships.c.status == "accepted",
+                sa.or_(friendships.c.requester_id == uid, friendships.c.addressee_id == uid)))).scalar() or 0)
 
     # ------------------------------------------------------------------ sessions
     def create_session(self, uid: int, token_hash: str, ttl: int):
