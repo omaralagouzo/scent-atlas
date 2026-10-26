@@ -41,7 +41,7 @@ function DuelBody({ req, rankOf }: { req: DuelRequest; rankOf: (id: number) => n
   const total = Math.ceil(Math.log2(list.length + 1))
   const asked = undo.length
   const mid = (lo + hi) >> 1
-  const other = list[mid]
+  const other = list[mid] as Perfume | undefined
 
   const finish = (pos: number) => {
     if (done.current) return
@@ -57,10 +57,13 @@ function DuelBody({ req, rankOf }: { req: DuelRequest; rankOf: (id: number) => n
 
   const pick = (newWins: boolean) => {
     if (done.current || lo >= hi) return
+    const [l, h] = newWins ? [lo, mid] : [mid + 1, hi]
     setPicked(newWins ? 'new' : 'old')
     setUndo((u) => [...u, [lo, hi]])
-    if (newWins) setHi(mid)
-    else setLo(mid + 1)
+    setLo(l)
+    setHi(h)
+    // the last answer settles it: show the result in this same render (there is no next opponent to show)
+    if (l >= h) finish(l)
   }
   const back = () => {
     if (!undo.length || done.current) return
@@ -107,13 +110,13 @@ function DuelBody({ req, rankOf }: { req: DuelRequest; rankOf: (id: number) => n
         </div>
       </DialogHeader>
 
-      {placed != null ? (
+      {placed != null || !other ? (
         <div className="flex flex-col items-center gap-3 px-6 py-10 text-center" role="status">
-          <span className="grid size-16 place-items-center rounded-full border-2 bg-card font-mono text-2xl font-semibold animate-in zoom-in-50 duration-500 ease-spring" style={placed < 3 ? medal(placed + 1) : undefined}>
-            {placed + 1}
+          <span className="grid size-16 place-items-center rounded-full border-2 bg-card font-mono text-2xl font-semibold animate-in zoom-in-50 duration-500 ease-spring" style={(placed ?? lo) < 3 ? medal((placed ?? lo) + 1) : undefined}>
+            {(placed ?? lo) + 1}
           </span>
           <p className="text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-1 duration-300">
-            <span className="font-semibold tracking-[-0.015em] text-[16px] text-foreground">{it.name}</span> lands at <b className="font-mono font-medium text-foreground">#{placed + 1}</b>
+            <span className="font-semibold tracking-[-0.015em] text-[16px] text-foreground">{it.name}</span> lands at <b className="font-mono font-medium text-foreground">#{(placed ?? lo) + 1}</b>
           </p>
         </div>
       ) : (
