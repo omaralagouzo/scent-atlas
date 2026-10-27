@@ -26,7 +26,7 @@ export function PersonCard({ p, onRelation }: { p: Person; onRelation: (r: Relat
   return (
     <li className="flex flex-col gap-3 rounded-xl border bg-card p-4 transition-shadow hover:shadow-md">
       <a href={profileHref(p.username)} className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-        <UserAvatar name={name} seed={p.username} src={p.avatar} size={56} />
+        <UserAvatar name={name} seed={p.username} src={p.avatar} top={p.top} size={56} />
         <span className="flex min-w-0 flex-col leading-tight">
           <b className="truncate text-[15px] font-semibold tracking-[-0.015em]">{name}</b>
           <span className="truncate text-sm text-muted-foreground">@{p.username}</span>

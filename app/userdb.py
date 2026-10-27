@@ -1051,3 +1051,29 @@ class UserStore:
         with self.eng.connect() as c:
             return [dict(r) for r in c.execute(query).mappings()]
 
+    # ------------------------------------------------------------------ signature bottles and the friends leaderboard
+    def top_bottles(self, uids) -> dict[int, int]:
+        """{user id: perfume id} of each user's #1 ranked bottle (only users who have one)."""
+        uids = list(uids)
+        if not uids:
+            return {}
+        with self.eng.connect() as c:
+            return dict(c.execute(sa.select(perfume_status.c.user_id, perfume_status.c.perfume_id).where(
+                perfume_status.c.user_id.in_(uids), perfume_status.c.status == "owned", perfume_status.c.rank_pos == 1)).all())
+
+    def circle_signals(self, uids):
+        """Everything a group of people said about perfumes: (statuses, favourite perfume ids, review ratings).
+        statuses: [(uid, pid, status, rating, rank_pos)], favourites: [(uid, pid)], reviews: [(uid, pid, rating)]."""
+        uids = list(uids)
+        if not uids:
+            return [], [], []
+        with self.eng.connect() as c:
+            st = c.execute(sa.select(perfume_status.c.user_id, perfume_status.c.perfume_id, perfume_status.c.status,
+                                     perfume_status.c.rating, perfume_status.c.rank_pos)
+                           .where(perfume_status.c.user_id.in_(uids))).all()
+            fav = c.execute(sa.select(favorites.c.user_id, favorites.c.ref).where(
+                favorites.c.user_id.in_(uids), favorites.c.kind == "perfume")).all()
+            rev = c.execute(sa.select(reviews.c.user_id, reviews.c.perfume_id, reviews.c.rating).where(reviews.c.user_id.in_(uids))).all()
+        favs = [(u, int(r)) for u, r in fav if str(r).isdigit()]
+        return [tuple(r) for r in st], favs, [tuple(r) for r in rev]
+

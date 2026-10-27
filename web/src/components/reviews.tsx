@@ -7,6 +7,7 @@ import { api, errorText } from '@/lib/api'
 import { requireAuth, useMine, useSession } from '@/lib/store'
 import { profileHref } from '@/lib/social'
 import { plural, timeAgo } from '@/lib/format'
+import type { TopBottle } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,7 +34,7 @@ export interface ReviewFields {
   updated_at: number
 }
 export interface Review extends ReviewFields {
-  author: { username: string; name: string; first_name?: string; last_name?: string; avatar?: string | null }
+  author: { username: string; name: string; first_name?: string; last_name?: string; avatar?: string | null; top?: TopBottle | null }
   mine: boolean
   friend: boolean
 }
@@ -44,7 +45,7 @@ export interface Community {
   reviews: Review[]
   next_offset: number | null
   mine: ReviewFields | null
-  friends: { username: string; name: string; avatar?: string | null; status: MemberStatus }[]
+  friends: { username: string; name: string; avatar?: string | null; top?: TopBottle | null; status: MemberStatus }[]
 }
 
 const PER = 20
@@ -221,7 +222,7 @@ function Members({ c }: { c: Community }) {
                 <Tooltip key={f.username}>
                   <TooltipTrigger asChild>
                     <a href={profileHref(f.username)} aria-label={f.name} className="rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-                      <UserAvatar name={f.name} seed={f.username} src={f.avatar} size={30} className="ring-2 ring-card" />
+                      <UserAvatar name={f.name} seed={f.username} src={f.avatar} top={f.top} size={30} className="ring-2 ring-card" />
                     </a>
                   </TooltipTrigger>
                   <TooltipContent>{f.name}</TooltipContent>
@@ -406,7 +407,7 @@ function ReviewItem({ r }: { r: Review }) {
   return (
     <li className="flex gap-3 py-4 first:pt-0 last:pb-0">
       <a href={profileHref(a.username)} aria-hidden="true" tabIndex={-1} className="shrink-0">
-        <UserAvatar name={a.name} seed={a.username} src={a.avatar} size={36} />
+        <UserAvatar name={a.name} seed={a.username} src={a.avatar} top={a.top} size={36} />
       </a>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -436,7 +437,7 @@ function MyReview({ r, onEdit, onDelete }: { r: ReviewFields; onEdit: () => void
   return (
     <section aria-label="Your review" className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <UserAvatar name={user?.name || '?'} seed={user?.username} src={user?.avatar} size={28} />
+        <UserAvatar name={user?.name || '?'} seed={user?.username} src={user?.avatar} top={user?.top} size={28} />
         <h3 className="text-sm font-semibold">Your review</h3>
         <span className="text-xs text-muted-foreground">public</span>
         <span className="ml-auto">{when(r)}</span>

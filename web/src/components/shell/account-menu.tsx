@@ -48,12 +48,12 @@ export function AccountMenu() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className="rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none" aria-label={`Account: ${user.name}`} title={user.email}>
-            <UserAvatar name={user.name} seed={user.username} src={user.avatar} />
+            <UserAvatar name={user.name} seed={user.username} src={user.avatar} top={user.top} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
           <DropdownMenuLabel className="flex items-center gap-3">
-            <UserAvatar name={user.name} seed={user.username} src={user.avatar} size={36} />
+            <UserAvatar name={user.name} seed={user.username} src={user.avatar} top={user.top} size={36} />
             <span className="flex min-w-0 flex-col">
               <span className="truncate">{user.name}</span>
               <small className="truncate font-normal text-muted-foreground">@{user.username}</small>

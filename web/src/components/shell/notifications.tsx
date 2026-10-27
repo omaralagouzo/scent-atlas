@@ -108,7 +108,7 @@ function Item({ n, close }: { n: Notification; close: () => void }) {
   const body = (
     <>
       {n.actor ? (
-        <UserAvatar name={n.actor.name} seed={n.actor.username} src={n.actor.avatar} size={36} />
+        <UserAvatar name={n.actor.name} seed={n.actor.username} src={n.actor.avatar} top={n.actor.top} size={36} />
       ) : (
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
           <UserRoundPen className="size-4" />

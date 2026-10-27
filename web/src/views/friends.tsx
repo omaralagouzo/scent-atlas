@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserAvatar } from '@/components/avatar'
 import { FriendButton } from '@/components/friend-button'
+import { FriendsTop } from '@/components/friends-top'
 import { EmptyState, Page, PageHeader, SectionTitle } from '@/components/page'
 
 function PersonRow({ p, relation, onChange, meta }: { p: Person; relation: Relation; onChange: (r: Relation) => void; meta?: React.ReactNode }) {
@@ -15,7 +16,7 @@ function PersonRow({ p, relation, onChange, meta }: { p: Person; relation: Relat
   return (
     <li className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
       <a href={profileHref(p.username)} className="flex min-w-[12rem] flex-1 items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-        <UserAvatar name={name} seed={p.username} src={p.avatar} size={44} />
+        <UserAvatar name={name} seed={p.username} src={p.avatar} top={p.top} size={44} />
         <span className="flex min-w-0 flex-col leading-tight">
           <b className="truncate font-semibold tracking-[-0.015em]">{name}</b>
           <small className="truncate text-xs text-muted-foreground">
@@ -88,6 +89,7 @@ export default function FriendsView(_: ViewProps) {
               </ul>
             </section>
           )}
+          <FriendsTop key={lists.friends.length} />
           <section>
             <SectionTitle>
               Your friends <span className="ml-1 font-mono text-sm text-muted-foreground">{lists.friends.length}</span>

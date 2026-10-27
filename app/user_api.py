@@ -321,7 +321,8 @@ def make_router(ctx: Ctx) -> APIRouter:
         response.headers["Cache-Control"] = "no-store"
         if user is None:
             return {"user": None, "favorites": {"perfumes": [], "notes": []}, "statuses": {}}
-        return {"user": public_user(user), "favorites": store.list_favorites(user["id"]), "statuses": statuses_compact(user["id"])}
+        return {"user": {**public_user(user), "top": social_api.top_summaries(store, cat, [user["id"]]).get(user["id"])},
+                "favorites": store.list_favorites(user["id"]), "statuses": statuses_compact(user["id"])}
 
     # ---- favorites (kept at the old path) -------------------------------------------------
     @router.get("/favorites")

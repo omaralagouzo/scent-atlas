@@ -9,6 +9,8 @@ tab regains focus). At a few hundred or thousand members that is lighter and stu
 open per visitor; if live delivery is ever needed, the same table can feed Server-Sent Events."""
 from __future__ import annotations
 
+from collections import defaultdict
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
@@ -26,6 +28,17 @@ def avatar_url(u: dict) -> str | None:
 
 def needs_name(u: dict) -> bool:
     return (u.get("first_name"), u.get("last_name")) == PLACEHOLDER_NAME or not u.get("first_name")
+
+
+def top_summaries(store, cat, uids) -> dict[int, dict]:
+    """{user id: {id, name, brand, image}} of these users' #1 ranked bottles (no visibility check: callers do that)."""
+    out = {}
+    for uid, pid in store.top_bottles(uids).items():
+        i = cat.idx_of(pid)
+        if i is not None:
+            s = cat.summary(i)
+            out[uid] = {"id": s["id"], "name": s["name"], "brand": s["brand"], "image": s.get("image")}
+    return out
 
 
 def name_fields(u: dict) -> dict:
@@ -66,12 +79,22 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
         lists = store.list_friends(me["id"])
         return {p["id"]: kind for kind, rows in lists.items() for p in rows} | {me["id"]: "self"}
 
-    def person(u: dict, me: dict | None, rel: dict[int, str] | None = None) -> dict:
+    def person(u: dict, me: dict | None, rel: dict[int, str] | None = None, tops: dict | None = None) -> dict:
         r = rel.get(u["id"], "none") if rel is not None else store.relation(me["id"], u["id"]) if me else "none"
         out = {"username": u["username"], "created_at": u["created_at"], "relation": r, **name_fields(u)}
         if "owned" in u:
             out["owned"] = u["owned"]
+        if tops is not None:
+            out["top"] = tops.get(u["id"])
         return out
+
+    def tops(viewer: dict | None, uids, friend_ids=None) -> dict[int, dict]:
+        """{user id: their #1 bottle} for the people in uids whose collection the viewer may see (themselves and
+        accepted friends; a collection is private to everyone else, so their photo shows no bottle)."""
+        if not viewer:
+            return {}
+        visible = set(store.friend_ids(viewer["id"]) if friend_ids is None else friend_ids) | {viewer["id"]}
+        return top_summaries(store, cat, [u for u in set(uids) if u in visible])
 
     def target(username: str) -> dict:
         u = store.user_by_username(username)
@@ -90,7 +113,9 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
         response.headers["Cache-Control"] = "no-store"
         q = q.strip()[:40]
         rel = relations(user)
-        return {"users": [person(u, user, rel) for u in store.search_users(q, 10, exclude=user["id"])] if q else []}
+        rows = store.search_users(q, 10, exclude=user["id"]) if q else []
+        tp = tops(user, [u["id"] for u in rows], [k for k, v in rel.items() if v == "friends"])
+        return {"users": [person(u, user, rel, tp) for u in rows]}
 
     @router.get("/people")
     def people(response: Response, q: str = "", offset: int = Query(0, ge=0, le=100_000),
@@ -99,7 +124,8 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
         response.headers["Cache-Control"] = "no-store"
         rows, total = store.people(q.strip()[:40], limit, offset, exclude=user["id"])
         rel = relations(user)
-        return {"people": [person(u, user, rel) for u in rows], "total": total,
+        tp = tops(user, [u["id"] for u in rows], [k for k, v in rel.items() if v == "friends"])
+        return {"people": [person(u, user, rel, tp) for u in rows], "total": total,
                 "next_offset": offset + len(rows) if offset + len(rows) < total else None}
 
     # ---- my name and photo ---------------------------------------------------------------------
@@ -138,8 +164,85 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
     @router.get("/friends")
     def friends(response: Response, user=Depends(require_user)):
         response.headers["Cache-Control"] = "no-store"
-        return {kind: [{**person(p, user, {p["id"]: kind}), "id": p["id"], "since": p["since"]} for p in rows]
-                for kind, rows in store.list_friends(user["id"]).items()}
+        lists = store.list_friends(user["id"])
+        friend_ids = [p["id"] for p in lists["friends"]]
+        tp = tops(user, friend_ids, friend_ids)
+        return {kind: [{**person(p, user, {p["id"]: kind}, tp), "id": p["id"], "since": p["since"]} for p in rows]
+                for kind, rows in lists.items()}
+
+    @router.get("/friends/top")
+    def friends_top(response: Response, limit: int = Query(10, ge=1, le=25), user=Depends(require_user)):
+        """What my circle (me + my accepted friends) owns and likes, as three leaderboards:
+        owned  - most owners first (ties: higher places on their own leaderboards, then catalogue popularity)
+        liked  - most people who favourited, wishlisted or rated it 4+ (ties: more of those signals)
+        combined - points: own it 3 (+2 if it is in their top 3), favourite 2, wishlist 1, rated 4+ 1, tried 0
+        Every item lists who did what, so the page can show their photos."""
+        response.headers["Cache-Control"] = "no-store"
+        me = user["id"]
+        friend_ids = store.friend_ids(me)
+        circle = [me] + friend_ids
+        statuses, favs, revs = store.circle_signals(circle)
+        did: dict[int, dict[int, set]] = defaultdict(lambda: defaultdict(set))   # pid -> uid -> {signals}
+        place: dict[tuple[int, int], int] = {}
+        for uid, pid, status, rating, rank in statuses:
+            if status:
+                did[pid][uid].add(status)
+            if status == "owned" and rank:
+                place[(pid, uid)] = rank
+            if rating and rating >= 4:
+                did[pid][uid].add("loved")
+        for uid, pid in favs:
+            did[pid][uid].add("favorite")
+        for uid, pid, rating in revs:
+            if rating >= 4:
+                did[pid][uid].add("loved")
+
+        def popularity(pid):
+            i = cat.idx_of(pid)
+            return cat.summary(i).get("rating_count") or 0 if i is not None else 0
+
+        def points(pid, uid, sig):
+            p = 3 if "owned" in sig else 0
+            if "owned" in sig and place.get((pid, uid), 99) <= 3:
+                p += 2
+            return p + 2 * ("favorite" in sig) + ("wishlist" in sig) + ("loved" in sig)
+
+        liking = {"favorite", "wishlist", "loved"}
+        rows = []
+        for pid, who in did.items():
+            if cat.idx_of(pid) is None:
+                continue
+            owners = [u for u, s in who.items() if "owned" in s]
+            likers = [u for u, s in who.items() if s & liking]
+            rows.append({"pid": pid, "who": who, "owners": owners, "likers": likers,
+                         "owned_key": (len(owners), sum(1 / place.get((pid, u), 50) for u in owners)),
+                         "liked_key": (len(likers), sum(len(s & liking) for s in who.values())),
+                         "score": sum(points(pid, u, s) for u, s in who.items())})
+
+        ppl = store.people_by_id(circle)
+        tp = top_summaries(store, cat, circle)
+
+        def item(r, people_ids, score):
+            i = cat.idx_of(r["pid"])
+            s = cat.summary(i)
+            people_ids = sorted(people_ids, key=lambda u: (u != me, -points(r["pid"], u, r["who"][u])))
+            return {"perfume": {k: s.get(k) for k in ("id", "name", "brand", "image", "accords", "year")}, "score": score,
+                    "owners": len(r["owners"]), "likers": len(r["likers"]),
+                    "people": [{"username": ppl[u]["username"], **name_fields(ppl[u]), "me": u == me, "top": tp.get(u),
+                                "did": sorted(r["who"][u]), "place": place.get((r["pid"], u))}
+                               for u in people_ids if u in ppl]}
+
+        def board(key, people, score, keep):
+            ranked = sorted((r for r in rows if keep(r)), key=lambda r: (key(r), popularity(r["pid"])), reverse=True)
+            return [item(r, people(r), score(r)) for r in ranked[:limit]]
+
+        return {
+            "circle": len(circle), "friends": len(friend_ids),
+            "owned": board(lambda r: r["owned_key"], lambda r: r["owners"], lambda r: len(r["owners"]), lambda r: r["owners"]),
+            "liked": board(lambda r: r["liked_key"], lambda r: r["likers"], lambda r: len(r["likers"]), lambda r: r["likers"]),
+            "combined": board(lambda r: (r["score"], len(r["who"])), lambda r: list(r["who"]), lambda r: r["score"],
+                              lambda r: r["score"] > 0),
+        }
 
     @router.post("/friends/{username}")
     def add_friend(username: str, user=Depends(require_user)):
@@ -173,12 +276,14 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
     def notifications(response: Response, limit: int = Query(30, ge=1, le=100), user=Depends(require_user)):
         response.headers["Cache-Control"] = "no-store"
         items = []
-        for n in store.list_notifications(user["id"], limit):
+        rows = store.list_notifications(user["id"], limit)
+        tp = tops(user, [n["actor_id"] for n in rows if n["actor_id"] is not None])
+        for n in rows:
             actor = None
             if n["actor_id"] is not None:
                 a = {"id": n["actor_id"], "username": n["actor_username"], "first_name": n["actor_first_name"],
                      "last_name": n["actor_last_name"], "avatar_at": n["actor_avatar_at"]}
-                actor = {"username": a["username"], **name_fields(a)}
+                actor = {"username": a["username"], **name_fields(a), "top": tp.get(n["actor_id"])}
             items.append({"id": n["id"], "kind": n["kind"], "ref": n["ref"], "created_at": n["created_at"],
                           "read": n["read_at"] is not None, "actor": actor})
         return {"items": items, "unread": store.unread_count(user["id"])}
@@ -198,7 +303,7 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
     def profile(username: str, response: Response, user=Depends(require_user)):
         response.headers["Cache-Control"] = "no-store"
         u = target(username)
-        out = person(u, user)
+        out = person(u, user, tops=tops(user, [u["id"]]))
         uid = u["id"]
         statuses = store.list_status(uid)
         out["counts"] = {"owned": sum(r["status"] == "owned" for r in statuses), "friends": store.friend_count(uid),
@@ -228,12 +333,12 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
         return out
 
     # ---- reviews and what members think of a perfume -----------------------------------------
-    def review_out(r: dict, me: dict | None, friend_set: set[int]) -> dict:
+    def review_out(r: dict, me: dict | None, friend_set: set[int], tp: dict) -> dict:
         who = {"id": r["user_id"], "username": r["username"], "first_name": r["first_name"],
                "last_name": r["last_name"], "avatar_at": r["avatar_at"]}
         return {"rating": r["rating"], "longevity": r["longevity"], "sillage": r["sillage"], "body": r["body"],
                 "created_at": r["created_at"], "updated_at": r["updated_at"],
-                "author": {"username": r["username"], **name_fields(who)},
+                "author": {"username": r["username"], **name_fields(who), "top": tp.get(r["user_id"])},
                 "mine": bool(me and r["user_id"] == me["id"]), "friend": r["user_id"] in friend_set}
 
     @router.get("/perfumes/{pid}/community")
@@ -247,8 +352,9 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
         fs = set(friend_ids)
         rows = store.reviews_for(pid, limit, offset, first=friend_ids)
         stats = store.review_stats(pid)
+        tp = tops(user, [r["user_id"] for r in rows], friend_ids)
         out = {"stats": stats, "members": store.status_counts(pid),
-               "reviews": [review_out(r, user, fs) for r in rows],
+               "reviews": [review_out(r, user, fs, tp) for r in rows],
                "next_offset": offset + len(rows) if offset + len(rows) < stats["count"] else None,
                "mine": None, "friends": []}
         if user:
@@ -257,7 +363,8 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
                 out["mine"] = {k: mine[k] for k in ("rating", "longevity", "sillage", "body", "created_at", "updated_at")}
             st = store.statuses_of(pid, friend_ids)
             ppl = store.people_by_id(list(st))
-            out["friends"] = sorted(({"username": ppl[i]["username"], **name_fields(ppl[i]), "status": s}
+            ftp = tops(user, list(st), friend_ids)
+            out["friends"] = sorted(({"username": ppl[i]["username"], **name_fields(ppl[i]), "status": s, "top": ftp.get(i)}
                                      for i, s in st.items() if i in ppl), key=lambda p: (STATUSES.index(p["status"]), p["name"].lower()))
         return out
 

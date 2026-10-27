@@ -121,7 +121,7 @@ export function CommandPalette() {
           <CommandGroup heading="People">
             {people.map((u) => (
               <CommandItem key={`u${u.username}`} value={`u${u.username}`} onSelect={() => run(() => go(`/u/${encodeURIComponent(u.username)}`))} className="gap-3">
-                <UserAvatar name={u.name || u.username} seed={u.username} src={u.avatar} size={32} />
+                <UserAvatar name={u.name || u.username} seed={u.username} src={u.avatar} top={u.top} size={32} />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate font-semibold tracking-[-0.015em] leading-tight">{u.name || u.username}</span>
                   <span className="truncate text-xs text-muted-foreground">@{u.username}</span>

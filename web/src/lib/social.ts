@@ -2,6 +2,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { api } from './api'
 import { session, useSession } from './store'
+import type { TopBottle } from './types'
 
 export type Relation = 'self' | 'friends' | 'outgoing' | 'incoming' | 'none'
 export interface Person {
@@ -18,6 +19,8 @@ export interface Person {
   relation?: Relation
   /** bottles on their shelf (directory listings) */
   owned?: number
+  /** their #1 bottle (yourself and friends only) */
+  top?: TopBottle | null
 }
 export interface FriendLists {
   friends: Person[]
