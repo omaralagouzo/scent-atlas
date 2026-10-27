@@ -207,3 +207,61 @@ def test_reviews_stats_friends_first_and_cleanup(app):
     assert bobby.get("/api/users/bobby").json()["counts"]["reviews"] == 1
     assert bobby.post("/api/auth/delete", headers=H, json={"password": PW}).status_code == 200
     assert anon.get("/api/perfumes/1/community").json()["stats"]["count"] == 1
+
+
+# ---------------------------------------------------------------------------- #1 bottle on photos, friends leaderboard
+def befriend(a, b, a_name, b_name):
+    a.post(f"/api/friends/{b_name}", headers=H, json={})
+    b.post(f"/api/friends/{a_name}", headers=H, json={})
+
+
+def test_number_one_bottle_shows_only_to_friends_and_self(app):
+    alice, bobby, carol = people(app, "alice", "bobby", "carol")
+    alice.post("/api/me/collection", headers=H, json={"perfume_id": 2})
+    alice.post("/api/me/collection", headers=H, json={"perfume_id": 1, "rank": 1})
+    assert alice.get("/api/me").json()["user"]["top"]["id"] == 1
+    assert bobby.get("/api/me").json()["user"]["top"] is None                      # nothing ranked
+    befriend(alice, bobby, "alice", "bobby")
+    assert bobby.get("/api/friends").json()["friends"][0]["top"]["id"] == 1
+    assert bobby.get("/api/users/alice").json()["top"]["id"] == 1
+    assert bobby.get("/api/people", params={"q": "alice"}).json()["people"][0]["top"]["id"] == 1
+    # a stranger sees the photo but not the bottle (collections are private to friends)
+    assert carol.get("/api/users/alice").json()["top"] is None
+    assert carol.get("/api/people", params={"q": "alice"}).json()["people"][0]["top"] is None
+    assert carol.get("/api/users/search", params={"q": "alice"}).json()["users"][0]["top"] is None
+    alice.put("/api/me/reviews/1", headers=H, json={"rating": 5})
+    authors = {r["author"]["username"]: r["author"]["top"] for r in carol.get("/api/perfumes/1/community").json()["reviews"]}
+    assert authors == {"alice": None}
+    authors = {r["author"]["username"]: r["author"]["top"] for r in bobby.get("/api/perfumes/1/community").json()["reviews"]}
+    assert authors["alice"]["id"] == 1
+    assert TestClient(app).get("/api/perfumes/1/community").json()["reviews"][0]["author"]["top"] is None
+
+
+def test_friends_leaderboard(app):
+    alice, bobby, carol, dave = people(app, "alice", "bobby", "carol", "dave")
+    befriend(alice, bobby, "alice", "bobby")
+    befriend(alice, carol, "alice", "carol")
+    # perfume 1: owned by alice (#1) and bobby; 2: owned by carol, loved by bobby; 3: wishlist + favourite
+    alice.post("/api/me/collection", headers=H, json={"perfume_id": 1, "rank": 1})
+    bobby.post("/api/me/collection", headers=H, json={"perfume_id": 1})
+    carol.post("/api/me/collection", headers=H, json={"perfume_id": 2})
+    bobby.put("/api/me/reviews/2", headers=H, json={"rating": 5})
+    alice.put("/api/me/perfumes/3", headers=H, json={"status": "wishlist"})
+    carol.post("/api/favorites", headers=H, json={"type": "perfume", "id": 3, "liked": True})
+    bobby.put("/api/me/perfumes/3", headers=H, json={"status": "wishlist"})
+    dave.post("/api/me/collection", headers=H, json={"perfume_id": 4})               # not in alice's circle
+
+    r = alice.get("/api/friends/top").json()
+    assert (r["circle"], r["friends"]) == (3, 2)
+    assert [(x["perfume"]["id"], x["score"]) for x in r["owned"]] == [(1, 2), (2, 1)]
+    first = r["owned"][0]["people"]
+    assert first[0]["me"] is True and first[0]["place"] == 1 and "owned" in first[0]["did"]
+    assert [(x["perfume"]["id"], x["score"]) for x in r["liked"]] == [(3, 3), (2, 1)]
+    # combined: 1 = 3+2 (alice #1) + 3 = 8; 3 = 1 + 2 + 1 = 4; 2 = 3 + 1 = 4 -> 2 has fewer people... tie broken by people count
+    combined = [(x["perfume"]["id"], x["score"]) for x in r["combined"]]
+    assert combined[0] == (1, 8) and {c[0] for c in combined} == {1, 2, 3} and 4 not in {c[0] for c in combined}
+    assert all(p["username"] != "dave" for x in r["combined"] for p in x["people"])
+    assert len(alice.get("/api/friends/top", params={"limit": 1}).json()["combined"]) == 1
+    lonely = dave.get("/api/friends/top").json()
+    assert lonely["friends"] == 0 and [x["perfume"]["id"] for x in lonely["owned"]] == [4]
+    assert TestClient(app).get("/api/friends/top").status_code == 401

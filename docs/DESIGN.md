@@ -79,8 +79,11 @@ profile also your taste profile, saved searches and history (this replaced "My A
 ## People
 
 People are shown by **name first, @username second**, with their photo (`UserAvatar` in `components/avatar.tsx`
-falls back to their initial on a colour derived from the username). Accounts still called "User Name" get one
-gentle, self-dismissing reminder per visit to add their name.
+falls back to their initial on a colour derived from the username). Wherever a photo of yourself or a friend
+appears (24px and up), their #1 ranked bottle sits in a small translucent white disc at its bottom centre (`top`;
+the API sends it only to the person and their friends, since collections are private). Accounts still called "User
+Name" get one gentle, self-dismissing reminder per visit to add their name. The Friends page opens on "What your
+circle loves": owned / liked / combined leaderboards of you and your friends, top 3, 5 or 10.
 
 ## Components
 

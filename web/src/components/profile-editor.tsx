@@ -208,7 +208,7 @@ export function ProfileEditor() {
 
         <div className="flex items-center gap-4">
           <span className="relative shrink-0">
-            <UserAvatar name={user.needs_name && first.trim() ? first : name} seed={user.username} src={user.avatar} size={84} />
+            <UserAvatar name={user.needs_name && first.trim() ? first : name} seed={user.username} src={user.avatar} top={user.top} size={84} />
             {photoBusy && (
               <span className="absolute inset-0 grid place-items-center rounded-full bg-background/60">
                 <Loader2 className="size-5 animate-spin" />

@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { api } from './api'
 import { refreshFriends } from './social'
 import { session, useSession } from './store'
+import type { TopBottle } from './types'
 
 export interface Notification {
   id: number
@@ -11,7 +12,7 @@ export interface Notification {
   ref: string | null
   created_at: number
   read: boolean
-  actor: { username: string; name: string; avatar: string | null } | null
+  actor: { username: string; name: string; avatar: string | null; top?: TopBottle | null } | null
 }
 
 const POLL_MS = 60_000

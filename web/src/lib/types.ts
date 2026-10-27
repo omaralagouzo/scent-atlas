@@ -42,6 +42,14 @@ export interface Perfume {
   [k: string]: any
 }
 
+/** A member's #1 ranked bottle, shown on their photo (sent only for yourself and your friends). */
+export interface TopBottle {
+  id: number
+  name: string
+  brand: string
+  image?: string | null
+}
+
 export interface User {
   id: number
   username: string
@@ -55,6 +63,7 @@ export interface User {
   /** true while the account still has the placeholder name "User Name" */
   needs_name: boolean
   created_at?: number
+  top?: TopBottle | null
 }
 
 export type Status = 'owned' | 'tried' | 'wishlist'
