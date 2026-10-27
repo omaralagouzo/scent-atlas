@@ -7,9 +7,17 @@ export type Relation = 'self' | 'friends' | 'outgoing' | 'incoming' | 'none'
 export interface Person {
   id?: number
   username: string
+  /** display name (first + last) */
+  name?: string
+  first_name?: string
+  last_name?: string
+  /** profile photo URL, or null */
+  avatar?: string | null
   since?: number
   created_at?: number
   relation?: Relation
+  /** bottles on their shelf (directory listings) */
+  owned?: number
 }
 export interface FriendLists {
   friends: Person[]

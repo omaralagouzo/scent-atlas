@@ -46,6 +46,15 @@ export interface User {
   id: number
   username: string
   email: string
+  first_name: string
+  last_name: string
+  /** display name: first + last name (the username when neither is set) */
+  name: string
+  /** profile photo URL, or null */
+  avatar: string | null
+  /** true while the account still has the placeholder name "User Name" */
+  needs_name: boolean
+  created_at?: number
 }
 
 export type Status = 'owned' | 'tried' | 'wishlist'

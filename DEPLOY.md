@@ -58,6 +58,22 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
 | `MALLOC_ARENA_MAX` | optional | `2` | keeps glibc's per-thread arenas (and RSS) small. |
 | `PYTHON_VERSION` | yes | `3.11.11` | Render Python version. |
 
+## Members, photos and notifications (no extra services)
+
+* **Names** are stored on the account (`first_name`, `last_name`). Accounts created before names existed were called
+  "User Name" by the v4 migration and are reminded once at their next sign-in.
+* **Profile photos** are processed by the server with Pillow (centre-cropped, 512x512, re-encoded as WebP, which also
+  strips camera metadata such as GPS) and stored in the `avatars` table in Postgres: about 20-60 KB each, so even a
+  few thousand members stay well under 200 MB. Served from `/api/avatars/<id>.webp?v=<version>` with a one-year
+  immutable cache. Object storage (e.g. Cloudflare R2) only becomes worthwhile for much larger media (review photos,
+  thousands of members); nothing to set up today.
+* **Notifications** (friend requests, accepted requests, the name reminder) are rows in the `notifications` table
+  (the newest 200 per member are kept). The browser asks for the unread count once a minute while the tab is visible
+  and whenever it regains focus; the list loads when the bell is opened. At hundreds to a few thousand members this is
+  lighter than holding a live connection per visitor; the same table can feed Server-Sent Events later if instant
+  delivery is ever needed.
+* **Reviews** are public, one per member and perfume, in the `reviews` table.
+
 ## Custom domain (scentatlas.app, registered at Spaceship)
 
 1. Render → the `scent-atlas` service → **Settings → Custom Domains** → add `scentatlas.app` (Render offers to add
@@ -111,8 +127,8 @@ The catalogue is derived from public Fragrantica-based datasets released under *
 olgagmiufana1: <https://www.kaggle.com/datasets/olgagmiufana1/fragrantica-com-fragrance-dataset>; further sources are listed in
 `data/BUILD_REPORT.md`). Therefore:
 
-* the site must stay **non-commercial** (no ads, no paid tier) and credit those sources - the footer and the
-  `#/about` page do this; do not remove them;
+* the site must stay **non-commercial** (no ads, no paid tier) and credit those sources - the `#/about` page does
+  this and every page's footer links to it ("About & credits"); do not remove either;
 * the derived catalogue (`data/deploy/catalog.db.gz`) stays under **CC BY-NC-SA 4.0** (share-alike);
 * bottle and note images are **(c) Fragrantica** and are only hotlinked, never stored or redistributed (no image files are in the
   repository); a few note photos are Wikimedia Commons images credited on `#/about` (`/api/credits`);

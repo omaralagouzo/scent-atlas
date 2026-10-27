@@ -98,11 +98,12 @@ export function MoreMenu({ it, actions, className }: { it: Item; actions: ItemAc
 }
 
 // ---------------------------------------------------------------- podium
-export function Podium({ top, actions }: { top: Item[]; actions: ItemActions }) {
+/** The top-3 podium. Without `actions` it is read-only (a friend's profile): no item menu. */
+export function Podium({ top, actions, label = 'Your top 3', className }: { top: Item[]; actions?: ItemActions; label?: string; className?: string }) {
   // DOM (and mobile) order 1, 2, 3; on wider screens 2 · 1 · 3 so the winner stands in the middle
   const pos = top.length === 3 ? ['col-span-2 sm:col-span-1 sm:order-2', 'sm:order-1', 'sm:order-3'] : ['', '', '']
   return (
-    <ol className={cn('mb-8 grid items-end gap-x-3 gap-y-6 pt-4', top.length === 3 ? 'grid-cols-2 sm:grid-cols-3' : top.length === 2 ? 'grid-cols-2 sm:mx-auto sm:max-w-2xl' : 'sm:mx-auto sm:max-w-sm')} aria-label="Your top 3">
+    <ol className={cn('mb-8 grid items-end gap-x-3 gap-y-6 pt-4', top.length === 3 ? 'grid-cols-2 sm:grid-cols-3' : top.length === 2 ? 'grid-cols-2 sm:mx-auto sm:max-w-2xl' : 'sm:mx-auto sm:max-w-sm', className)} aria-label={label}>
       {top.map((it, k) => (
         <PodiumCard key={it.id} it={it} place={k + 1} actions={actions} className={pos[k]} />
       ))}
@@ -110,7 +111,7 @@ export function Podium({ top, actions }: { top: Item[]; actions: ItemActions }) 
   )
 }
 
-function PodiumCard({ it, place, actions, className }: { it: Item; place: number; actions: ItemActions; className?: string }) {
+function PodiumCard({ it, place, actions, className }: { it: Item; place: number; actions?: ItemActions; className?: string }) {
   const lift = place === 1 ? 'sm:pb-8' : place === 2 ? 'sm:pb-4' : 'sm:pb-2'
   return (
     <li
@@ -140,7 +141,7 @@ function PodiumCard({ it, place, actions, className }: { it: Item; place: number
       </span>
       <MiniAccords accords={it.accords} className="w-full max-w-40" />
       {it.my.rating ? <Stars n={it.my.rating} /> : null}
-      <MoreMenu it={it} actions={actions} className="absolute top-2 right-2" />
+      {actions && <MoreMenu it={it} actions={actions} className="absolute top-2 right-2" />}
     </li>
   )
 }

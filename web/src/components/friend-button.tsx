@@ -8,7 +8,7 @@ import { requireAuth, useSession } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
-export function FriendButton({ username, relation, onChange, size = 'sm' }: { username: string; relation: Relation; onChange: (r: Relation) => void; size?: 'sm' | 'default' }) {
+export function FriendButton({ username, relation, onChange, size = 'sm', quiet = false }: { username: string; relation: Relation; onChange: (r: Relation) => void; size?: 'sm' | 'default'; /** outline "Add friend" (for grids of many people) */ quiet?: boolean }) {
   const { user } = useSession()
   const [busy, setBusy] = useState(false)
   const run = async (fn: () => Promise<Relation>, done?: (r: Relation) => string) => {
@@ -63,7 +63,7 @@ export function FriendButton({ username, relation, onChange, size = 'sm' }: { us
       </Button>
     )
   return (
-    <Button size={size} disabled={busy} onClick={() => run(() => addFriend(username), (r) => (r === 'friends' ? `You and @${username} are now friends.` : `Friend request sent to @${username}.`))}>
+    <Button size={size} variant={quiet ? 'outline' : 'default'} disabled={busy} onClick={() => run(() => addFriend(username), (r) => (r === 'friends' ? `You and @${username} are now friends.` : `Friend request sent to @${username}.`))}>
       <UserPlus />
       Add friend
     </Button>

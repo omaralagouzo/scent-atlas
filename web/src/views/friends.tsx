@@ -1,55 +1,48 @@
-// Friends: find people, answer requests, and jump to a friend's shelf.
-import { useEffect, useState } from 'react'
-import { Search, Users } from 'lucide-react'
+// Friends: answer requests and jump to a friend's shelf. Finding new people lives on Discover people (#/people).
+import { UserPlus, Users } from 'lucide-react'
 import type { ViewProps } from '@/App'
-import { api } from '@/lib/api'
 import { profileHref, useFriends, type Person, type Relation } from '@/lib/social'
 import { authDialog, useSession } from '@/lib/store'
 import { timeAgo } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { UserAvatar } from '@/components/avatar'
 import { FriendButton } from '@/components/friend-button'
 import { EmptyState, Page, PageHeader, SectionTitle } from '@/components/page'
-import { UserAvatar } from '@/components/shell/account-menu'
 
 function PersonRow({ p, relation, onChange, meta }: { p: Person; relation: Relation; onChange: (r: Relation) => void; meta?: React.ReactNode }) {
+  const name = p.name || p.username
   return (
-    <li className="flex items-center gap-3 rounded-xl border bg-card p-3">
-      <a href={profileHref(p.username)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
-        <UserAvatar name={p.username} size={40} />
+    <li className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
+      <a href={profileHref(p.username)} className="flex min-w-[12rem] flex-1 items-center gap-3 rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+        <UserAvatar name={name} seed={p.username} src={p.avatar} size={44} />
         <span className="flex min-w-0 flex-col leading-tight">
-          <b className="truncate font-semibold">@{p.username}</b>
-          {meta && <small className="text-xs text-muted-foreground">{meta}</small>}
+          <b className="truncate font-semibold tracking-[-0.015em]">{name}</b>
+          <small className="truncate text-xs text-muted-foreground">
+            @{p.username}
+            {meta && <> · {meta}</>}
+          </small>
         </span>
       </a>
-      <FriendButton username={p.username} relation={relation} onChange={onChange} />
+      <span className="ml-auto">
+        <FriendButton username={p.username} relation={relation} onChange={onChange} />
+      </span>
     </li>
   )
 }
 
-export default function FriendsView({ params }: ViewProps) {
+const FindPeople = ({ variant = 'outline' }: { variant?: 'outline' | 'default' }) => (
+  <Button variant={variant} asChild>
+    <a href="#/people">
+      <UserPlus />
+      Find people
+    </a>
+  </Button>
+)
+
+export default function FriendsView(_: ViewProps) {
   const { user, loaded } = useSession()
   const lists = useFriends()
-  const [q, setQ] = useState(params.get('q') || '')
-  const [found, setFound] = useState<Person[] | null>(null)
-
-  useEffect(() => {
-    const query = q.trim()
-    if (!user || !query) {
-      setFound(null)
-      return
-    }
-    const t = setTimeout(async () => {
-      try {
-        setFound((await api.get('/api/users/search', { q: query })).users)
-      } catch {
-        setFound([])
-      }
-    }, 180)
-    return () => clearTimeout(t)
-  }, [q, user])
-
-  const relate = (username: string, r: Relation) => setFound((xs) => (xs ? xs.map((x) => (x.username === username ? { ...x, relation: r } : x)) : xs))
 
   if (loaded && !user)
     return (
@@ -74,35 +67,7 @@ export default function FriendsView({ params }: ViewProps) {
 
   return (
     <Page>
-      <PageHeader title="Friends" description="See your friends' shelves and what they wear." />
-      <div className="relative mb-8 max-w-xl">
-        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" />
-        <input
-          data-search=""
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Find people by username…"
-          aria-label="Find people by username"
-          autoComplete="off"
-          className="h-12 w-full rounded-lg border border-input bg-card pr-3 pl-10 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        />
-      </div>
-
-      {found && (
-        <section className="mb-10">
-          <SectionTitle>People</SectionTitle>
-          {found.length ? (
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {found.map((p) => (
-                <PersonRow key={p.username} p={p} relation={p.relation || 'none'} onChange={(r) => relate(p.username, r)} />
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">No one by that name yet.</p>
-          )}
-        </section>
-      )}
+      <PageHeader title="Friends" description="See your friends' shelves and what they wear." actions={<FindPeople />} />
 
       {!lists ? (
         <div className="flex flex-col gap-2">
@@ -134,8 +99,8 @@ export default function FriendsView({ params }: ViewProps) {
                 ))}
               </ul>
             ) : (
-              <EmptyState icon={<Users className="size-5" />} title="No friends yet" className="py-10">
-                Search for someone's username above and send a request. Once they accept, you can see each other's shelves.
+              <EmptyState icon={<Users className="size-5" />} title="No friends yet" className="py-10" action={<FindPeople variant="default" />}>
+                Find someone by name or username and send a request. Once they accept, you can see each other's shelves.
               </EmptyState>
             )}
           </section>

@@ -1,4 +1,4 @@
-// Recent history on My Atlas: viewed perfumes, "smells like" lookups and searches, newest first.
+// Recent history (viewed perfumes, "smells like" lookups and searches), newest first. Shown on my own profile.
 import { useState } from 'react'
 import { Search, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'

@@ -23,31 +23,18 @@ export function Ribbon({ status, down }: { status: any; down: boolean }) {
   return null
 }
 
-export function Footer({ status }: { status: any }) {
+export function Footer() {
   return (
     <footer className="border-t">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 text-xs text-muted-foreground sm:px-6">
         <span className="flex items-center gap-2 font-medium text-foreground">
           <Glyph size={14} className="text-brand" /> Scent Atlas
         </span>
-        <span>Non-commercial personal project</span>
-        {status && (
-          <span className="font-mono">
-            {status.perfumes.toLocaleString()} perfumes · {status.notes.toLocaleString()} notes
-          </span>
-        )}
-        <span>
-          Data{' '}
-          <a className="underline underline-offset-2 hover:text-foreground" href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">
-            CC BY-NC-SA 4.0
-          </a>{' '}
-          (Decant, olgagmiufana1 &amp; others) · Images © Fragrantica ·{' '}
-          <a className="underline underline-offset-2 hover:text-foreground" href="#/about">
-            About &amp; credits
-          </a>
-        </span>
+        <a className="underline-offset-2 hover:text-foreground hover:underline" href="#/about">
+          About &amp; credits
+        </a>
         <span className="ml-auto hidden sm:inline">
-          <kbd className="rounded border bg-muted px-1.5 font-mono">/</kbd> search · <kbd className="rounded border bg-muted px-1.5 font-mono">Esc</kbd> close
+          <kbd className="rounded border bg-muted px-1.5 font-mono">/</kbd> to search
         </span>
       </div>
     </footer>

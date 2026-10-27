@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { useSession } from '@/lib/store'
 import { brandHref } from '@/components/brandtags'
-import { UserAvatar } from './account-menu'
+import { UserAvatar } from '@/components/avatar'
+import type { Person } from '@/lib/social'
 import { go, openPerfume } from '@/lib/router'
 import { compact } from '@/lib/format'
 import type { Note, Perfume } from '@/lib/types'
@@ -20,7 +21,7 @@ export function CommandPalette() {
   const [perfumes, setPerfumes] = useState<Perfume[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [brands, setBrands] = useState<{ name: string; count: number }[]>([])
-  const [people, setPeople] = useState<{ username: string }[]>([])
+  const [people, setPeople] = useState<Person[]>([])
   const { user } = useSession()
   const seq = useRef(0)
   openFn = setOpen
@@ -120,8 +121,11 @@ export function CommandPalette() {
           <CommandGroup heading="People">
             {people.map((u) => (
               <CommandItem key={`u${u.username}`} value={`u${u.username}`} onSelect={() => run(() => go(`/u/${encodeURIComponent(u.username)}`))} className="gap-3">
-                <UserAvatar name={u.username} size={28} />
-                <span className="flex-1 truncate">@{u.username}</span>
+                <UserAvatar name={u.name || u.username} seed={u.username} src={u.avatar} size={32} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-semibold tracking-[-0.015em] leading-tight">{u.name || u.username}</span>
+                  <span className="truncate text-xs text-muted-foreground">@{u.username}</span>
+                </span>
               </CommandItem>
             ))}
           </CommandGroup>

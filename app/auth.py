@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 import secrets
 import threading
 import time
@@ -37,6 +38,21 @@ def valid_username(u: str) -> str | None:
     if not isinstance(u, str) or not USERNAME_RE.match(u):
         return "Username must be 3-32 characters: letters, digits, dot, dash or underscore, starting with a letter or digit."
     return None
+
+
+def clean_name(first: str | None, last: str | None) -> tuple[str, str] | str:
+    """(first, last) with whitespace collapsed, or a problem message. First name required, last name optional."""
+    def tidy(x):
+        return " ".join(str(x or "").split())
+    f, l = tidy(first), tidy(last)
+    if not f:
+        return "Enter your first name."
+    if len(f) > 40 or len(l) > 40:
+        return "Names can be at most 40 characters."
+    for part in (f, l):
+        if any(unicodedata.category(ch)[0] == "C" for ch in part) or (part and not any(ch.isalpha() for ch in part)):
+            return "Names need at least one letter and no special control characters."
+    return f, l
 
 
 def valid_email(e: str) -> str | None:

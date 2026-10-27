@@ -2,12 +2,14 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { closeDrawer, go, match, useLocation } from '@/lib/router'
+import { go, match, perfumeHref, useLocation } from '@/lib/router'
 import { AuthDialog } from '@/components/shell/auth-dialog'
 import { CommandPalette, openSearch } from '@/components/shell/command-palette'
 import { Footer, Ribbon, useStatus } from '@/components/shell/footer'
 import { Header } from '@/components/shell/header'
-import { PerfumeDrawer } from '@/components/shell/perfume-drawer'
+import { toast } from 'sonner'
+import { ProfileEditor, openProfileEditor } from '@/components/profile-editor'
+import { useSession } from '@/lib/store'
 
 export interface ViewProps {
   args: Record<string, string>
@@ -27,6 +29,8 @@ const Atlas = lazy(() => import('@/views/atlas'))
 const About = lazy(() => import('@/views/about'))
 const Friends = lazy(() => import('@/views/friends'))
 const Profile = lazy(() => import('@/views/profile'))
+const PerfumePage = lazy(() => import('@/views/perfume'))
+const People = lazy(() => import('@/views/people'))
 
 const ROUTES: [string, React.ComponentType<ViewProps>][] = [
   ['/notes', Notes],
@@ -43,6 +47,8 @@ const ROUTES: [string, React.ComponentType<ViewProps>][] = [
   ['/about', About],
   ['/friends', Friends],
   ['/u/:username', Profile],
+  ['/perfume/:id', PerfumePage],
+  ['/people', People],
 ]
 
 function Router() {
@@ -56,9 +62,10 @@ function Router() {
     }
   }
   useEffect(() => {
-    if (loc.path === '/favorites') location.replace('#/atlas')
+    if (loc.drawer) location.replace(perfumeHref(loc.drawer)) // old links opened a drawer: ?p=<id>
+    else if (loc.path === '/favorites') location.replace('#/atlas')
     else if (!found) go('/notes')
-  }, [found, loc.path])
+  }, [found, loc.path, loc.drawer])
   if (!found) return null
   const [View, args] = found
   const params = new URLSearchParams(loc.params)
@@ -76,10 +83,31 @@ function Router() {
   )
 }
 
+/** Accounts still called "User Name" get one gentle, self-dismissing nudge per visit to add their real name. */
+function NamePrompt() {
+  const { user } = useSession()
+  useEffect(() => {
+    if (!user?.needs_name) return
+    const key = `sa-name-prompt-${user.id}`
+    try {
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+    } catch {
+      /* storage blocked: still show it once for this page load */
+    }
+    const t = setTimeout(
+      () => toast('Add your name so friends and family can find you.', { duration: 8000, action: { label: 'Add name', onClick: openProfileEditor } }),
+      1200,
+    )
+    return () => clearTimeout(t)
+  }, [user?.id, user?.needs_name])
+  return null
+}
+
 export default function App() {
   const { status, down } = useStatus()
   useEffect(() => {
-    // "/" focuses the page's own search box (or opens global search); Escape closes the drawer
+    // "/" focuses the page's own search box (or opens global search)
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
       const tag = (t.tagName || '').toLowerCase()
@@ -91,7 +119,7 @@ export default function App() {
           s.focus()
           s.select?.()
         } else openSearch()
-      } else if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) closeDrawer()
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -106,8 +134,9 @@ export default function App() {
       <main id="main" tabIndex={-1} className="min-h-[70vh] outline-none">
         <Router />
       </main>
-      <Footer status={status} />
-      <PerfumeDrawer />
+      <Footer />
+      <ProfileEditor />
+      <NamePrompt />
       <CommandPalette />
       <AuthDialog />
       <Toaster position="bottom-center" />

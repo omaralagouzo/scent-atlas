@@ -1,4 +1,4 @@
-// "Save" + "Saved" buttons for the Combine and Pyramid views, and the saved-search row (also used on My Atlas).
+// "Save" + "Saved" buttons for the Combine and Pyramid views, and the saved-search row (also used on your profile).
 import { useState } from 'react'
 import { Bookmark, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -46,7 +46,7 @@ export function SavedBar({ kind, getState, hasNotes, suggest }: { kind: Kind; ge
     setBusy(true)
     try {
       await api.post('/api/me/saved', { kind, name, state: getState() })
-      toast('Saved to My Atlas.')
+      toast('Saved to your profile.')
       setSaveOpen(false)
     } catch (ex) {
       setErr(errorText(ex, 'Could not save.'))
@@ -56,7 +56,7 @@ export function SavedBar({ kind, getState, hasNotes, suggest }: { kind: Kind; ge
 
   return (
     <div className="flex gap-1.5">
-      <Button size="sm" variant="outline" onClick={save} title="Save this search to My Atlas">
+      <Button size="sm" variant="outline" onClick={save} title="Save this search to your profile">
         <Save />
         Save
       </Button>
