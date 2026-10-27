@@ -163,13 +163,31 @@ friendships = sa.Table(
     sa.Index("ix_friendships_addressee", "addressee_id"),
 )
 
+# First-party analytics: one row per page view in the app (no IP address is stored). `visitor` is a random id the
+# browser keeps in localStorage; `tz` is the device's time zone (a rough location without any IP lookup).
+page_views = sa.Table(
+    "page_views", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("ts", sa.BigInteger, nullable=False),
+    sa.Column("visitor", sa.String(40), nullable=False),
+    sa.Column("session", sa.String(40)),
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="SET NULL")),
+    sa.Column("path", sa.String(200), nullable=False),
+    sa.Column("ref_host", sa.String(120)),
+    sa.Column("device", sa.String(10)),
+    sa.Column("browser", sa.String(24)),
+    sa.Column("tz", sa.String(64)),
+    sa.Index("ix_page_views_ts", "ts"),
+    sa.Index("ix_page_views_user_ts", "user_id", "ts"),
+)
+
 schema_migrations = sa.Table(
     "schema_migrations", metadata,
     sa.Column("version", sa.Integer, primary_key=True),
     sa.Column("applied_at", sa.BigInteger, nullable=False),
 )
 
-SCHEMA_VERSION = 4  # bump + add a step in _MIGRATIONS when the schema changes
+SCHEMA_VERSION = 5  # bump + add a step in _MIGRATIONS when the schema changes
 HISTORY_CAP = 200
 SAVED_CAP = 100
 COLLECTION_CAP = 5000   # longest leaderboard accepted in one order update
@@ -238,7 +256,12 @@ def _migrate_v4(conn):
     metadata.create_all(conn, tables=[avatars, notifications, reviews])
 
 
-_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4}
+def _migrate_v5(conn):
+    """First-party analytics (page views)."""
+    metadata.create_all(conn, tables=[page_views])
+
+
+_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4, 5: _migrate_v5}
 
 
 def init_schema(eng: sa.Engine) -> None:
@@ -565,6 +588,7 @@ class UserStore:
             for t in (sessions, favorites, perfume_status, saved_searches, history, avatars, reviews, notifications):
                 c.execute(t.delete().where(t.c.user_id == uid))
             c.execute(notifications.delete().where(notifications.c.actor_id == uid))
+            c.execute(page_views.update().where(page_views.c.user_id == uid).values(user_id=None))
             c.execute(friendships.delete().where(sa.or_(friendships.c.requester_id == uid, friendships.c.addressee_id == uid)))
             c.execute(users.delete().where(users.c.id == uid))
 
@@ -953,3 +977,77 @@ class UserStore:
             self.set_favorite(uid, "perfume", str(pid), True, now)
         for slug in reversed(notes):
             self.set_favorite(uid, "note", slug, True, now)
+
+    # ------------------------------------------------------------------ analytics
+    def add_view(self, row: dict):
+        with self.eng.begin() as c:
+            c.execute(page_views.insert().values(**row))
+
+    def prune_views(self, before: int) -> int:
+        with self.eng.begin() as c:
+            return c.execute(page_views.delete().where(page_views.c.ts < before)).rowcount
+
+    def views_by_path_visitor(self, since: int):
+        """[(path, visitor, user_id, views)] since a time: the raw material for top pages / perfumes / sections."""
+        with self.eng.connect() as c:
+            return c.execute(sa.select(page_views.c.path, page_views.c.visitor, sa.func.max(page_views.c.user_id), sa.func.count())
+                             .where(page_views.c.ts >= since).group_by(page_views.c.path, page_views.c.visitor)).all()
+
+    def view_times(self, since: int):
+        """[(ts, visitor, user_id)] since a time, for daily charts and visitor counts."""
+        with self.eng.connect() as c:
+            return c.execute(sa.select(page_views.c.ts, page_views.c.visitor, page_views.c.user_id)
+                             .where(page_views.c.ts >= since)).all()
+
+    def visitors_by(self, column: str, since: int):
+        """[(value, distinct visitors)] of one column (ref_host, device, browser, tz) since a time."""
+        col = page_views.c[column]
+        with self.eng.connect() as c:
+            return c.execute(sa.select(col, sa.func.count(sa.distinct(page_views.c.visitor))).where(page_views.c.ts >= since)
+                             .group_by(col).order_by(sa.func.count(sa.distinct(page_views.c.visitor)).desc())).all()
+
+    def signup_times(self, since: int) -> list[int]:
+        with self.eng.connect() as c:
+            return [int(r[0]) for r in c.execute(sa.select(users.c.created_at).where(users.c.created_at >= since))]
+
+    def recent_views(self, limit: int = 100, before: int | None = None, user_id: int | None = None):
+        q = (sa.select(page_views, users.c.username, users.c.first_name, users.c.last_name, users.c.avatar_at)
+             .select_from(page_views.outerjoin(users, users.c.id == page_views.c.user_id)))
+        if before is not None:
+            q = q.where(page_views.c.id < before)
+        if user_id is not None:
+            q = q.where(page_views.c.user_id == user_id)
+        with self.eng.connect() as c:
+            return [dict(r) for r in c.execute(q.order_by(page_views.c.id.desc()).limit(limit)).mappings()]
+
+    def admin_people(self, q: str = "", limit: int = 1000, since: int = 0):
+        """Every account with what the owner needs at a glance (never the password hash)."""
+        now = _now()
+
+        def cnt(t, *conds):
+            return sa.select(sa.func.count()).select_from(t).where(t.c.user_id == users.c.id, *conds).scalar_subquery()
+
+        friends = (sa.select(sa.func.count()).select_from(friendships).where(
+            friendships.c.status == "accepted",
+            sa.or_(friendships.c.requester_id == users.c.id, friendships.c.addressee_id == users.c.id)).scalar_subquery())
+        last_view = sa.select(sa.func.max(page_views.c.ts)).where(page_views.c.user_id == users.c.id).scalar_subquery()
+        last_session = sa.select(sa.func.max(sessions.c.last_seen_at)).where(sessions.c.user_id == users.c.id).scalar_subquery()
+        query = sa.select(
+            users.c.id, users.c.username, users.c.email, users.c.first_name, users.c.last_name, users.c.avatar_at,
+            users.c.created_at, users.c.last_login_at,
+            last_view.label("last_view"), last_session.label("last_session"),
+            cnt(page_views, page_views.c.ts >= since).label("views"),
+            cnt(perfume_status, perfume_status.c.status == "owned").label("owned"),
+            friends.label("friends"),
+            cnt(reviews).label("reviews"),
+            cnt(sessions, sessions.c.expires_at > now).label("sessions"),
+        ).order_by(users.c.created_at.desc(), users.c.id.desc()).limit(limit)
+        qn = (q or "").strip().lower()
+        if qn:
+            like = "%" + qn.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+            full = sa.func.lower(sa.func.coalesce(users.c.first_name, "") + " " + sa.func.coalesce(users.c.last_name, ""))
+            query = query.where(sa.or_(users.c.username_lower.like(like, escape="\\"), users.c.email_lower.like(like, escape="\\"),
+                                       full.like(like, escape="\\")))
+        with self.eng.connect() as c:
+            return [dict(r) for r in c.execute(query).mappings()]
+

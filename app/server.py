@@ -136,6 +136,12 @@ class NoCacheStatic(StaticFiles):
         return resp
 
 
+def admin_host_extra(path: str) -> bool:
+    """Non-admin paths the admin host may serve: its page at /, the built assets, photos, images and the health check."""
+    return path in ("/", "/index.html", "/api/status", "/next/theme.js", "/next/favicon.svg") or path.startswith(
+        ("/next/assets/", "/api/avatars/", "/img/"))
+
+
 def host_allowed(host_header: str, allowed: tuple) -> bool:
     host = (host_header or "").strip().lower()
     only = auth.host_only(host)
@@ -197,9 +203,14 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         path = request.url.path
         # the platform health check (/api/status) is exempt from the host list: it exposes only counts
         host = request.headers.get("host", "")
+        on_admin_host = bool(settings.admin_host) and auth.host_only(host.lower()) == settings.admin_host
+        admin_path = path.startswith(("/admin", "/api/admin"))
         if path != "/api/status" and not host_allowed(host, settings.allowed_hosts):
             resp = JSONResponse({"detail": "bad host"}, status_code=400)
-        elif (settings.canonical_host and request.method in ("GET", "HEAD") and path != "/api/status"
+        elif settings.admin_host and (admin_path != on_admin_host) and not (on_admin_host and admin_host_extra(path)):
+            # with ADMIN_HOST set, the admin exists only there, and that host serves nothing but the admin
+            resp = JSONResponse({"detail": "Not Found"}, status_code=404)
+        elif (settings.canonical_host and request.method in ("GET", "HEAD") and path != "/api/status" and not on_admin_host
               and auth.host_only(host.lower()) != settings.canonical_host):
             # e.g. the old *.onrender.com address -> the custom domain (writes are left alone so open pages keep working)
             q = request.url.query
@@ -215,7 +226,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
                 user_api.clear_session_cookie(resp, request, settings)
         h = resp.headers
         h["Content-Security-Policy"] = DOCS_CSP if (settings.enable_docs and path.startswith("/api/")) else CSP
-        if path.startswith(("/admin", "/api/admin")):
+        if admin_path or on_admin_host:
             h["X-Robots-Tag"] = "noindex, nofollow"
             h["Cache-Control"] = "no-store"
         h["X-Content-Type-Options"] = "nosniff"
@@ -578,6 +589,8 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     @app.get("/", include_in_schema=False)
     @app.get("/index.html", include_in_schema=False)
     def spa_index(request: Request):
+        if settings.admin_host and auth.host_only(request.headers.get("host", "").lower()) == settings.admin_host:
+            return admin.admin_page(settings)
         if not app_index.is_file():
             return FileResponse(static_dir / "classic.html", headers={"Cache-Control": "no-cache"})
         # link previews (WhatsApp, iMessage, ...) need absolute URLs: use the canonical domain when one is set,

@@ -43,6 +43,14 @@ export default function AboutView(_: ViewProps) {
     <Page className="max-w-4xl">
       <PageHeader title="About & credits" description="Scent Atlas is a non-commercial personal project for exploring fragrance notes." className="mb-8" />
 
+      <Section title="Privacy">
+        <p>
+          Scent Atlas counts its own page visits so we know which parts people use: the page, the time, phone or computer, your device's time zone and, if you
+          are signed in, your account. There is no Google Analytics, no advertising and nothing is shared with anyone. IP addresses are never stored, and visit
+          records are deleted after about a year.
+        </p>
+      </Section>
+
       <Section title="Data">
         <p>
           The catalogue (perfumes, notes, accords and ratings) is a merged, de-duplicated dataset derived from public Fragrantica-based datasets. The main sources

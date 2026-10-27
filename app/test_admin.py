@@ -27,27 +27,33 @@ def admin_login(c, pw=APW):
 
 
 def test_admin_disabled_when_env_unset_or_short(tmp_path, tiny_db):
-    for pw in (None, "", "short12"):              # 7 chars
+    for pw in (None, "", "short12", "fifteen-chars-x"):     # under 16 characters = off
         app = make_app(tmp_path / str(pw), tiny_db, admin_password=pw)
         c = TestClient(app)
         r = c.get("/admin")
         assert r.status_code == 404 and "admin disabled" in r.text.lower() and "noindex" in r.text
-        assert c.get("/admin/admin.js").status_code == 404
         for call in (lambda: c.get("/api/admin/me"), lambda: admin_login(c, pw or "x" * 20),
                      lambda: c.get("/api/admin/users"), lambda: c.post("/api/admin/logout", headers=H, json={}),
                      lambda: c.delete("/api/admin/users/1", headers=H)):
             assert call().status_code == 404
-    assert not admin.admin_enabled(type("S", (), {"admin_password": "x" * 7})())
-    assert admin.admin_enabled(type("S", (), {"admin_password": "x" * 8})())
+    assert not admin.admin_enabled(type("S", (), {"admin_password": "x" * 15})())
+    assert admin.admin_enabled(type("S", (), {"admin_password": "x" * 16})())
 
 
-def test_admin_page_is_noindex_and_not_linked_publicly(app):
+@pytest.fixture()
+def built_admin(tmp_path, monkeypatch):
+    page = tmp_path / "admin.html"
+    page.write_text('<!doctype html><meta name="robots" content="noindex, nofollow"><title>Scent Atlas admin</title>')
+    monkeypatch.setattr(admin, "ADMIN_PAGE", page)
+    return page
+
+
+def test_admin_page_is_noindex_and_not_linked_publicly(app, built_admin):
     c = TestClient(app)
     r = c.get("/admin")
     assert r.status_code == 200 and 'name="robots" content="noindex, nofollow"' in r.text
     assert "noindex" in r.headers["x-robots-tag"] and "content-security-policy" in r.headers
     assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
-    assert c.get("/admin/admin.js").status_code == 200
     for url in ("/", "/js/main.js", "/js/auth.js", "/js/views/about.js"):
         assert "admin" not in c.get(url).text.lower().replace("administrator", ""), url
 
@@ -85,10 +91,10 @@ def test_admin_login_cookie_flags_and_logout(app):
     assert r.status_code == 200
     sc = r.headers["set-cookie"].lower()
     assert "sa_admin=" in sc and "httponly" in sc and "samesite=strict" in sc and "path=/" in sc and "max-age=43200" in sc
-    assert c.get("/api/admin/me").json() == {"authenticated": True}
+    assert c.get("/api/admin/me").json() == {"authenticated": True, "two_factor": False}
     assert c.get("/api/admin/users").status_code == 200
     assert c.post("/api/admin/logout", headers=H, json={}).status_code == 200
-    assert c.get("/api/admin/me").json() == {"authenticated": False}
+    assert c.get("/api/admin/me").json() == {"authenticated": False, "two_factor": False}
     assert c.get("/api/admin/users").status_code == 401
     # token is stored hashed
     admin_login(c)
@@ -108,7 +114,7 @@ def test_admin_session_expires(app):
 def test_user_session_cannot_use_admin_api(app):
     u = TestClient(app)
     signup(u, "alice")
-    assert u.get("/api/admin/me").json() == {"authenticated": False}
+    assert u.get("/api/admin/me").json() == {"authenticated": False, "two_factor": False}
     assert u.get("/api/admin/users").status_code == 401
     assert u.post("/api/admin/users/1/password", headers=H, json={"new_password": "another-pass-77"}).status_code == 401
     assert u.delete("/api/admin/users/1", headers=H).status_code == 401
@@ -176,9 +182,10 @@ def test_list_users_counts_filter_and_no_hashes(app):
     users = {u["username"]: u for u in r.json()["users"]}
     assert set(users) == {"alice", "bob"}
     al = users["alice"]
-    assert (al["favorites"], al["collection"], al["saved"], al["sessions"]) == (1, 1, 1, 2)
-    assert al["email"] == "alice@example.com" and al["created_at"] and al["last_login_at"]
-    assert (users["bob"]["favorites"], users["bob"]["sessions"]) == (0, 1)
+    assert (al["owned"], al["sessions"], al["friends"], al["reviews"], al["views_30d"]) == (1, 2, 0, 0, 0)
+    assert al["email"] == "alice@example.com" and al["created_at"] and al["last_login_at"] and al["last_seen_at"]
+    assert al["name"] == "User Name" and al["avatar"] is None
+    assert (users["bob"]["owned"], users["bob"]["sessions"]) == (0, 1)
     assert "password" not in r.text.lower() and "argon2" not in r.text
     assert [u["username"] for u in a.get("/api/admin/users", params={"q": "ROBERT"}).json()["users"]] == ["bob"]
     assert [u["username"] for u in a.get("/api/admin/users", params={"q": "ali"}).json()["users"]] == ["alice"]

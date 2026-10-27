@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
+import analytics
 import auth
 import collection
 import layer_api
@@ -574,4 +575,5 @@ def make_router(ctx: Ctx) -> APIRouter:
 
     router.include_router(layer_api.make_router(ctx, current_user, require_user))
     router.include_router(social_api.make_router(ctx, current_user, require_user, collection_out))
+    router.include_router(analytics.make_router(ctx, current_user))
     return router
