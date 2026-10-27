@@ -10,6 +10,7 @@ import { Header } from '@/components/shell/header'
 import { toast } from 'sonner'
 import { ProfileEditor, openProfileEditor } from '@/components/profile-editor'
 import { useSession } from '@/lib/store'
+import { trackView } from '@/lib/track'
 
 export interface ViewProps {
   args: Record<string, string>
@@ -61,6 +62,9 @@ function Router() {
       break
     }
   }
+  useEffect(() => {
+    if (found && !loc.drawer) trackView(loc.path)
+  }, [loc.path, !!found, loc.drawer]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (loc.drawer) location.replace(perfumeHref(loc.drawer)) // old links opened a drawer: ?p=<id>
     else if (loc.path === '/favorites') location.replace('#/atlas')

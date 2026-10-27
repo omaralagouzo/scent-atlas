@@ -8,7 +8,13 @@ export default defineConfig({
   base: '/next/',
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
-  build: { outDir: '../app/static/next', emptyOutDir: true, chunkSizeWarningLimit: 700 },
+  build: {
+    outDir: '../app/static/next',
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 700,
+    // two pages: the site, and the private admin dashboard (its code stays out of the site's bundle)
+    rolldownOptions: { input: { index: path.resolve(__dirname, 'index.html'), admin: path.resolve(__dirname, 'admin.html') } },
+  },
   // dev only: proxy to the local backend; drop Origin so its same-origin CSRF check sees a plain same-site request
   server: {
     proxy: Object.fromEntries(

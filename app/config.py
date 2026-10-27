@@ -57,7 +57,9 @@ class Settings:
     session_days: int = 30
     rate_limit_per_min: int = 10
     enable_docs: bool = False
-    admin_password: str | None = field(default=None, repr=False)  # ADMIN_PASSWORD; < 8 chars = admin disabled
+    admin_password: str | None = field(default=None, repr=False)  # ADMIN_PASSWORD; < 16 chars = admin disabled
+    admin_totp_secret: str | None = field(default=None, repr=False)  # ADMIN_TOTP_SECRET (base32): two-factor codes
+    admin_host: str | None = None            # ADMIN_HOST, e.g. admin.scentatlas.app: the admin lives only there
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -69,6 +71,9 @@ class Settings:
         canonical = (e.get("CANONICAL_HOST") or "").strip().strip("'\"").strip().lower() or None
         if canonical:  # the canonical domain (and its www) is always allowed: it is where everyone gets sent
             hosts += tuple(h for h in (canonical, f"www.{canonical}") if h not in hosts)
+        admin_host = (e.get("ADMIN_HOST") or "").strip().strip("'\"").strip().lower() or None
+        if admin_host and admin_host not in hosts:
+            hosts += (admin_host,)
         mode = (e.get("IMAGE_MODE") or "local").strip().lower()
         on_render = _bool(e.get("RENDER"))
         return cls(
@@ -88,6 +93,8 @@ class Settings:
             rate_limit_per_min=max(1, _int(e.get("RATE_LIMIT_PER_MIN"), 10)),
             enable_docs=_bool(e.get("ENABLE_DOCS")),
             admin_password=(e.get("ADMIN_PASSWORD") or None),
+            admin_totp_secret=(e.get("ADMIN_TOTP_SECRET") or "").replace(" ", "").strip() or None,
+            admin_host=admin_host,
         )
 
     def with_(self, **kw) -> "Settings":

@@ -48,7 +48,9 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
 | `CANONICAL_HOST` | optional | `scentatlas.app` | it (and its `www.`) is always allowed, even if missing from `ALLOWED_HOSTS`. When set, GET/HEAD page visits on any other allowed host (the `*.onrender.com` address) get a 301 to `https://<CANONICAL_HOST>/...`; writes and `/api/status` are left alone. Set it only once the custom domain resolves and has its certificate. |
 | `TRUST_PROXY` | recommended | `true` (auto-`true` when `RENDER=true`, which Render sets) | honour `X-Forwarded-Proto` (Secure cookies / HSTS) and `X-Forwarded-For` (rate limits). |
 | `PROXY_HOPS` | recommended | `1` | how many trusted proxies append to `X-Forwarded-For`; the client IP is taken that many entries from the right. Verify after the first deploy: set `DEBUG_CLIENT_IP=1`, open `/api/whoami` and check that `client_ip_used_for_rate_limits` is your IP (adjust `PROXY_HOPS`), then **unset `DEBUG_CLIENT_IP`**. |
-| `ADMIN_PASSWORD` | optional | a string of **>= 8 characters** | enables the owner-only `/admin` page (list accounts, reset a password, sign a user out everywhere, rename/change email, delete). Unset or shorter than 8 chars = admin fully disabled (`/admin` says so, `/api/admin/*` return 404). Set it as a secret (Render: *sync: false* / dashboard), never in the repo. There is no link to `/admin` in the UI; share the URL only with yourself. |
+| `ADMIN_PASSWORD` | optional | a long random string, **>= 16 characters** | enables the owner-only admin dashboard (analytics, accounts: reset a password, sign a user out everywhere, rename / change email, delete). Unset or shorter than 16 characters = admin fully off (the page says "Admin disabled", `/api/admin/*` return 404). It lives only in the environment: never in the repo, the front end or the database. There is no link to the admin anywhere in the site. |
+| `ADMIN_TOTP_SECRET` | recommended with the admin | a base32 key (the admin's Security tab generates one in your browser) | two-factor: every admin sign-in then also needs the 6-digit code from an authenticator app (Google Authenticator, 1Password, Authy...). A code works once. If the value cannot be read, the admin switches itself off rather than signing in without the code. |
+| `ADMIN_HOST` | optional | `admin.scentatlas.app` | the admin then lives only on that host, at `/` (it answers 404 for the admin anywhere else, and serves nothing but the admin itself). It is added to the allowed hosts automatically and is never redirected to `CANONICAL_HOST`. Without it the admin is at `/admin` on the main site. |
 | `SESSION_SECRET` | not used | - | sessions are random 256-bit tokens stored as SHA-256 hashes in the `sessions` table; there is no signing secret to manage. |
 | `COOKIE_SECURE` | optional | `auto` | `auto` = Secure unless the host is localhost; `1`/`0` to force. |
 | `SESSION_DAYS` | optional | `30` | sliding session lifetime. |
@@ -73,6 +75,26 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
   lighter than holding a live connection per visitor; the same table can feed Server-Sent Events later if instant
   delivery is ever needed.
 * **Reviews** are public, one per member and perfume, in the `reviews` table.
+
+## Analytics (first-party, no Google Analytics)
+
+The site counts its own page views (`page_views` table; see `app/analytics.py` for exactly what is kept): page path
+(never the query string), time, a random visitor id the browser keeps, the account if signed in, the referring site
+on the first page of a visit, phone / tablet / desktop, browser family and the device's time zone (a rough location
+without any IP lookup). IP addresses are never stored. Bots and link-preview fetchers are ignored. Rows older than
+400 days are deleted automatically. Nothing to configure; the numbers appear on the admin dashboard.
+
+## Admin dashboard on admin.scentatlas.app
+
+1. Render -> the service -> **Environment**: set `ADMIN_PASSWORD` (16+ characters; a password manager's generator is
+   ideal) and `ADMIN_HOST=admin.scentatlas.app`.
+2. Render -> **Settings -> Custom Domains** -> add `admin.scentatlas.app`.
+3. Spaceship -> DNS: add a `CNAME` record, host `admin`, value `scent-atlas.onrender.com`. Back in Render, **Verify**
+   (the certificate follows automatically).
+4. Open https://admin.scentatlas.app and sign in. Then open **Security -> Set up two-factor**, add the key it shows to
+   your authenticator app, and set it on Render as `ADMIN_TOTP_SECRET`. From then on sign-in needs password + code.
+
+Admin sessions are kept in memory, so every deploy or restart signs you out of the admin (by design).
 
 ## Custom domain (scentatlas.app, registered at Spaceship)
 
