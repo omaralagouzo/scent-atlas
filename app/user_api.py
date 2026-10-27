@@ -67,7 +67,8 @@ def clear_session_cookie(response: Response, request: Request, settings):
 
 
 def public_user(u: dict) -> dict:
-    return {"id": u["id"], "username": u["username"], "email": u["email"], "created_at": u["created_at"]}
+    return {"id": u["id"], "username": u["username"], "email": u["email"], "created_at": u["created_at"],
+            **social_api.name_fields(u), "needs_name": social_api.needs_name(u)}
 
 
 def sanitize_state(cat, kind: str, state: dict) -> dict:
@@ -124,6 +125,8 @@ def state_label(cat, kind: str, state: dict) -> str:
 
 # ---------------------------------------------------------------------------- bodies
 class SignupBody(BaseModel):
+    first_name: str | None = Field(default=None, max_length=200)
+    last_name: str | None = Field(default=None, max_length=200)
     username: str = Field(max_length=64)
     email: str = Field(max_length=320)
     password: str = Field(max_length=1024)
@@ -246,11 +249,13 @@ def make_router(ctx: Ctx) -> APIRouter:
         limited(ctx.limit_signup_ip, f"ip:{ip_of(request)}")
         limited(ctx.limit_signup_acct, f"u:{username.lower()}")
         limited(ctx.limit_signup_acct, f"e:{email.lower()}")
-        problem = auth.valid_username(username) or auth.valid_email(email) or auth.password_problem(body.password, username, email)
+        names = auth.clean_name(body.first_name, body.last_name) if body.first_name is not None else None
+        problem = (names if isinstance(names, str) else None) or auth.valid_username(username) or auth.valid_email(email) \
+            or auth.password_problem(body.password, username, email)
         if problem:
             raise HTTPException(422, problem)
         try:
-            user = store.create_user(username, email, auth.hash_password(body.password))
+            user = store.create_user(username, email, auth.hash_password(body.password), *(names or (None, None)))
         except ValueError as e:
             raise HTTPException(409, "That username is already taken." if str(e) == "username"
                                 else "An account with that email already exists.")
@@ -270,6 +275,8 @@ def make_router(ctx: Ctx) -> APIRouter:
         if auth.needs_rehash(user["password_hash"]):
             store.update_hash(user["id"], auth.hash_password(body.password))
         store.touch_login(user["id"])
+        if social_api.needs_name(user) and not store.has_notification(user["id"], "name_reminder"):
+            store.notify(user["id"], "name_reminder")   # once; it goes away when they set their name
         start_session(response, request, user["id"])
         return {"user": public_user(user)}
 

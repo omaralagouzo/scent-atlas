@@ -27,6 +27,45 @@ users = sa.Table(
     sa.Column("password_hash", sa.String(255), nullable=False),
     sa.Column("created_at", sa.BigInteger, nullable=False),
     sa.Column("last_login_at", sa.BigInteger),
+    sa.Column("first_name", sa.String(40)),                    # shown on profiles; accounts from before v4 get the
+    sa.Column("last_name", sa.String(40)),                     # placeholder "User Name" until they set their own
+    sa.Column("avatar_at", sa.BigInteger),                     # profile photo version (unix time), NULL = none
+)
+
+# Profile photos: one small re-encoded WebP per user (about 20-60 KB), served from /api/avatars/<id>.webp
+avatars = sa.Table(
+    "avatars", metadata,
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("data", sa.LargeBinary, nullable=False),
+    sa.Column("mime", sa.String(20), nullable=False),
+    sa.Column("updated_at", sa.BigInteger, nullable=False),
+)
+
+# In-app notifications (friend requests, accepted requests, reminders). Read by polling; capped per user.
+notifications = sa.Table(
+    "notifications", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("kind", sa.String(24), nullable=False),            # friend_request | friend_accept | name_reminder
+    sa.Column("actor_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE")),
+    sa.Column("ref", sa.String(120)),                            # e.g. a perfume id, for future kinds
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("read_at", sa.BigInteger),
+    sa.Index("ix_notifications_user_id_id", "user_id", "id"),
+)
+
+# Public reviews: one per user and perfume (rating required, text and longevity / sillage optional)
+reviews = sa.Table(
+    "reviews", metadata,
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("perfume_id", sa.Integer, primary_key=True),
+    sa.Column("rating", sa.SmallInteger, nullable=False),        # 1..5
+    sa.Column("longevity", sa.SmallInteger),                     # 1..5 | NULL
+    sa.Column("sillage", sa.SmallInteger),                       # 1..5 | NULL
+    sa.Column("body", sa.Text),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("updated_at", sa.BigInteger, nullable=False),
+    sa.Index("ix_reviews_perfume", "perfume_id", "updated_at"),
 )
 
 sessions = sa.Table(
@@ -130,11 +169,13 @@ schema_migrations = sa.Table(
     sa.Column("applied_at", sa.BigInteger, nullable=False),
 )
 
-SCHEMA_VERSION = 3  # bump + add a step in _MIGRATIONS when the schema changes
+SCHEMA_VERSION = 4  # bump + add a step in _MIGRATIONS when the schema changes
 HISTORY_CAP = 200
 SAVED_CAP = 100
 COLLECTION_CAP = 5000   # longest leaderboard accepted in one order update
 STATUSES = ("owned", "tried", "wishlist")
+PLACEHOLDER_NAME = ("User", "Name")   # what accounts from before names existed are called until they change it
+NOTIFY_CAP = 200                      # newest notifications kept per user
 
 
 def _now() -> int:
@@ -185,7 +226,19 @@ def _migrate_v3(conn):
     metadata.create_all(conn, tables=[friendships])
 
 
-_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3}
+def _migrate_v4(conn):
+    """Names and profile photos on users, plus avatars, notifications and reviews.
+    Existing accounts are called "User Name" until they set their own (they are reminded once at sign-in)."""
+    cols = {c["name"] for c in sa.inspect(conn).get_columns("users")}
+    for col, typ in (("first_name", "VARCHAR(40)"), ("last_name", "VARCHAR(40)"), ("avatar_at", "BIGINT")):
+        if col not in cols:
+            conn.execute(sa.text(f"ALTER TABLE users ADD COLUMN {col} {typ}"))
+    conn.execute(users.update().where(users.c.first_name.is_(None)).values(first_name=PLACEHOLDER_NAME[0]))
+    conn.execute(users.update().where(users.c.last_name.is_(None)).values(last_name=PLACEHOLDER_NAME[1]))
+    metadata.create_all(conn, tables=[avatars, notifications, reviews])
+
+
+_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4}
 
 
 def init_schema(eng: sa.Engine) -> None:
@@ -226,14 +279,16 @@ class UserStore:
         with self.eng.connect() as c:
             return int(c.execute(sa.select(sa.func.count()).select_from(users)).scalar() or 0)
 
-    def create_user(self, username: str, email: str, password_hash: str):
+    def create_user(self, username: str, email: str, password_hash: str,
+                    first_name: str | None = None, last_name: str | None = None):
         """Returns the user row dict; raises ValueError('username'|'email') when taken (case-insensitive)."""
         now = _now()
         try:
             with self.eng.begin() as c:
                 r = c.execute(users.insert().values(
                     username=username, username_lower=username.lower(), email=email, email_lower=email.lower(),
-                    password_hash=password_hash, created_at=now, last_login_at=now))
+                    password_hash=password_hash, created_at=now, last_login_at=now,
+                    first_name=first_name or PLACEHOLDER_NAME[0], last_name=last_name or PLACEHOLDER_NAME[1]))
                 uid = int(r.inserted_primary_key[0])
         except IntegrityError:
             with self.eng.connect() as c:
@@ -252,20 +307,184 @@ class UserStore:
             r = c.execute(sa.select(users).where(users.c.username_lower == username.strip().lower())).mappings().first()
         return dict(r) if r else None
 
+    PERSON_COLS = (users.c.id, users.c.username, users.c.first_name, users.c.last_name, users.c.avatar_at, users.c.created_at)
+
     def search_users(self, q: str, limit: int = 10, exclude: int | None = None):
-        """Usernames starting with q first, then containing it. Never matches on email."""
-        qn = q.strip().lower()
-        if not qn:
-            return []
-        like = qn.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        cond = users.c.username_lower.like(f"%{like}%", escape="\\")
+        """Usernames starting with q first, then usernames or names containing it. Never matches on email."""
+        return self.people(q, limit, 0, exclude)[0] if q.strip() else []
+
+    def people(self, q: str = "", limit: int = 30, offset: int = 0, exclude: int | None = None):
+        """The member directory: (rows, total). With q, matches username, first name, last name or the full name
+        (usernames starting with q first); without, everyone by name. Rows carry `owned` (collection size)."""
+        qn = " ".join(q.strip().lower().split())
+        full = sa.func.lower(sa.func.coalesce(users.c.first_name, "") + " " + sa.func.coalesce(users.c.last_name, ""))
+        conds = []
         if exclude is not None:
-            cond = sa.and_(cond, users.c.id != exclude)
+            conds.append(users.c.id != exclude)
+        order = []
+        if qn:
+            like = qn.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            conds.append(sa.or_(users.c.username_lower.like(f"%{like}%", escape="\\"), full.like(f"%{like}%", escape="\\")))
+            order += [sa.case((users.c.username_lower.like(f"{like}%", escape="\\"), 0),
+                              (full.like(f"{like}%", escape="\\"), 1), else_=2), sa.func.length(users.c.username)]
+        placeholder = sa.and_(users.c.first_name == PLACEHOLDER_NAME[0], users.c.last_name == PLACEHOLDER_NAME[1])
+        order += [sa.case((placeholder, 1), else_=0), full, users.c.username_lower]
+        owned = (sa.select(sa.func.count()).select_from(perfume_status)
+                 .where(perfume_status.c.user_id == users.c.id, perfume_status.c.status == "owned").scalar_subquery())
+        where = sa.and_(*conds) if conds else sa.true()
         with self.eng.connect() as c:
-            rows = c.execute(sa.select(users.c.id, users.c.username, users.c.created_at).where(cond)
-                             .order_by(sa.case((users.c.username_lower.like(f"{like}%", escape="\\"), 0), else_=1),
-                                       sa.func.length(users.c.username), users.c.username_lower).limit(limit)).mappings().all()
+            total = int(c.execute(sa.select(sa.func.count()).select_from(users).where(where)).scalar() or 0)
+            rows = c.execute(sa.select(*self.PERSON_COLS, owned.label("owned")).where(where)
+                             .order_by(*order).limit(limit).offset(offset)).mappings().all()
+        return [dict(r) for r in rows], total
+
+    def set_name(self, uid: int, first_name: str, last_name: str):
+        with self.eng.begin() as c:
+            c.execute(users.update().where(users.c.id == uid).values(first_name=first_name, last_name=last_name))
+        return self.get_user(uid)
+
+    # ------------------------------------------------------------------ profile photos
+    def set_avatar(self, uid: int, data: bytes, mime: str) -> int:
+        now = _now()
+        with self.eng.begin() as c:
+            stmt = self._insert(avatars).values(user_id=uid, data=data, mime=mime, updated_at=now)
+            c.execute(stmt.on_conflict_do_update(index_elements=["user_id"], set_={
+                "data": stmt.excluded.data, "mime": stmt.excluded.mime, "updated_at": stmt.excluded.updated_at}))
+            c.execute(users.update().where(users.c.id == uid).values(avatar_at=now))
+        return now
+
+    def get_avatar(self, uid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(avatars.c.data, avatars.c.mime, avatars.c.updated_at).where(avatars.c.user_id == uid)).mappings().first()
+        return dict(r) if r else None
+
+    def delete_avatar(self, uid: int):
+        with self.eng.begin() as c:
+            c.execute(avatars.delete().where(avatars.c.user_id == uid))
+            c.execute(users.update().where(users.c.id == uid).values(avatar_at=None))
+
+    # ------------------------------------------------------------------ notifications
+    def notify(self, uid: int, kind: str, actor_id: int | None = None, ref: str | None = None):
+        """Add a notification (an unread one of the same kind / actor / ref is replaced, so repeats never pile up)."""
+        with self.eng.begin() as c:
+            same = sa.and_(notifications.c.user_id == uid, notifications.c.kind == kind, notifications.c.read_at.is_(None),
+                           notifications.c.actor_id.is_(None) if actor_id is None else notifications.c.actor_id == actor_id,
+                           notifications.c.ref.is_(None) if ref is None else notifications.c.ref == ref)
+            c.execute(notifications.delete().where(same))
+            c.execute(notifications.insert().values(user_id=uid, kind=kind, actor_id=actor_id, ref=ref, created_at=_now()))
+            keep = (sa.select(notifications.c.id).where(notifications.c.user_id == uid)
+                    .order_by(notifications.c.id.desc()).limit(NOTIFY_CAP).subquery())
+            c.execute(notifications.delete().where(notifications.c.user_id == uid,
+                                                   notifications.c.id.not_in(sa.select(keep.c.id))))
+
+    def unnotify(self, uid: int, kind: str, actor_id: int | None = None):
+        """Withdraw notifications (e.g. a friend request that was cancelled before it was answered)."""
+        with self.eng.begin() as c:
+            q = notifications.delete().where(notifications.c.user_id == uid, notifications.c.kind == kind)
+            if actor_id is not None:
+                q = q.where(notifications.c.actor_id == actor_id)
+            c.execute(q)
+
+    def mark_read_from(self, uid: int, kind: str, actor_id: int):
+        with self.eng.begin() as c:
+            c.execute(notifications.update().where(notifications.c.user_id == uid, notifications.c.kind == kind,
+                                                   notifications.c.actor_id == actor_id, notifications.c.read_at.is_(None))
+                      .values(read_at=_now()))
+
+    def has_notification(self, uid: int, kind: str) -> bool:
+        with self.eng.connect() as c:
+            return c.execute(sa.select(notifications.c.id).where(notifications.c.user_id == uid, notifications.c.kind == kind).limit(1)).first() is not None
+
+    def list_notifications(self, uid: int, limit: int = 30):
+        a = users.alias("actor")
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(notifications.c.id, notifications.c.kind, notifications.c.ref, notifications.c.created_at,
+                                       notifications.c.read_at, a.c.id.label("actor_id"), a.c.username.label("actor_username"),
+                                       a.c.first_name.label("actor_first_name"), a.c.last_name.label("actor_last_name"),
+                                       a.c.avatar_at.label("actor_avatar_at"))
+                             .select_from(notifications.outerjoin(a, a.c.id == notifications.c.actor_id))
+                             .where(notifications.c.user_id == uid).order_by(notifications.c.id.desc()).limit(limit)).mappings().all()
         return [dict(r) for r in rows]
+
+    def unread_count(self, uid: int) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(notifications).where(
+                notifications.c.user_id == uid, notifications.c.read_at.is_(None))).scalar() or 0)
+
+    def mark_read(self, uid: int, ids: list[int] | None = None) -> int:
+        """Mark the given notifications (or all of them) read; returns how many changed."""
+        q = notifications.update().where(notifications.c.user_id == uid, notifications.c.read_at.is_(None))
+        if ids is not None:
+            q = q.where(notifications.c.id.in_(ids))
+        with self.eng.begin() as c:
+            return c.execute(q.values(read_at=_now())).rowcount
+
+    # ------------------------------------------------------------------ reviews
+    def get_review(self, uid: int, pid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(reviews).where(reviews.c.user_id == uid, reviews.c.perfume_id == pid)).mappings().first()
+        return dict(r) if r else None
+
+    def put_review(self, uid: int, pid: int, rating: int, longevity: int | None, sillage: int | None, body: str | None):
+        now = _now()
+        with self.eng.begin() as c:
+            stmt = self._insert(reviews).values(user_id=uid, perfume_id=pid, rating=rating, longevity=longevity,
+                                                sillage=sillage, body=body, created_at=now, updated_at=now)
+            c.execute(stmt.on_conflict_do_update(index_elements=["user_id", "perfume_id"], set_={
+                k: getattr(stmt.excluded, k) for k in ("rating", "longevity", "sillage", "body", "updated_at")}))
+        return self.get_review(uid, pid)
+
+    def review_count(self, uid: int) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(reviews).where(reviews.c.user_id == uid)).scalar() or 0)
+
+    def delete_review(self, uid: int, pid: int) -> bool:
+        with self.eng.begin() as c:
+            return bool(c.execute(reviews.delete().where(reviews.c.user_id == uid, reviews.c.perfume_id == pid)).rowcount)
+
+    def reviews_for(self, pid: int, limit: int = 50, offset: int = 0, first: list[int] | None = None):
+        """Reviews of a perfume with their authors, newest first (users in `first`, e.g. friends, before everyone else)."""
+        order = [sa.case((reviews.c.user_id.in_(first), 0), else_=1)] if first else []
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(reviews, users.c.username, users.c.first_name, users.c.last_name, users.c.avatar_at)
+                             .select_from(reviews.join(users, users.c.id == reviews.c.user_id))
+                             .where(reviews.c.perfume_id == pid)
+                             .order_by(*order, reviews.c.updated_at.desc(), reviews.c.user_id).limit(limit).offset(offset)).mappings().all()
+        return [dict(r) for r in rows]
+
+    def review_stats(self, pid: int) -> dict:
+        with self.eng.connect() as c:
+            dist = dict(c.execute(sa.select(reviews.c.rating, sa.func.count()).where(reviews.c.perfume_id == pid)
+                                  .group_by(reviews.c.rating)).all())
+            lon, sil, written = c.execute(sa.select(sa.func.avg(reviews.c.longevity), sa.func.avg(reviews.c.sillage),
+                                                    sa.func.count(reviews.c.body)).where(reviews.c.perfume_id == pid)).one()
+        n = sum(dist.values())
+        return {"count": n, "written": int(written or 0),
+                "average": round(sum(k * v for k, v in dist.items()) / n, 2) if n else None,
+                "distribution": [int(dist.get(k, 0)) for k in (1, 2, 3, 4, 5)],
+                "longevity": round(float(lon), 2) if lon is not None else None,
+                "sillage": round(float(sil), 2) if sil is not None else None}
+
+    def status_counts(self, pid: int) -> dict:
+        """How many members own / tried / wish for a perfume."""
+        with self.eng.connect() as c:
+            rows = dict(c.execute(sa.select(perfume_status.c.status, sa.func.count()).where(
+                perfume_status.c.perfume_id == pid, perfume_status.c.status.isnot(None)).group_by(perfume_status.c.status)).all())
+        return {s: int(rows.get(s, 0)) for s in STATUSES}
+
+    def statuses_of(self, pid: int, uids: list[int]) -> dict[int, str]:
+        """{user id: status} of these users for one perfume (friends who own / want / tried it)."""
+        if not uids:
+            return {}
+        with self.eng.connect() as c:
+            return dict(c.execute(sa.select(perfume_status.c.user_id, perfume_status.c.status).where(
+                perfume_status.c.perfume_id == pid, perfume_status.c.user_id.in_(uids), perfume_status.c.status.isnot(None))).all())
+
+    def people_by_id(self, uids: list[int]) -> dict[int, dict]:
+        if not uids:
+            return {}
+        with self.eng.connect() as c:
+            return {r["id"]: dict(r) for r in c.execute(sa.select(*self.PERSON_COLS).where(users.c.id.in_(uids))).mappings()}
 
     def find_user(self, identifier: str):
         ident = identifier.strip().lower()
@@ -343,8 +562,9 @@ class UserStore:
             c.execute(layer_votes.delete().where(layer_votes.c.user_id == uid))
             self._recount(c, voted)
             c.execute(layer_combos.update().where(layer_combos.c.created_by == uid).values(created_by=None))
-            for t in (sessions, favorites, perfume_status, saved_searches, history):
+            for t in (sessions, favorites, perfume_status, saved_searches, history, avatars, reviews, notifications):
                 c.execute(t.delete().where(t.c.user_id == uid))
+            c.execute(notifications.delete().where(notifications.c.actor_id == uid))
             c.execute(friendships.delete().where(sa.or_(friendships.c.requester_id == uid, friendships.c.addressee_id == uid)))
             c.execute(users.delete().where(users.c.id == uid))
 
@@ -396,21 +616,28 @@ class UserStore:
                 friendships.c.requester_id == me, friendships.c.status == "pending"))).scalar() or 0)
 
     def list_friends(self, me: int) -> dict:
-        """{friends, incoming, outgoing}: lists of {id, username, since}, newest first."""
+        """{friends, incoming, outgoing}: lists of person rows (id, username, names, avatar_at) + since, newest first."""
         out = {"friends": [], "incoming": [], "outgoing": []}
         with self.eng.connect() as c:
             rows = c.execute(sa.select(friendships).where(sa.or_(
                 friendships.c.requester_id == me, friendships.c.addressee_id == me))
                 .order_by(friendships.c.updated_at.desc())).mappings().all()
             ids = {r["addressee_id"] if r["requester_id"] == me else r["requester_id"] for r in rows}
-            names = dict(c.execute(sa.select(users.c.id, users.c.username).where(users.c.id.in_(ids))).all()) if ids else {}
+            people = {p["id"]: dict(p) for p in c.execute(sa.select(*self.PERSON_COLS).where(users.c.id.in_(ids))).mappings()} if ids else {}
         for r in rows:
             other = r["addressee_id"] if r["requester_id"] == me else r["requester_id"]
-            if other not in names:
+            if other not in people:
                 continue
             kind = "friends" if r["status"] == "accepted" else ("outgoing" if r["requester_id"] == me else "incoming")
-            out[kind].append({"id": other, "username": names[other], "since": r["updated_at"]})
+            out[kind].append({**people[other], "since": r["updated_at"]})
         return out
+
+    def friend_ids(self, uid: int) -> list[int]:
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(friendships.c.requester_id, friendships.c.addressee_id).where(sa.and_(
+                friendships.c.status == "accepted",
+                sa.or_(friendships.c.requester_id == uid, friendships.c.addressee_id == uid)))).all()
+        return [b if a == uid else a for a, b in rows]
 
     def friend_count(self, uid: int) -> int:
         with self.eng.connect() as c:

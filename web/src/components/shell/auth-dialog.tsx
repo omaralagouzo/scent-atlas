@@ -55,9 +55,17 @@ export function AuthDialog() {
     setBusy(true)
     try {
       if (login) await api.post('/api/auth/login', { identifier: String(f.get('identifier')).trim(), password: f.get('password') })
-      else await api.post('/api/auth/signup', { username: String(f.get('username')).trim(), email: String(f.get('email')).trim(), password: f.get('password') })
+      else
+        await api.post('/api/auth/signup', {
+          first_name: String(f.get('first_name')).trim(),
+          last_name: String(f.get('last_name') || '').trim(),
+          username: String(f.get('username')).trim(),
+          email: String(f.get('email')).trim(),
+          password: f.get('password'),
+        })
       await session.refresh()
-      toast(login ? `Welcome back, ${session.user?.username}.` : `Welcome to Scent Atlas, ${session.user?.username}.`)
+      const who = session.user && !session.user.needs_name ? session.user.first_name : session.user?.username
+      toast(login ? `Welcome back, ${who}.` : `Welcome to Scent Atlas, ${who}.`)
       authDialog.close(true)
     } catch (ex) {
       setErr(errorText(ex))
@@ -85,8 +93,16 @@ export function AuthDialog() {
             </Field>
           ) : (
             <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field id="au-first" label="First name">
+                  <Input id="au-first" name="first_name" autoComplete="given-name" required maxLength={40} autoFocus />
+                </Field>
+                <Field id="au-last" label="Last name">
+                  <Input id="au-last" name="last_name" autoComplete="family-name" maxLength={40} />
+                </Field>
+              </div>
               <Field id="au-user" label="Username" hint="3-32 letters, digits, dot, dash or underscore.">
-                <Input id="au-user" name="username" autoComplete="username" required minLength={3} maxLength={32} pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,31}" autoCapitalize="none" spellCheck={false} autoFocus />
+                <Input id="au-user" name="username" autoComplete="username" required minLength={3} maxLength={32} pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,31}" autoCapitalize="none" spellCheck={false} />
               </Field>
               <Field id="au-mail" label="Email" hint="Used to identify your account only. We never send email.">
                 <Input id="au-mail" name="email" type="email" autoComplete="email" required maxLength={254} />

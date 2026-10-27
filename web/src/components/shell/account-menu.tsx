@@ -14,22 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { UserAvatar } from '@/components/avatar'
+import { openProfileEditor } from '@/components/profile-editor'
 import { DeleteAccountDialog, PasswordDialog } from './auth-dialog'
 
-/** Avatar initial on a colour derived from the username (stable, muted). */
-export function UserAvatar({ name, size = 32 }: { name: string; size?: number }) {
-  let h = 0
-  for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360
-  return (
-    <span
-      className="grid shrink-0 place-items-center rounded-full font-semibold text-white select-none"
-      style={{ width: size, height: size, fontSize: size * 0.42, background: `oklch(0.66 0.09 ${h})` }}
-      aria-hidden="true"
-    >
-      {name[0]?.toUpperCase()}
-    </span>
-  )
-}
+export { UserAvatar }
 
 async function signOut() {
   try {
@@ -58,20 +47,23 @@ export function AccountMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" className="rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none" aria-label={`Account: ${user.username}`} title={user.email}>
-            <UserAvatar name={user.username} />
+          <button type="button" className="rounded-full focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none" aria-label={`Account: ${user.name}`} title={user.email}>
+            <UserAvatar name={user.name} seed={user.username} src={user.avatar} />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="flex flex-col">
-            <span>{user.username}</span>
-            <small className="font-normal text-muted-foreground">{user.email}</small>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuLabel className="flex items-center gap-3">
+            <UserAvatar name={user.name} seed={user.username} src={user.avatar} size={36} />
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate">{user.name}</span>
+              <small className="truncate font-normal text-muted-foreground">@{user.username}</small>
+            </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => go(`/u/${encodeURIComponent(user.username)}`)}>My profile</DropdownMenuItem>
+          <DropdownMenuItem onSelect={openProfileEditor}>Edit name &amp; photo</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => go('/collection')}>My Collection</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => go('/friends')}>Friends</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => go('/atlas')}>My Atlas</DropdownMenuItem>
           <DropdownMenuItem onSelect={toggle} className="sm:hidden">
             {theme === 'dark' ? <Sun /> : <Moon />}
             {theme === 'dark' ? 'Light theme' : 'Dark theme'}

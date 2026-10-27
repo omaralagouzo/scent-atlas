@@ -61,6 +61,27 @@ Collector's vault (41+). Niches stay light in both themes (plaster by day, warm 
 under the boards) because the bottle photos are multiplied onto them. Never use `transform` or `z-index` on a bottle
 or its row: either starts a new stacking context and the photo's white background reappears.
 
+## Navigation
+
+Top bar: **Discover fragrances** (a menu of the exploring tools, each with a one-line explanation: Smells like,
+Layering, Notes library, Combination search, Scent pyramid builder), **Discover people**, **Friends** and **My
+Collection**; then search, the notifications bell, the theme switch and the account menu. Below `lg` the same links
+scroll sideways under the header. The footer only names the site and links to About & credits.
+
+## Pages for things
+
+Every perfume has its own page (`#/perfume/:id`, `views/perfume.tsx`): the bottle as the hero with the key facts beside
+it, accords and pyramid, private notes, member reviews, what smells like it, what layers with it and its dupes. Nothing
+links out to other sites. Each member has a profile (`#/u/:username`): photo, name and @username, their podium (top 3 by
+default, then top 5, top 10, the full ranking or the display wall), wishlist, tried and favourites; on your own
+profile also your taste profile, saved searches and history (this replaced "My Atlas").
+
+## People
+
+People are shown by **name first, @username second**, with their photo (`UserAvatar` in `components/avatar.tsx`
+falls back to their initial on a colour derived from the username). Accounts still called "User Name" get one
+gentle, self-dismissing reminder per visit to add their name.
+
 ## Components
 
 Use shadcn primitives first (`Button`, `Badge`, `Dialog`, `Sheet`, `DropdownMenu`, `Tabs`, `Tooltip`, `Command`,

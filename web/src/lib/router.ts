@@ -107,11 +107,11 @@ export function sync(path: string, paramsObj: Record<string, any>, { push = fals
   listeners.forEach((fn) => fn())
 }
 
+/** A perfume's own page. */
+export const perfumeHref = (id: number | string) => `#/perfume/${encodeURIComponent(String(id))}`
+
 export function openPerfume(id: number | string) {
-  const { path, params } = parseHash()
-  params.set('p', String(id))
-  drawerPushed = true
-  location.hash = buildHash(path, params)
+  location.hash = perfumeHref(id)
 }
 
 export function closeDrawer() {
