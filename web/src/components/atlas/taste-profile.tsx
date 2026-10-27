@@ -1,4 +1,4 @@
-// "Notes I gravitate to": the signed-in user's taste profile on My Atlas.
+// "Notes I gravitate to": the signed-in user's taste profile, shown on their own profile.
 import { Search } from 'lucide-react'
 import { go } from '@/lib/router'
 import { NoteImg } from '@/components/media'

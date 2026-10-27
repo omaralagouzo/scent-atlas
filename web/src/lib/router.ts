@@ -1,5 +1,5 @@
-// Hash router with the same URL scheme as the original site: #/path?query, where `p` opens the perfume drawer
-// on top of any view. A view mounts once per "view key" (path + query without `p`); views write their own state
+// Hash router with the same URL scheme as the original site: #/path?query. (`p` used to open a perfume drawer;
+// old links with it are redirected to the perfume's page.) A view mounts once per "view key" (path + query without `p`); views write their own state
 // back with sync() without re-mounting, and the Back button re-mounts them from the URL.
 import { useSyncExternalStore } from 'react'
 
@@ -8,7 +8,7 @@ export interface Loc {
   params: URLSearchParams
   /** increments whenever the view must re-mount from the URL */
   mount: number
-  /** perfume shown in the drawer, if any */
+  /** `p` in the URL: an old perfume-drawer link (App redirects it to the perfume's page) */
   drawer: string | null
 }
 
@@ -44,7 +44,6 @@ const viewKey = (path: string, params: URLSearchParams) => {
 }
 
 let currentKey: string | null = null
-let drawerPushed = false
 let snapshot: Loc = read(true)
 const listeners = new Set<() => void>()
 
@@ -57,7 +56,6 @@ function read(first = false): Loc {
     mount++
   }
   const drawer = params.get('p')
-  if (!drawer) drawerPushed = false
   return { path, params, mount, drawer }
 }
 
@@ -112,19 +110,6 @@ export const perfumeHref = (id: number | string) => `#/perfume/${encodeURICompon
 
 export function openPerfume(id: number | string) {
   location.hash = perfumeHref(id)
-}
-
-export function closeDrawer() {
-  const { path, params } = parseHash()
-  if (!params.has('p')) return
-  if (drawerPushed) {
-    drawerPushed = false
-    history.back()
-  } else {
-    params.delete('p')
-    history.replaceState(null, '', buildHash(path, params))
-    update()
-  }
 }
 
 /** Match `pattern` (e.g. "/layering/:id/:other") against a path; returns the named args or null. */
