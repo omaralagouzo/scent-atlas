@@ -165,7 +165,7 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
             </Button>
           </div>
         </div>
-        <nav aria-label="Admin" className="flex gap-1 overflow-x-auto px-3 pb-2 scrollbar-none md:hidden">
+        <nav aria-label="Admin" className="flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-3 pb-2 scrollbar-none md:hidden">
           {TABS.map((t) => link(t, true))}
         </nav>
       </header>

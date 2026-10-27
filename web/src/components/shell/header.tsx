@@ -103,7 +103,7 @@ export function Header() {
         </div>
       </div>
       {/* below lg the nav scrolls sideways under the header */}
-      <nav aria-label="Main" className="flex gap-1 overflow-x-auto border-t px-3 py-1.5 scrollbar-none lg:hidden">
+      <nav aria-label="Main" className="flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain border-t px-3 py-1.5 scrollbar-none lg:hidden">
         <DiscoverMenu path={path} compact />
         {MAIN.map((n) => {
           const on = n.match(path)
