@@ -340,7 +340,7 @@ export function DupeSections({ p }: { p: any }) {
             {[c.high ? `${c.high} high` : null, c.medium ? `${c.medium} medium` : null, c.low ? `${c.low} low` : null].filter(Boolean).join(' · ')} confidence. Best
             evidence first, then most popular.
           </p>
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 scrollbar-none" role="list">
+          <div className="-mx-1 flex gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1 pb-2 scrollbar-none" role="list">
             {items.map((it) => (
               <MiniCard key={it.id} it={it} active={activeId === it.id} onCompare={compare} />
             ))}

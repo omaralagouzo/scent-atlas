@@ -9,7 +9,7 @@ export interface SegOption<T extends string | number> {
 
 export function Segmented<T extends string | number>({ options, value, onChange, label, size = 'default', className }: { options: SegOption<T>[]; value: T; onChange: (v: T) => void; label?: string; size?: 'sm' | 'default'; className?: string }) {
   return (
-    <div role="group" aria-label={label} className={cn('inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-lg bg-muted p-[3px] scrollbar-none', className)}>
+    <div role="group" aria-label={label} className={cn('inline-flex max-w-full items-center gap-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-lg bg-muted p-[3px] scrollbar-none', className)}>
       {options.map((o) => {
         const on = o.value === value
         return (

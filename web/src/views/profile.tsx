@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { History, Lock, Pencil, Save, Sparkles } from 'lucide-react'
 import type { ViewProps } from '@/App'
 import { api, ApiError } from '@/lib/api'
-import { sync } from '@/lib/router'
+import { perfumeHref, sync } from '@/lib/router'
 import { refreshFriends, type Relation } from '@/lib/social'
 import { authDialog, cacheNotes, useSession } from '@/lib/store'
 import { plural } from '@/lib/format'
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UserAvatar } from '@/components/avatar'
+import { BottleImg } from '@/components/media'
 import { FriendButton } from '@/components/friend-button'
 import { NoteChip } from '@/components/notes'
 import { EmptyState, Page } from '@/components/page'
@@ -91,6 +92,23 @@ function RankList({ items, start = 1 }: { items: Item[]; start?: number | null }
         <RankRow key={it.id} it={it} place={start == null ? null : start + k} />
       ))}
     </ol>
+  )
+}
+
+/** Their #1 fragrance in a small translucent white disc at the bottom of the profile photo. The bottle photo is
+ *  multiplied so its white background melts into the disc; that only works while neither the disc nor anything
+ *  around it starts a stacking context (no transform, backdrop blur, opacity or z-index here). */
+function SignatureBadge({ top }: { top: Item | null }) {
+  if (!top) return null
+  return (
+    <a
+      href={perfumeHref(top.id)}
+      title={`#1: ${top.name} by ${top.brand}`}
+      aria-label={`Number one fragrance: ${top.name} by ${top.brand}`}
+      className="absolute -bottom-2 left-[calc(50%-16px)] grid size-8 place-items-center overflow-hidden rounded-full bg-white/75 shadow-[0_1px_3px_rgb(0_0_0/0.18)] ring-2 ring-background transition-shadow hover:shadow-[0_2px_8px_rgb(0_0_0/0.28)] focus-visible:ring-ring focus-visible:outline-none"
+    >
+      <BottleImg p={top} alt="" className="size-[78%] object-contain mix-blend-multiply" />
+    </a>
   )
 }
 
@@ -251,12 +269,17 @@ export default function ProfileView({ args, params, path }: ViewProps) {
     if (r === 'friends' || p.visible) load()
   }
   const favCount = (p.favorites?.perfumes.length || 0) + (p.favorites?.notes.length || 0)
+  // their #1 bottle, shown on the photo (friends and the owner only: the collection is private otherwise)
+  const top = (p.collection?.items || []).reduce<Item | null>((best, it) => (it.rank && (!best || it.rank < (best.rank || Infinity)) ? it : best), null)
 
   return (
     <Page>
       <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-center md:gap-8">
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
-          <UserAvatar name={name} seed={p.username} src={p.avatar} size={84} />
+          <span className="relative shrink-0">
+            <UserAvatar name={name} seed={p.username} src={p.avatar} size={84} />
+            <SignatureBadge top={top} />
+          </span>
           <div className="flex min-w-0 flex-col gap-0.5">
             <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] break-words sm:text-[32px]">{name}</h1>
             <p className="text-[15px] text-muted-foreground">@{p.username}</p>
@@ -299,8 +322,9 @@ export default function ProfileView({ args, params, path }: ViewProps) {
           </section>
 
           <Tabs value={activeTab} onValueChange={(v) => setTab(v as Tab)} className="gap-5">
-            <div className="-mx-4 overflow-x-auto border-b px-4 scrollbar-none sm:mx-0 sm:px-0">
-              <TabsList variant="line" className="h-10 gap-4">
+            {/* sideways only: the active tab's underline sits at the bottom edge, so nothing spills over vertically */}
+            <div className="-mx-4 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b px-4 scrollbar-none sm:mx-0 sm:px-0">
+              <TabsList variant="line" className="h-10 gap-4 [&>button]:after:bottom-0!">
                 <TabsTrigger value="wishlist" className="flex-none px-0.5">
                   Wishlist <Num n={p.wishlist?.length} />
                 </TabsTrigger>
