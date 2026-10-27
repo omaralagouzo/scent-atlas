@@ -1,0 +1,16 @@
+/* Chart colours for the admin dashboard (see the dataviz method: categorical slots 1-3, validated against the card
+   surface in each theme: light #ffffff, dark #1b1714). Marks only; text keeps the sand text tokens. */
+:root {
+  --viz-1: #2a78d6; /* visitors */
+  --viz-2: #eb6834; /* page views */
+  --viz-3: #1baf7a; /* sign-ups (under 3:1 on white, so every sign-up count is also labelled / in the table) */
+  --viz-grid: var(--sand-100);
+  --viz-axis: var(--sand-300);
+}
+.dark {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-grid: #2a2421;
+  --viz-axis: #3a332e;
+}
