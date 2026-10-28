@@ -12,6 +12,12 @@ export function useStatus() {
 }
 
 export function Ribbon({ status, down }: { status: any; down: boolean }) {
+  if (status?.env === 'development')
+    return (
+      <div className="bg-warning/20 px-4 py-1.5 text-center text-xs font-medium text-foreground">
+        Development site: made-up test data. Nothing here touches scentatlas.app.
+      </div>
+    )
   if (down)
     return <div className="bg-warning/15 px-4 py-2 text-center text-sm text-foreground">Cannot reach the Scent Atlas server. If you run it locally, is start.bat still running?</div>
   if (status?.kind === 'fixture')

@@ -60,6 +60,8 @@ class Settings:
     admin_password: str | None = field(default=None, repr=False)  # ADMIN_PASSWORD; < 16 chars = admin disabled
     admin_totp_secret: str | None = field(default=None, repr=False)  # ADMIN_TOTP_SECRET (base32): two-factor codes
     admin_host: str | None = None            # ADMIN_HOST, e.g. admin.scentatlas.app: the admin lives only there
+    site_env: str = "production"             # SITE_ENV: production | development (dev: banner, noindex, demo data)
+    seed_demo: bool = False                  # SEED_DEMO=1: fill an EMPTY user database with made-up demo data
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -95,6 +97,8 @@ class Settings:
             admin_password=(e.get("ADMIN_PASSWORD") or None),
             admin_totp_secret=(e.get("ADMIN_TOTP_SECRET") or "").replace(" ", "").strip() or None,
             admin_host=admin_host,
+            site_env="development" if (e.get("SITE_ENV") or "").strip().lower() in ("dev", "development") else "production",
+            seed_demo=_bool(e.get("SEED_DEMO")),
         )
 
     def with_(self, **kw) -> "Settings":
