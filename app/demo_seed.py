@@ -40,6 +40,17 @@ REVIEWS = ["Lasts all day on me and the compliments never stop.", "Gorgeous open
 TZS = ["Asia/Dubai"] * 6 + ["Asia/Riyadh", "Africa/Cairo", "Europe/London", "America/Toronto", "Asia/Amman"]
 PATHS = ["/notes", "/like", "/layering", "/combine", "/pyramid", "/people", "/friends", "/collection", "/about", "/note/rose",
          "/note/oud", "/note/vanilla", "/note/amber", "/note/bergamot"]
+AREAS = [  # (area, city, country, lat, lng)
+    ("Deira", "Dubai", "AE", 25.2711, 55.3075), ("Dubai Marina", "Dubai", "AE", 25.0805, 55.1403),
+    ("Downtown Dubai", "Dubai", "AE", 25.1972, 55.2744), ("Jumeirah Village Circle", "Dubai", "AE", 25.0596, 55.2077),
+    ("Al Barsha", "Dubai", "AE", 25.1124, 55.1990), ("Business Bay", "Dubai", "AE", 25.1850, 55.2650),
+    ("Al Nahda", "Sharjah", "AE", 25.2960, 55.3730), ("Al Reem Island", "Abu Dhabi", "AE", 24.4990, 54.4060),
+    ("Khalifa City", "Abu Dhabi", "AE", 24.4210, 54.5770), ("Olaya", "Riyadh", "SA", 24.6950, 46.6850),
+]
+CHAT = [("Hi! Is this still available?", "Yes it is. Pickup any evening this week."),
+        ("Would you take a bit less for it?", "I can do a small discount if you pick it up today."),
+        ("How much is left exactly?", "About what the photo shows, sprayed maybe 20 times."),
+        ("Is it the original batch?", "Yes, bought from the boutique in Dubai Mall.")]
 UA = [("phone", "Safari"), ("phone", "Chrome"), ("phone", "Instagram app"), ("desktop", "Chrome"), ("desktop", "Safari"), ("tablet", "Safari")]
 
 
@@ -130,5 +141,51 @@ def seed(store, cat, members: int = 40, rng_seed: int = 7) -> bool:
                 store.add_view({"ts": t + k * rng.randint(15, 120), "visitor": visitor, "session": visitor[:10] + str(day),
                                 "user_id": uid, "path": path, "ref_host": ref if k == 0 else None,
                                 "device": dev, "browser": br, "tz": rng.choice(TZS)})
+    seed_market(store, cat, users, ids, rng)
     log.warning("demo data seeded: %d members, %d perfumes, %.1fs", len(users), len(ids), time.time() - t0)
     return True
+
+
+def seed_market(store, cat, users: list[int], ids: list[int], rng: random.Random):
+    """Addresses, ~30 listings around the UAE (a few custom ones waiting for review), wanted requests and chats."""
+    now = int(time.time())
+    for n, uid in enumerate(users):
+        if rng.random() < 0.7:
+            area, city, cc, lat, lng = rng.choice(AREAS)
+            store.put_address(uid, {"recipient": None, "phone": f"+9715{rng.randint(10000000, 99999999)}",
+                                    "formatted": f"{rng.randint(1, 40)} Street, {area}, {city}", "building": f"Tower {rng.randint(1, 9)}",
+                                    "unit": str(rng.randint(101, 2405)), "area": area, "city": city, "country": cc,
+                                    "lat": lat + rng.uniform(-0.01, 0.01), "lng": lng + rng.uniform(-0.01, 0.01)})
+    listed = []
+    for k in range(30):
+        seller = rng.choice(users[:20])
+        area, city, cc, lat, lng = rng.choice(AREAS)
+        total = rng.choice([50, 75, 90, 100, 100, 100, 125, 200])
+        left = max(5, int(total * rng.choice([1, 1, 0.9, 0.8, 0.7, 0.5, 0.3])))
+        price = rng.choice([90, 120, 150, 180, 220, 250, 300, 350, 420, 550, 700]) * left / total
+        f = {"ml_total": total, "ml_left": left, "price_minor": int(round(price)) * 100,
+             "currency": "SAR" if cc == "SA" else "AED", "box": rng.random() < 0.6, "tester": rng.random() < 0.15,
+             "description": rng.choice([None, "Selling because I have too many bottles.", "Stored away from light.",
+                                        "Got it as a gift, not my style.", "Original, bought at the boutique."]),
+             "lat": lat + rng.uniform(-0.02, 0.02), "lng": lng + rng.uniform(-0.02, 0.02),
+             "area": area, "city": city, "country": cc, "formatted": f"Pickup near {area}"}
+        if k % 10 == 9:
+            f.update(perfume_id=None, custom_name=rng.choice(["Oud Al Layl", "Musk Tahara", "Amber Deira No. 3"]),
+                     custom_brand=rng.choice(["Deira Atelier", "Souk Perfumers", "Al Ras Oud House"]), status="pending")
+        else:
+            f.update(perfume_id=rng.choice(ids), status=rng.choice(["active"] * 8 + ["sold"]))
+        row = store.create_listing(seller, f)
+        listed.append(row)
+    for uid in rng.sample(users, 8):
+        area, city, cc, lat, lng = rng.choice(AREAS)
+        store.create_wanted(uid, {"perfume_id": rng.choice(ids), "max_price_minor": rng.choice([None, 20000, 30000, 45000]),
+                                  "currency": "AED", "min_ml": rng.choice([None, 50]), "lat": lat, "lng": lng,
+                                  "radius_km": rng.choice([None, 25, 50]), "area": area})
+    for row in [r for r in listed if r["status"] == "active"][:8]:
+        buyer = rng.choice([u for u in users if u != row["seller_id"]])
+        cv = store.conversation_for(row["id"], buyer, row["seller_id"])
+        q, a = rng.choice(CHAT)
+        store.add_message(cv["id"], buyer, q)
+        if rng.random() < 0.7:
+            store.add_message(cv["id"], row["seller_id"], a)
+

@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 import analytics
 import auth
+import market_api
 import collection
 import layer_api
 import social_api
@@ -278,6 +279,8 @@ def make_router(ctx: Ctx) -> APIRouter:
         store.touch_login(user["id"])
         if social_api.needs_name(user) and not store.has_notification(user["id"], "name_reminder"):
             store.notify(user["id"], "name_reminder")   # once; it goes away when they set their name
+        if not store.has_address(user["id"]) and not store.has_notification(user["id"], "address_reminder"):
+            store.notify(user["id"], "address_reminder")  # once; it goes away when they add an address
         start_session(response, request, user["id"])
         return {"user": public_user(user)}
 
@@ -321,7 +324,8 @@ def make_router(ctx: Ctx) -> APIRouter:
         response.headers["Cache-Control"] = "no-store"
         if user is None:
             return {"user": None, "favorites": {"perfumes": [], "notes": []}, "statuses": {}}
-        return {"user": {**public_user(user), "top": social_api.top_summaries(store, cat, [user["id"]]).get(user["id"])},
+        return {"user": {**public_user(user), "top": social_api.top_summaries(store, cat, [user["id"]]).get(user["id"]),
+                         "has_address": store.has_address(user["id"])},
                 "favorites": store.list_favorites(user["id"]), "statuses": statuses_compact(user["id"])}
 
     # ---- favorites (kept at the old path) -------------------------------------------------
@@ -577,4 +581,5 @@ def make_router(ctx: Ctx) -> APIRouter:
     router.include_router(layer_api.make_router(ctx, current_user, require_user))
     router.include_router(social_api.make_router(ctx, current_user, require_user, collection_out))
     router.include_router(analytics.make_router(ctx, current_user))
+    router.include_router(market_api.make_router(ctx, current_user, require_user))
     return router

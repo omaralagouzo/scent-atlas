@@ -63,10 +63,10 @@ def test_placeholder_name_gets_one_reminder_that_goes_away(app):
     assert login(c, "alice").status_code == 200
     assert login(c, "alice").status_code == 200
     items = c.get("/api/notifications").json()["items"]
-    assert [n["kind"] for n in items] == ["name_reminder"]   # once, however often they sign in
+    assert sorted(n["kind"] for n in items) == ["address_reminder", "name_reminder"]   # once each, however often they sign in
     r = c.put("/api/me/name", headers=H, json={"first_name": "Alice", "last_name": "Smith"})
     assert r.status_code == 200 and r.json()["user"]["needs_name"] is False
-    assert c.get("/api/notifications").json() == {"items": [], "unread": 0}
+    assert [n["kind"] for n in c.get("/api/notifications").json()["items"]] == ["address_reminder"]
     assert c.put("/api/me/name", headers=H, json={"first_name": ""}).status_code == 422
 
 

@@ -62,6 +62,7 @@ class Settings:
     admin_host: str | None = None            # ADMIN_HOST, e.g. admin.scentatlas.app: the admin lives only there
     site_env: str = "production"             # SITE_ENV: production | development (dev: banner, noindex, demo data)
     seed_demo: bool = False                  # SEED_DEMO=1: fill an EMPTY user database with made-up demo data
+    google_maps_key: str | None = None       # GOOGLE_MAPS_API_KEY: browser key (Maps JS + Places), domain-restricted
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -99,6 +100,7 @@ class Settings:
             admin_host=admin_host,
             site_env="development" if (e.get("SITE_ENV") or "").strip().lower() in ("dev", "development") else "production",
             seed_demo=_bool(e.get("SEED_DEMO")),
+            google_maps_key=(e.get("GOOGLE_MAPS_API_KEY") or "").strip() or None,
         )
 
     def with_(self, **kw) -> "Settings":

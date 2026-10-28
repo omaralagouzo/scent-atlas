@@ -284,8 +284,16 @@ def make_router(ctx, current_user, require_user, collection_out) -> APIRouter:
                 a = {"id": n["actor_id"], "username": n["actor_username"], "first_name": n["actor_first_name"],
                      "last_name": n["actor_last_name"], "avatar_at": n["actor_avatar_at"]}
                 actor = {"username": a["username"], **name_fields(a), "top": tp.get(n["actor_id"])}
-            items.append({"id": n["id"], "kind": n["kind"], "ref": n["ref"], "created_at": n["created_at"],
-                          "read": n["read_at"] is not None, "actor": actor})
+            item = {"id": n["id"], "kind": n["kind"], "ref": n["ref"], "created_at": n["created_at"],
+                    "read": n["read_at"] is not None, "actor": actor}
+            if n["ref"] and n["ref"].isdigit():
+                import market_api   # local import: market_api imports this module
+                if n["kind"] in ("wanted_match", "listing_approved", "listing_rejected", "listing_removed"):
+                    item["listing"] = market_api.listing_brief(store, cat, int(n["ref"]))
+                elif n["kind"] == "message":
+                    cv = store.get_conversation(int(n["ref"]))
+                    item["listing"] = market_api.listing_brief(store, cat, cv["listing_id"]) if cv and cv["listing_id"] else None
+            items.append(item)
         return {"items": items, "unread": store.unread_count(user["id"])}
 
     @router.get("/notifications/unread")
