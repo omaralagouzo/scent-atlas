@@ -181,13 +181,122 @@ page_views = sa.Table(
     sa.Index("ix_page_views_user_ts", "user_id", "ts"),
 )
 
+# ---- marketplace ---------------------------------------------------------------------------------------------
+# Delivery address: one per member, private (shown to nobody; kept for deliveries and gifts later on).
+addresses = sa.Table(
+    "addresses", metadata,
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("recipient", sa.String(80)),
+    sa.Column("phone", sa.String(32)),
+    sa.Column("formatted", sa.String(300), nullable=False),     # one line, as the address search returned it
+    sa.Column("building", sa.String(120)),
+    sa.Column("unit", sa.String(40)),                           # apartment / villa / office number
+    sa.Column("floor", sa.String(20)),
+    sa.Column("street", sa.String(160)),
+    sa.Column("area", sa.String(120)),
+    sa.Column("city", sa.String(80)),
+    sa.Column("region", sa.String(80)),
+    sa.Column("country", sa.String(2)),                         # ISO 3166-1 alpha-2
+    sa.Column("postal_code", sa.String(20)),
+    sa.Column("instructions", sa.String(300)),
+    sa.Column("lat", sa.Float, nullable=False),
+    sa.Column("lng", sa.Float, nullable=False),
+    sa.Column("place_id", sa.String(300)),
+    sa.Column("updated_at", sa.BigInteger, nullable=False),
+)
+
+# A bottle for sale. Catalogue perfumes go live at once; custom ones (not in the catalogue) wait for the owner's review.
+listings = sa.Table(
+    "listings", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("seller_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("perfume_id", sa.Integer),                         # NULL = custom (see custom_name / custom_brand)
+    sa.Column("custom_name", sa.String(120)),
+    sa.Column("custom_brand", sa.String(120)),
+    sa.Column("status", sa.String(10), nullable=False),          # pending | active | rejected | sold | withdrawn | removed
+    sa.Column("ml_total", sa.Integer, nullable=False),
+    sa.Column("ml_left", sa.Integer, nullable=False),
+    sa.Column("price_minor", sa.BigInteger, nullable=False),     # price x 100
+    sa.Column("currency", sa.String(3), nullable=False),
+    sa.Column("box", sa.Boolean, nullable=False, default=False),
+    sa.Column("tester", sa.Boolean, nullable=False, default=False),
+    sa.Column("description", sa.Text),
+    sa.Column("lat", sa.Float, nullable=False),                  # exact pickup point: only the seller sees it
+    sa.Column("lng", sa.Float, nullable=False),
+    sa.Column("area", sa.String(120)),                           # public: neighbourhood / district
+    sa.Column("city", sa.String(80)),
+    sa.Column("country", sa.String(2)),
+    sa.Column("formatted", sa.String(300)),                      # private pickup address line
+    sa.Column("review_note", sa.String(300)),                    # why a custom listing was rejected
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("updated_at", sa.BigInteger, nullable=False),
+    sa.Column("reviewed_at", sa.BigInteger),
+    sa.Index("ix_listings_status_created", "status", "created_at"),
+    sa.Index("ix_listings_perfume", "perfume_id"),
+    sa.Index("ix_listings_seller", "seller_id"),
+)
+
+listing_photos = sa.Table(
+    "listing_photos", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("listing_id", BigInt, sa.ForeignKey("listings.id", ondelete="CASCADE"), nullable=False, index=True),
+    sa.Column("data", sa.LargeBinary, nullable=False),
+    sa.Column("mime", sa.String(20), nullable=False),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+)
+
+# Buyer <-> seller messages about one listing.
+conversations = sa.Table(
+    "conversations", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("listing_id", BigInt, sa.ForeignKey("listings.id", ondelete="SET NULL")),
+    sa.Column("buyer_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("seller_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("last_at", sa.BigInteger, nullable=False),
+    sa.Column("buyer_read_id", BigInt, nullable=False, default=0),    # last message id each side has seen
+    sa.Column("seller_read_id", BigInt, nullable=False, default=0),
+    sa.UniqueConstraint("listing_id", "buyer_id", name="uq_conversation_listing_buyer"),
+    sa.Index("ix_conversations_buyer", "buyer_id", "last_at"),
+    sa.Index("ix_conversations_seller", "seller_id", "last_at"),
+)
+
+messages = sa.Table(
+    "messages", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("conversation_id", BigInt, sa.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("sender_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("body", sa.Text, nullable=False),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Index("ix_messages_conversation_id", "conversation_id", "id"),
+)
+
+# "Looking to buy": matched against new listings of the same catalogue perfume.
+wanted = sa.Table(
+    "wanted", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("user_id", BigInt, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
+    sa.Column("perfume_id", sa.Integer, nullable=False),
+    sa.Column("max_price_minor", sa.BigInteger),
+    sa.Column("currency", sa.String(3)),
+    sa.Column("min_ml", sa.Integer),
+    sa.Column("lat", sa.Float),
+    sa.Column("lng", sa.Float),
+    sa.Column("radius_km", sa.Integer),
+    sa.Column("area", sa.String(120)),
+    sa.Column("note", sa.String(300)),
+    sa.Column("status", sa.String(10), nullable=False),          # active | closed
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Index("ix_wanted_perfume_status", "perfume_id", "status"),
+)
+
 schema_migrations = sa.Table(
     "schema_migrations", metadata,
     sa.Column("version", sa.Integer, primary_key=True),
     sa.Column("applied_at", sa.BigInteger, nullable=False),
 )
 
-SCHEMA_VERSION = 5  # bump + add a step in _MIGRATIONS when the schema changes
+SCHEMA_VERSION = 6  # bump + add a step in _MIGRATIONS when the schema changes
 HISTORY_CAP = 200
 SAVED_CAP = 100
 COLLECTION_CAP = 5000   # longest leaderboard accepted in one order update
@@ -261,7 +370,12 @@ def _migrate_v5(conn):
     metadata.create_all(conn, tables=[page_views])
 
 
-_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4, 5: _migrate_v5}
+def _migrate_v6(conn):
+    """Marketplace: delivery addresses, listings + photos, buyer/seller messages, wanted requests (new tables only)."""
+    metadata.create_all(conn, tables=[addresses, listings, listing_photos, conversations, messages, wanted])
+
+
+_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4, 5: _migrate_v5, 6: _migrate_v6}
 
 
 def init_schema(eng: sa.Engine) -> None:
@@ -412,6 +526,12 @@ class UserStore:
         with self.eng.begin() as c:
             c.execute(notifications.update().where(notifications.c.user_id == uid, notifications.c.kind == kind,
                                                    notifications.c.actor_id == actor_id, notifications.c.read_at.is_(None))
+                      .values(read_at=_now()))
+
+    def mark_read_ref(self, uid: int, kind: str, ref: str):
+        with self.eng.begin() as c:
+            c.execute(notifications.update().where(notifications.c.user_id == uid, notifications.c.kind == kind,
+                                                   notifications.c.ref == ref, notifications.c.read_at.is_(None))
                       .values(read_at=_now()))
 
     def has_notification(self, uid: int, kind: str) -> bool:
@@ -585,8 +705,15 @@ class UserStore:
             c.execute(layer_votes.delete().where(layer_votes.c.user_id == uid))
             self._recount(c, voted)
             c.execute(layer_combos.update().where(layer_combos.c.created_by == uid).values(created_by=None))
-            for t in (sessions, favorites, perfume_status, saved_searches, history, avatars, reviews, notifications):
+            for t in (sessions, favorites, perfume_status, saved_searches, history, avatars, reviews, notifications,
+                      addresses, wanted):
                 c.execute(t.delete().where(t.c.user_id == uid))
+            conv = sa.select(conversations.c.id).where(sa.or_(conversations.c.buyer_id == uid, conversations.c.seller_id == uid))
+            c.execute(messages.delete().where(messages.c.conversation_id.in_(conv)))
+            c.execute(conversations.delete().where(sa.or_(conversations.c.buyer_id == uid, conversations.c.seller_id == uid)))
+            mine = sa.select(listings.c.id).where(listings.c.seller_id == uid)
+            c.execute(listing_photos.delete().where(listing_photos.c.listing_id.in_(mine)))
+            c.execute(listings.delete().where(listings.c.seller_id == uid))
             c.execute(notifications.delete().where(notifications.c.actor_id == uid))
             c.execute(page_views.update().where(page_views.c.user_id == uid).values(user_id=None))
             c.execute(friendships.delete().where(sa.or_(friendships.c.requester_id == uid, friendships.c.addressee_id == uid)))
@@ -1077,3 +1204,223 @@ class UserStore:
         favs = [(u, int(r)) for u, r in fav if str(r).isdigit()]
         return [tuple(r) for r in st], favs, [tuple(r) for r in rev]
 
+
+    # ------------------------------------------------------------------ marketplace: address
+    ADDRESS_FIELDS = ("recipient", "phone", "formatted", "building", "unit", "floor", "street", "area", "city", "region",
+                      "country", "postal_code", "instructions", "lat", "lng", "place_id")
+
+    def get_address(self, uid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(addresses).where(addresses.c.user_id == uid)).mappings().first()
+        return dict(r) if r else None
+
+    def put_address(self, uid: int, fields: dict):
+        row = {k: fields.get(k) for k in self.ADDRESS_FIELDS}
+        with self.eng.begin() as c:
+            stmt = self._insert(addresses).values(user_id=uid, updated_at=_now(), **row)
+            c.execute(stmt.on_conflict_do_update(index_elements=["user_id"], set_={
+                k: stmt.excluded[k] for k in (*self.ADDRESS_FIELDS, "updated_at")}))
+        return self.get_address(uid)
+
+    def delete_address(self, uid: int):
+        with self.eng.begin() as c:
+            c.execute(addresses.delete().where(addresses.c.user_id == uid))
+
+    def has_address(self, uid: int) -> bool:
+        with self.eng.connect() as c:
+            return c.execute(sa.select(addresses.c.user_id).where(addresses.c.user_id == uid)).first() is not None
+
+    # ------------------------------------------------------------------ marketplace: listings
+    LISTING_FIELDS = ("perfume_id", "custom_name", "custom_brand", "status", "ml_total", "ml_left", "price_minor", "currency",
+                      "box", "tester", "description", "lat", "lng", "area", "city", "country", "formatted", "review_note")
+
+    def create_listing(self, uid: int, fields: dict) -> dict:
+        now = _now()
+        with self.eng.begin() as c:
+            r = c.execute(listings.insert().values(seller_id=uid, created_at=now, updated_at=now,
+                                                   **{k: fields.get(k) for k in self.LISTING_FIELDS}))
+            lid = int(r.inserted_primary_key[0])
+        return self.get_listing(lid)
+
+    def update_listing(self, lid: int, fields: dict) -> dict | None:
+        vals = {k: v for k, v in fields.items() if k in self.LISTING_FIELDS or k == "reviewed_at"}
+        with self.eng.begin() as c:
+            c.execute(listings.update().where(listings.c.id == lid).values(updated_at=_now(), **vals))
+        return self.get_listing(lid)
+
+    def get_listing(self, lid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(listings).where(listings.c.id == lid)).mappings().first()
+        return dict(r) if r else None
+
+    def remove_listing(self, lid: int):
+        """Taken down by the owner: hidden everywhere, photos deleted, the row kept (ids are never reused)."""
+        with self.eng.begin() as c:
+            c.execute(listing_photos.delete().where(listing_photos.c.listing_id == lid))
+            c.execute(listings.update().where(listings.c.id == lid).values(status="removed", updated_at=_now()))
+
+    def delete_listing(self, lid: int):
+        with self.eng.begin() as c:
+            c.execute(conversations.update().where(conversations.c.listing_id == lid).values(listing_id=None))
+            c.execute(listing_photos.delete().where(listing_photos.c.listing_id == lid))
+            c.execute(listings.delete().where(listings.c.id == lid))
+
+    def listings_where(self, status: str | tuple | None = "active", seller_id: int | None = None,
+                       perfume_ids: list[int] | None = None, limit: int = 5000):
+        q = sa.select(listings)
+        if status is not None:
+            q = q.where(listings.c.status.in_([status] if isinstance(status, str) else list(status)))
+        if seller_id is not None:
+            q = q.where(listings.c.seller_id == seller_id)
+        if perfume_ids is not None:
+            q = q.where(listings.c.perfume_id.in_(perfume_ids))
+        with self.eng.connect() as c:
+            return [dict(r) for r in c.execute(q.order_by(listings.c.created_at.desc(), listings.c.id.desc()).limit(limit)).mappings()]
+
+    def count_listings(self, uid: int, statuses=("active", "pending")) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(listings).where(
+                listings.c.seller_id == uid, listings.c.status.in_(list(statuses)))).scalar() or 0)
+
+    def market_counts(self, perfume_ids: list[int]) -> dict[int, int]:
+        """{perfume id: active listings}."""
+        if not perfume_ids:
+            return {}
+        with self.eng.connect() as c:
+            return dict(c.execute(sa.select(listings.c.perfume_id, sa.func.count()).where(
+                listings.c.status == "active", listings.c.perfume_id.in_(perfume_ids)).group_by(listings.c.perfume_id)).all())
+
+    # photos
+    def add_photo(self, lid: int, data: bytes, mime: str) -> int:
+        with self.eng.begin() as c:
+            r = c.execute(listing_photos.insert().values(listing_id=lid, data=data, mime=mime, created_at=_now()))
+            return int(r.inserted_primary_key[0])
+
+    def photo_ids(self, lids: list[int]) -> dict[int, list[int]]:
+        out: dict[int, list[int]] = {}
+        if not lids:
+            return out
+        with self.eng.connect() as c:
+            for lid, pid in c.execute(sa.select(listing_photos.c.listing_id, listing_photos.c.id)
+                                      .where(listing_photos.c.listing_id.in_(lids)).order_by(listing_photos.c.id)):
+                out.setdefault(lid, []).append(pid)
+        return out
+
+    def get_photo(self, pid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(listing_photos).where(listing_photos.c.id == pid)).mappings().first()
+        return dict(r) if r else None
+
+    def delete_photo(self, pid: int):
+        with self.eng.begin() as c:
+            c.execute(listing_photos.delete().where(listing_photos.c.id == pid))
+
+    # ------------------------------------------------------------------ marketplace: messages
+    def conversation_for(self, listing_id: int, buyer_id: int, seller_id: int, create: bool = True):
+        with self.eng.begin() as c:
+            r = c.execute(sa.select(conversations).where(conversations.c.listing_id == listing_id,
+                                                          conversations.c.buyer_id == buyer_id)).mappings().first()
+            if r or not create:
+                return dict(r) if r else None
+            now = _now()
+            try:
+                c.execute(conversations.insert().values(listing_id=listing_id, buyer_id=buyer_id, seller_id=seller_id,
+                                                        created_at=now, last_at=now, buyer_read_id=0, seller_read_id=0))
+            except IntegrityError:
+                pass
+        return self.conversation_for(listing_id, buyer_id, seller_id, create=False)
+
+    def get_conversation(self, cid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(conversations).where(conversations.c.id == cid)).mappings().first()
+        return dict(r) if r else None
+
+    def add_message(self, cid: int, sender: int, body: str) -> dict:
+        now = _now()
+        with self.eng.begin() as c:
+            r = c.execute(messages.insert().values(conversation_id=cid, sender_id=sender, body=body, created_at=now))
+            mid = int(r.inserted_primary_key[0])
+            conv = c.execute(sa.select(conversations.c.buyer_id).where(conversations.c.id == cid)).scalar()
+            side = conversations.c.buyer_read_id if conv == sender else conversations.c.seller_read_id
+            c.execute(conversations.update().where(conversations.c.id == cid).values({"last_at": now, side.name: mid}))
+        return {"id": mid, "conversation_id": cid, "sender_id": sender, "body": body, "created_at": now}
+
+    def list_messages(self, cid: int, after: int = 0, limit: int = 200):
+        with self.eng.connect() as c:
+            rows = c.execute(sa.select(messages).where(messages.c.conversation_id == cid, messages.c.id > after)
+                             .order_by(messages.c.id.desc()).limit(limit)).mappings().all()
+        return [dict(r) for r in reversed(rows)]
+
+    def mark_conversation_read(self, cid: int, uid: int):
+        with self.eng.begin() as c:
+            conv = c.execute(sa.select(conversations).where(conversations.c.id == cid)).mappings().first()
+            if not conv:
+                return
+            last = c.execute(sa.select(sa.func.max(messages.c.id)).where(messages.c.conversation_id == cid)).scalar() or 0
+            col = "buyer_read_id" if conv["buyer_id"] == uid else "seller_read_id"
+            c.execute(conversations.update().where(conversations.c.id == cid).values({col: last}))
+
+    def my_conversations(self, uid: int, limit: int = 100):
+        """Conversations I'm in, newest first, each with its last message and my unread count."""
+        with self.eng.connect() as c:
+            convs = [dict(r) for r in c.execute(sa.select(conversations).where(sa.or_(
+                conversations.c.buyer_id == uid, conversations.c.seller_id == uid)).order_by(conversations.c.last_at.desc()).limit(limit)).mappings()]
+            for cv in convs:
+                read = cv["buyer_read_id"] if cv["buyer_id"] == uid else cv["seller_read_id"]
+                last = c.execute(sa.select(messages).where(messages.c.conversation_id == cv["id"])
+                                 .order_by(messages.c.id.desc()).limit(1)).mappings().first()
+                cv["last"] = dict(last) if last else None
+                cv["unread"] = int(c.execute(sa.select(sa.func.count()).select_from(messages).where(
+                    messages.c.conversation_id == cv["id"], messages.c.id > read, messages.c.sender_id != uid)).scalar() or 0)
+        return convs
+
+    def unread_messages(self, uid: int) -> int:
+        """Unread messages across all my conversations."""
+        with self.eng.connect() as c:
+            b = sa.select(sa.func.count()).select_from(messages.join(conversations, conversations.c.id == messages.c.conversation_id)).where(
+                messages.c.sender_id != uid,
+                sa.or_(sa.and_(conversations.c.buyer_id == uid, messages.c.id > conversations.c.buyer_read_id),
+                       sa.and_(conversations.c.seller_id == uid, messages.c.id > conversations.c.seller_read_id)))
+            return int(c.execute(b).scalar() or 0)
+
+    def messages_sent_since(self, uid: int, since: int) -> int:
+        with self.eng.connect() as c:
+            return int(c.execute(sa.select(sa.func.count()).select_from(messages).where(
+                messages.c.sender_id == uid, messages.c.created_at >= since)).scalar() or 0)
+
+    # ------------------------------------------------------------------ marketplace: wanted
+    WANTED_FIELDS = ("perfume_id", "max_price_minor", "currency", "min_ml", "lat", "lng", "radius_km", "area", "note")
+
+    def create_wanted(self, uid: int, fields: dict) -> dict:
+        with self.eng.begin() as c:
+            r = c.execute(wanted.insert().values(user_id=uid, status="active", created_at=_now(),
+                                                 **{k: fields.get(k) for k in self.WANTED_FIELDS}))
+            wid = int(r.inserted_primary_key[0])
+        return self.get_wanted(wid)
+
+    def get_wanted(self, wid: int):
+        with self.eng.connect() as c:
+            r = c.execute(sa.select(wanted).where(wanted.c.id == wid)).mappings().first()
+        return dict(r) if r else None
+
+    def close_wanted(self, wid: int):
+        with self.eng.begin() as c:
+            c.execute(wanted.update().where(wanted.c.id == wid).values(status="closed"))
+
+    def wanted_where(self, user_id: int | None = None, perfume_id: int | None = None, status: str | None = "active"):
+        q = sa.select(wanted)
+        if user_id is not None:
+            q = q.where(wanted.c.user_id == user_id)
+        if perfume_id is not None:
+            q = q.where(wanted.c.perfume_id == perfume_id)
+        if status is not None:
+            q = q.where(wanted.c.status == status)
+        with self.eng.connect() as c:
+            return [dict(r) for r in c.execute(q.order_by(wanted.c.created_at.desc())).mappings()]
+
+    def wanted_counts(self, perfume_ids: list[int]) -> dict[int, int]:
+        if not perfume_ids:
+            return {}
+        with self.eng.connect() as c:
+            return dict(c.execute(sa.select(wanted.c.perfume_id, sa.func.count()).where(
+                wanted.c.status == "active", wanted.c.perfume_id.in_(perfume_ids)).group_by(wanted.c.perfume_id)).all())

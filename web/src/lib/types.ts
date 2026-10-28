@@ -64,6 +64,8 @@ export interface User {
   needs_name: boolean
   created_at?: number
   top?: TopBottle | null
+  /** whether a delivery address is saved (the address itself is only at /api/me/address) */
+  has_address?: boolean
 }
 
 export type Status = 'owned' | 'tried' | 'wishlist'

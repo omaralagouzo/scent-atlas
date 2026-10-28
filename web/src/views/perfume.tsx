@@ -22,6 +22,7 @@ import { EmptyState, Page } from '@/components/page'
 import { PerfumeCard } from '@/components/perfume'
 import { ReviewsSection, Stars, useCommunity, type CommunityState } from '@/components/reviews'
 import { Segmented } from '@/components/segmented'
+import { MarketStrip } from '@/components/market/market-strip'
 
 export default function PerfumePage({ args }: ViewProps) {
   const id = args.id
@@ -280,6 +281,8 @@ function Hero({ p, community }: { p: any; community: CommunityState }) {
             {community.data?.mine ? 'Your review' : 'Write a review'}
           </Button>
         </div>
+
+        <MarketStrip p={p} />
 
         {p.accords?.length > 0 && (
           <section aria-labelledby="accords-h" className="flex flex-col gap-3 border-t pt-5">

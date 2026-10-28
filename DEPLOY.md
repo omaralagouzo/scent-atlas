@@ -76,6 +76,48 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
   delivery is ever needed.
 * **Reviews** are public, one per member and perfume, in the `reviews` table.
 
+## Development environment (dev.scentatlas.app)
+
+A second, fully separate copy of the site for trying things before they reach real members:
+
+| | production | development |
+|---|---|---|
+| Render service | `scent-atlas` (deploys `main`) | `scent-atlas-dev` (deploys `dev`) |
+| database | `scent-atlas-db` (real members) | `scent-atlas-dev-db` (made-up demo data) |
+| address | scentatlas.app | dev.scentatlas.app (or scent-atlas-dev.onrender.com) |
+| `SITE_ENV` | unset (production) | `development`: "Development site" ribbon, noindex, robots.txt disallow-all |
+| `SEED_DEMO` | unset | `1`: an EMPTY database is filled with 40 made-up members, shelves, reviews, listings, wanted requests, chats and a month of visits. Demo password: `scent-atlas-demo` |
+
+The two never share data: the dev service has its own `DATABASE_URL`. Nothing in production is ever copied to dev.
+
+**Flow:** work happens on feature branches -> pull request into `dev` -> it deploys to the dev site -> try it there ->
+pull request `dev` -> `main` -> production deploys. Database changes are migrations that only *add* tables and
+columns (see `schema_migrations` in `app/userdb.py`); they run on start-up, are tested against SQLite and Postgres,
+and run on the dev database first, so by the time they reach production they have already upgraded a database once.
+Never drop or rename a column in one step; Render keeps daily backups of the production database as a last resort.
+
+**One-time setup (owner):**
+1. Render -> `scent-atlas-dev-db` -> **Connect** -> copy the **Internal Database URL**.
+2. Render -> `scent-atlas-dev` -> **Environment** -> add `DATABASE_URL` = that URL -> save (it redeploys and seeds itself).
+3. Optional: Render -> `scent-atlas-dev` -> **Settings -> Custom Domains** -> add `dev.scentatlas.app`; Spaceship DNS ->
+   `CNAME` `dev` -> `scent-atlas-dev.onrender.com`.
+4. Render -> `scent-atlas-dev` -> **Settings -> Health Check Path** -> `/api/status`.
+
+## Google Maps (address search and pins)
+
+Address pickers (marketplace pickup, delivery address) use Google Places when `GOOGLE_MAPS_API_KEY` is set, and a free
+OpenStreetMap search (Photon, via `/api/geo/search`) otherwise.
+
+1. https://console.cloud.google.com -> create a project (e.g. "Scent Atlas") -> **Billing**: link a billing account
+   (Google's monthly free usage covers a small site; set a budget alert).
+2. **APIs & Services -> Library**: enable **Maps JavaScript API** and **Places API (New)**.
+3. **APIs & Services -> Credentials -> Create credentials -> API key**. Edit it:
+   - *Application restrictions*: **Websites**: `https://scentatlas.app/*`, `https://dev.scentatlas.app/*`,
+     `https://scent-atlas-dev.onrender.com/*`
+   - *API restrictions*: Maps JavaScript API and Places API (New) only.
+4. Render -> the service -> **Environment** -> `GOOGLE_MAPS_API_KEY` = the key (dev first, production when the
+   marketplace ships). This is a browser key: it is sent to the page, which is why the domain restriction matters.
+
 ## Analytics (first-party, no Google Analytics)
 
 The site counts its own page views (`page_views` table; see `app/analytics.py` for exactly what is kept): page path

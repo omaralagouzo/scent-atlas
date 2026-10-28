@@ -14,3 +14,30 @@
   --viz-grid: #2a2421;
   --viz-axis: #3a332e;
 }
+
+/* Marketplace listing card: photo + title side by side on phones, details below; a seller column on wide screens. */
+.listing-card {
+  display: grid;
+  gap: 0.75rem 1rem;
+  align-items: start;
+  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-areas: 'img head' 'body body' 'side side';
+}
+@media (min-width: 40rem) {
+  .listing-card {
+    column-gap: 1.25rem;
+    grid-template-columns: 152px minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas: 'img head' 'img body' 'side side';
+  }
+}
+@media (min-width: 64rem) {
+  .listing-card {
+    grid-template-columns: 168px minmax(0, 1fr) 280px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 'img head side' 'img body side';
+  }
+  .listing-card > aside {
+    align-self: stretch;
+  }
+}

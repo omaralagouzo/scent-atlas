@@ -146,6 +146,16 @@ export function useLoad<T>(path: string | null, params?: Params) {
   return { data, error, loading, reload }
 }
 
+/** `v`, once it has stopped changing for `ms`. */
+export function useDebounced<T>(v: T, ms: number) {
+  const [d, setD] = useState(v)
+  useEffect(() => {
+    const id = window.setTimeout(() => setD(v), ms)
+    return () => window.clearTimeout(id)
+  }, [v, ms])
+  return d
+}
+
 /** Run `fn` every `ms` while the tab is visible (and once right away when it becomes visible again). */
 export function useVisibleInterval(fn: () => void, ms: number) {
   const ref = useRef(fn)
@@ -234,4 +244,43 @@ export function ago(ts: number | null | undefined) {
 export const parseDay = (s: string) => {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)
+}
+
+// ---- marketplace -----------------------------------------------------------------------------------------------
+
+export type ListingStatus = 'pending' | 'active' | 'rejected' | 'sold' | 'withdrawn' | 'removed'
+export type MarketCounts = Record<ListingStatus, number>
+
+export interface AdminListing {
+  id: number
+  status: ListingStatus
+  title: string
+  brand: string
+  custom: boolean
+  custom_name: string | null
+  custom_brand: string | null
+  perfume_id: number | null
+  /** first photo, else the catalogue bottle image */
+  image: string | null
+  photos: string[]
+  ml_total: number
+  ml_left: number
+  price: number
+  currency: string
+  box: boolean
+  tester: boolean
+  description: string | null
+  area: string | null
+  city: string | null
+  country: string | null
+  /** the rejection reason the seller sees */
+  review_note: string | null
+  created_at: number
+  updated_at: number
+  seller: (MiniUser & { email: string }) | null
+}
+
+export interface ListingsPage {
+  listings: AdminListing[]
+  counts: MarketCounts
 }

@@ -85,6 +85,15 @@ the API sends it only to the person and their friends, since collections are pri
 Name" get one gentle, self-dismissing reminder per visit to add their name. The Friends page opens on "What your
 circle loves": owned / liked / combined leaderboards of you and your friends, top 3, 5 or 10.
 
+## Marketplace
+
+Members sell bottles to each other (`#/market`). A listing is a catalogue perfume (live at once) or a custom one
+(reviewed by the owner on the admin first), with size, ml left (always shown as a small fill gauge), price and price
+per ml in mono, box / tester tags, photos and a pickup area. Strangers only see the area and a position rounded to
+about a kilometre; the exact pickup point stays with the seller until they share it in a message. There are no
+reservations: buyers message the seller (`#/messages`). "Wanted" requests notify the member when a matching bottle
+is listed. Delivery addresses are private and never shown on profiles. Address fields always use `AddressPicker`.
+
 ## Components
 
 Use shadcn primitives first (`Button`, `Badge`, `Dialog`, `Sheet`, `DropdownMenu`, `Tabs`, `Tooltip`, `Command`,

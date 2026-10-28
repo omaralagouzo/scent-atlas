@@ -1,23 +1,14 @@
 // People: every account, with a search filter; a person opens a side sheet with their activity and account actions.
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Search } from 'lucide-react'
 import { errorText } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/avatar'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ago, dateOnly, fullTime, num, useLoad, type Account } from './data'
+import { ago, dateOnly, fullTime, num, useDebounced, useLoad, type Account } from './data'
 import { Muted, PageHead } from './parts'
 import { PersonSheet } from './person'
-
-function useDebounced<T>(v: T, ms: number) {
-  const [d, setD] = useState(v)
-  useEffect(() => {
-    const id = window.setTimeout(() => setD(v), ms)
-    return () => window.clearTimeout(id)
-  }, [v, ms])
-  return d
-}
 
 const COLS = [
   { key: 'who', label: 'Person', className: 'text-left' },

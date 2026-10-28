@@ -103,7 +103,7 @@ function PersonBody({ u, onChanged, onDeleted }: { u: Account; onChanged: () => 
 }
 
 /** A small inline form with an error line and a submit button. */
-function ActionForm({ title, children, submit, label, danger, run }: { title: string; children?: React.ReactNode; submit?: boolean; label: string; danger?: boolean; run: () => Promise<void> }) {
+export function ActionForm({ title, children, submit, label, danger, run }: { title: React.ReactNode; children?: React.ReactNode; submit?: boolean; label: string; danger?: boolean; run: () => Promise<void> }) {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   return (
@@ -138,7 +138,7 @@ function ActionForm({ title, children, submit, label, danger, run }: { title: st
   )
 }
 
-function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
+export function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>

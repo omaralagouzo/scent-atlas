@@ -60,3 +60,31 @@ def process(raw: bytes) -> bytes:
         raise
     except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
         raise AvatarError("That photo could not be read.")
+
+
+def process_photo(raw: bytes, max_side: int = 1280) -> bytes:
+    """A listing photo: any JPEG / PNG / WebP / GIF in, a WebP no larger than max_side out (aspect kept, EXIF
+    orientation applied, metadata such as GPS dropped)."""
+    try:
+        with Image.open(io.BytesIO(raw)) as im:
+            if im.format not in FORMATS:
+                raise AvatarError("Use a JPEG, PNG or WebP photo.")
+            if im.width * im.height > MAX_PIXELS:
+                raise AvatarError("That photo is too large.")
+            im.seek(0)
+            im = ImageOps.exif_transpose(im)
+            if im.mode in ("RGBA", "LA", "P"):
+                im = im.convert("RGBA")
+                bg = Image.new("RGB", im.size, (255, 255, 255))
+                bg.paste(im, mask=im.getchannel("A"))
+                im = bg
+            else:
+                im = im.convert("RGB")
+            im.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+            out = io.BytesIO()
+            im.save(out, "WEBP", quality=80, method=4)
+            return out.getvalue()
+    except AvatarError:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        raise AvatarError("That photo could not be read.")
