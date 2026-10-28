@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { UserAvatar } from '@/components/avatar'
+import { openAddressDialog } from '@/components/address-dialog'
 import { openProfileEditor } from '@/components/profile-editor'
 import { DeleteAccountDialog, PasswordDialog } from './auth-dialog'
 
@@ -62,6 +63,10 @@ export function AccountMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => go(`/u/${encodeURIComponent(user.username)}`)}>My profile</DropdownMenuItem>
           <DropdownMenuItem onSelect={openProfileEditor}>Edit name &amp; photo</DropdownMenuItem>
+          <DropdownMenuItem onSelect={openAddressDialog}>
+            Delivery address
+            {!user.has_address && <span className="ml-auto size-2 rounded-full bg-brand" aria-label="not added yet" />}
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => go('/collection')}>My Collection</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => go('/friends')}>Friends</DropdownMenuItem>
           <DropdownMenuItem onSelect={toggle} className="sm:hidden">

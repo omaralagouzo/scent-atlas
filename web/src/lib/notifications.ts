@@ -2,17 +2,33 @@
 // the list itself loads when the bell is opened. Light enough for a few thousand members with no extra services.
 import { useEffect, useSyncExternalStore } from 'react'
 import { api } from './api'
+import { refreshMessagesUnread } from './messages'
 import { refreshFriends } from './social'
 import { session, useSession } from './store'
+import type { ListingStatus } from './market'
 import type { TopBottle } from './types'
+
+export type NotificationKind =
+  | 'friend_request'
+  | 'friend_accept'
+  | 'name_reminder'
+  | 'address_reminder'
+  | 'message'
+  | 'wanted_match'
+  | 'listing_approved'
+  | 'listing_rejected'
+  | 'listing_removed'
 
 export interface Notification {
   id: number
-  kind: 'friend_request' | 'friend_accept' | 'name_reminder' | string
+  kind: NotificationKind | (string & {})
+  /** the friend's id, a conversation id (`message`) or a listing id (the listing kinds) */
   ref: string | null
   created_at: number
   read: boolean
   actor: { username: string; name: string; avatar: string | null; top?: TopBottle | null } | null
+  /** marketplace kinds: the listing it is about (null once the listing is gone, e.g. removed) */
+  listing?: { id: number; title: string; brand: string; image: string | null; status: ListingStatus } | null
 }
 
 const POLL_MS = 60_000
@@ -28,8 +44,11 @@ const subscribe = (fn: () => void) => {
 
 function setUnread(n: number) {
   if (n === unread) return
-  // something new arrived (e.g. a friend request): the header's friend badge reads the friend lists
-  if (n > unread) refreshFriends()
+  // something new arrived (e.g. a friend request or a message): refresh the header's friend and message badges
+  if (n > unread) {
+    refreshFriends()
+    refreshMessagesUnread()
+  }
   unread = n
   emit()
 }

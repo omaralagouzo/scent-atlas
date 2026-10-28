@@ -57,6 +57,7 @@ const FILTERS: { value: Filter; label: string; empty: string }[] = [
   { value: 'rejected', label: 'Rejected', empty: 'No rejected listings.' },
   { value: 'sold', label: 'Sold', empty: 'No sold listings.' },
   { value: 'withdrawn', label: 'Withdrawn', empty: 'No withdrawn listings.' },
+  { value: 'removed', label: 'Removed', empty: 'Nothing removed.' },
   { value: 'all', label: 'All', empty: 'No listings yet.' },
 ]
 
@@ -66,6 +67,7 @@ const STATUS: Record<ListingStatus, { label: string; className: string }> = {
   rejected: { label: 'Rejected', className: 'bg-destructive/10 text-destructive' },
   sold: { label: 'Sold', className: 'bg-muted text-muted-foreground' },
   withdrawn: { label: 'Withdrawn', className: 'bg-muted text-muted-foreground' },
+  removed: { label: 'Removed', className: 'bg-destructive/10 text-destructive' },
 }
 
 const QUICK_REASONS = [
@@ -390,10 +392,12 @@ function ListingCard({ l, withStatus, onOpen, onPhoto }: { l: AdminListing; with
               </Button>
             </>
           )}
-          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => onOpen('remove')}>
-            <Trash2 />
-            Remove
-          </Button>
+          {l.status !== 'removed' && (
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => onOpen('remove')}>
+              <Trash2 />
+              Remove
+            </Button>
+          )}
         </div>
       </aside>
     </article>
@@ -484,10 +488,12 @@ function SheetBody({ l, initial, onDone, onPhoto }: { l: AdminListing; initial: 
               </Button>
             </>
           )}
-          <Button size="sm" variant={action === 'remove' ? 'secondary' : 'outline'} aria-expanded={action === 'remove'} onClick={() => toggle('remove')} className="text-destructive hover:text-destructive">
-            <Trash2 />
-            Remove
-          </Button>
+          {l.status !== 'removed' && (
+            <Button size="sm" variant={action === 'remove' ? 'secondary' : 'outline'} aria-expanded={action === 'remove'} onClick={() => toggle('remove')} className="text-destructive hover:text-destructive">
+              <Trash2 />
+              Remove
+            </Button>
+          )}
         </div>
         {action === 'approve' && <Approve l={l} done={onDone} />}
         {action === 'reject' && <Reject l={l} done={onDone} />}

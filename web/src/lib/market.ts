@@ -12,7 +12,7 @@ export interface MarketPerson {
   top?: TopBottle | null
 }
 
-export type ListingStatus = 'pending' | 'active' | 'rejected' | 'sold' | 'withdrawn'
+export type ListingStatus = 'pending' | 'active' | 'rejected' | 'sold' | 'withdrawn' | 'removed'
 
 export interface Listing {
   id: number

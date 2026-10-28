@@ -213,7 +213,7 @@ listings = sa.Table(
     sa.Column("perfume_id", sa.Integer),                         # NULL = custom (see custom_name / custom_brand)
     sa.Column("custom_name", sa.String(120)),
     sa.Column("custom_brand", sa.String(120)),
-    sa.Column("status", sa.String(10), nullable=False),          # pending | active | rejected | sold | withdrawn
+    sa.Column("status", sa.String(10), nullable=False),          # pending | active | rejected | sold | withdrawn | removed
     sa.Column("ml_total", sa.Integer, nullable=False),
     sa.Column("ml_left", sa.Integer, nullable=False),
     sa.Column("price_minor", sa.BigInteger, nullable=False),     # price x 100
@@ -1252,6 +1252,12 @@ class UserStore:
         with self.eng.connect() as c:
             r = c.execute(sa.select(listings).where(listings.c.id == lid)).mappings().first()
         return dict(r) if r else None
+
+    def remove_listing(self, lid: int):
+        """Taken down by the owner: hidden everywhere, photos deleted, the row kept (ids are never reused)."""
+        with self.eng.begin() as c:
+            c.execute(listing_photos.delete().where(listing_photos.c.listing_id == lid))
+            c.execute(listings.update().where(listings.c.id == lid).values(status="removed", updated_at=_now()))
 
     def delete_listing(self, lid: int):
         with self.eng.begin() as c:

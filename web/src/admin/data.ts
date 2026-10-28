@@ -248,7 +248,7 @@ export const parseDay = (s: string) => {
 
 // ---- marketplace -----------------------------------------------------------------------------------------------
 
-export type ListingStatus = 'pending' | 'active' | 'rejected' | 'sold' | 'withdrawn'
+export type ListingStatus = 'pending' | 'active' | 'rejected' | 'sold' | 'withdrawn' | 'removed'
 export type MarketCounts = Record<ListingStatus, number>
 
 export interface AdminListing {

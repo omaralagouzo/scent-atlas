@@ -109,6 +109,11 @@ def test_custom_listing_waits_for_review(app):
     assert n["kind"] == "listing_approved" and n["listing"]["id"] == lid
     assert a.delete(f"/api/admin/market/listings/{lid}", headers=H).json() == {"ok": True}
     assert buyer.get(f"/api/market/listings/{lid}").status_code == 404
+    assert a.delete(f"/api/admin/market/listings/{lid}", headers=H).status_code == 404
+    assert seller.get("/api/market/mine").json()["listings"][0]["status"] == "removed"
+    assert seller.patch(f"/api/market/listings/{lid}", headers=H, json={"status": "active"}).status_code == 409
+    assert listing(seller).json()["id"] != lid                                     # ids are never reused
+    assert a.get("/api/admin/market/listings", params={"status": "removed"}).json()["counts"]["removed"] == 1
 
 
 def test_seller_statuses_and_limits(app):

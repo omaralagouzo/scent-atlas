@@ -1,4 +1,5 @@
-import { ChevronDown, Compass, Moon, Search, Sun } from 'lucide-react'
+import { ChevronDown, Compass, MessageCircle, Moon, Search, Sun } from 'lucide-react'
+import { useMessagesUnread } from '@/lib/messages'
 import { go, useLocation } from '@/lib/router'
 import { useFriends } from '@/lib/social'
 import { useSession } from '@/lib/store'
@@ -43,6 +44,23 @@ function DiscoverMenu({ path, compact = false }: { path: string; compact?: boole
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+/** Messages with buyers and sellers, with the unread count. */
+function MessagesButton({ active }: { active: boolean }) {
+  const unread = useMessagesUnread()
+  return (
+    <Button variant="ghost" size="icon" className={cn('relative', active && 'bg-muted')} asChild>
+      <a href="#/messages" aria-label={unread ? `Messages, ${unread} unread` : 'Messages'} title="Messages" aria-current={active ? 'page' : undefined}>
+        <MessageCircle />
+        {unread > 0 && (
+          <span className="absolute top-1 right-1 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 font-mono text-[10px] leading-none font-semibold text-brand-foreground">
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </a>
+    </Button>
   )
 }
 
@@ -95,6 +113,7 @@ export function Header() {
             <span className="hidden sm:inline">Search…</span>
             <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[11px] sm:inline">⌘K</kbd>
           </button>
+          {user && <MessagesButton active={path === '/messages' || path.startsWith('/messages/')} />}
           {user && <NotificationBell />}
           <Button variant="ghost" size="icon" className="hidden sm:inline-flex" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title={theme === 'dark' ? 'Light theme' : 'Dark theme'}>
             {theme === 'dark' ? <Sun /> : <Moon />}

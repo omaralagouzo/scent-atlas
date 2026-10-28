@@ -29,7 +29,7 @@ LISTINGS_PER_HOUR = 10
 MESSAGES_PER_MINUTE = 20
 MAX_WANTED = 20
 MESSAGE_MAX = 2000
-STATUSES = ("pending", "active", "rejected", "sold", "withdrawn")
+STATUSES = ("pending", "active", "rejected", "sold", "withdrawn", "removed")   # removed = taken down by the owner
 
 
 class Pickup(BaseModel):
@@ -695,9 +695,10 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
     @router.delete("/market/listings/{lid}", dependencies=[Depends(require_admin)])
     def remove(lid: int, request: Request):
         r = store.get_listing(lid)
-        if not r:
+        if not r or r["status"] == "removed":
             raise HTTPException(404, "Listing not found.")
-        store.delete_listing(lid)
+        # kept as a row (status "removed", photos dropped) so its id is never reused and notifications stay accurate
+        store.remove_listing(lid)
         store.notify(r["seller_id"], "listing_removed", None, str(lid))
         log.info("admin removed listing id=%s from %s", lid, ip_of(request))
         return {"ok": True}
