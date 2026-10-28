@@ -24,6 +24,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import admin  # noqa: E402
+import demo_seed  # noqa: E402
 import auth  # noqa: E402
 import catalog as cat_mod  # noqa: E402
 import config  # noqa: E402
@@ -181,6 +182,9 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     async def lifespan(app: FastAPI):
         # build the layering model (pool features, curated pairs: ~1 s, ~4 MB) off the request path
         threading.Thread(target=layering.model, args=(cat,), daemon=True, name="layering-warmup").start()
+        if settings.seed_demo and settings.site_env == "development":
+            # made-up members for the development environment; does nothing once any account exists
+            threading.Thread(target=demo_seed.seed, args=(store, cat), daemon=True, name="demo-seed").start()
         if os.environ.get("SCENT_OPEN") == "1":
             threading.Timer(0.8, lambda: webbrowser.open(f"http://{settings.host}:{settings.port}/")).start()
         yield
@@ -226,7 +230,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
                 user_api.clear_session_cookie(resp, request, settings)
         h = resp.headers
         h["Content-Security-Policy"] = DOCS_CSP if (settings.enable_docs and path.startswith("/api/")) else CSP
-        if admin_path or on_admin_host:
+        if admin_path or on_admin_host or settings.site_env != "production":
             h["X-Robots-Tag"] = "noindex, nofollow"
             h["Cache-Control"] = "no-store"
         h["X-Content-Type-Options"] = "nosniff"
@@ -296,7 +300,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         d = {"ok": True, "kind": db_kind, "perfumes": cat.n_perf, "notes": cat.n_notes,
              "note_rows": int(len(cat.pn_note)), "load_seconds": round(cat.load_seconds, 2),
              "brand_tags": bool(cat.tags_loaded), "dupe_links": int(len(cat.dl_target)),
-             "image_mode": settings.image_mode, "users_db": store.eng.dialect.name}
+             "image_mode": settings.image_mode, "users_db": store.eng.dialect.name, "env": settings.site_env}
         if db_kind != "deploy":
             d["db"] = str(used_db)  # local paths are fine to show locally, never on a public host
         return d
@@ -599,6 +603,12 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         scheme = "https" if (settings.canonical_host or user_api.is_https(request, settings)) else "http"
         html = app_index.read_text(encoding="utf-8").replace("__SITE__", f"{scheme}://{host}")
         return Response(html, media_type="text/html", headers={"Cache-Control": "no-cache"})
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots():
+        # the development site must never show up in search results
+        body = "User-agent: *\nDisallow: /\n" if settings.site_env != "production" else "User-agent: *\nDisallow: /api/\n"
+        return Response(body, media_type="text/plain")
 
     @app.get("/next", include_in_schema=False)
     @app.get("/next/", include_in_schema=False)
