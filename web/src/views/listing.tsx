@@ -337,32 +337,32 @@ function OwnerPanel({ l, setL }: { l: Listing; setL: React.Dispatch<React.SetSta
         </span>
       </a>
       {l.status !== 'removed' && (
-      <div className="flex flex-wrap gap-2 border-t pt-4">
-        <Button variant="outline" asChild>
-          <a href={`#/market/${l.id}/edit`}>
-            <Pencil />
-            Edit
-          </a>
-        </Button>
-        {l.status === 'active' && (
-          <Button onClick={() => setStatus('sold', 'active')} disabled={!!busy}>
-            {spin('sold') || <Check />}
-            Mark as sold
+        <div className="flex flex-wrap gap-2 border-t pt-4">
+          <Button variant="outline" asChild>
+            <a href={`#/market/${l.id}/edit`}>
+              <Pencil />
+              Edit
+            </a>
           </Button>
-        )}
-        {(l.status === 'active' || l.status === 'pending' || l.status === 'rejected') && (
-          <Button variant="ghost" onClick={() => setStatus('withdrawn', l.status === 'active' ? 'active' : undefined)} disabled={!!busy}>
-            {spin('withdrawn') || <Undo2 />}
-            Withdraw
-          </Button>
-        )}
-        {(l.status === 'sold' || l.status === 'withdrawn') && (
-          <Button onClick={() => setStatus('active')} disabled={!!busy}>
-            {spin('active') || <RotateCcw />}
-            Put back up
-          </Button>
-        )}
-      </div>
+          {l.status === 'active' && (
+            <Button onClick={() => setStatus('sold', 'active')} disabled={!!busy}>
+              {spin('sold') || <Check />}
+              Mark as sold
+            </Button>
+          )}
+          {(l.status === 'active' || l.status === 'pending' || l.status === 'rejected') && (
+            <Button variant="ghost" onClick={() => setStatus('withdrawn', l.status === 'active' ? 'active' : undefined)} disabled={!!busy}>
+              {spin('withdrawn') || <Undo2 />}
+              Withdraw
+            </Button>
+          )}
+          {(l.status === 'sold' || l.status === 'withdrawn') && (
+            <Button onClick={() => setStatus('active')} disabled={!!busy}>
+              {spin('active') || <RotateCcw />}
+              Put back up
+            </Button>
+          )}
+        </div>
       )}
     </section>
   )

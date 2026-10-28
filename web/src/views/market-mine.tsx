@@ -201,32 +201,32 @@ function MyListingRow({ l, onChange }: { l: Listing; onChange: (l: Listing) => v
         </span>
       </a>
       {l.status !== 'removed' && (
-      <div className="flex flex-wrap gap-1.5 sm:flex-col sm:items-stretch lg:flex-row lg:items-center">
-        <Button size="sm" variant="outline" asChild>
-          <a href={`#/market/${l.id}/edit`}>
-            <Pencil />
-            {l.status === 'rejected' ? 'Fix' : 'Edit'}
-          </a>
-        </Button>
-        {l.status === 'active' && (
-          <Button size="sm" variant="outline" onClick={() => setStatus('sold')} disabled={!!busy}>
-            {spin('sold', <Check />)}
-            Mark sold
+        <div className="flex flex-wrap gap-1.5 sm:flex-col sm:items-stretch lg:flex-row lg:items-center">
+          <Button size="sm" variant="outline" asChild>
+            <a href={`#/market/${l.id}/edit`}>
+              <Pencil />
+              {l.status === 'rejected' ? 'Fix' : 'Edit'}
+            </a>
           </Button>
-        )}
-        {(l.status === 'active' || l.status === 'pending' || l.status === 'rejected') && (
-          <Button size="sm" variant="ghost" onClick={() => setStatus('withdrawn')} disabled={!!busy}>
-            {spin('withdrawn', <Undo2 />)}
-            Withdraw
-          </Button>
-        )}
-        {(l.status === 'sold' || l.status === 'withdrawn') && (
-          <Button size="sm" variant="outline" onClick={() => setStatus('active')} disabled={!!busy}>
-            {spin('active', <RotateCcw />)}
-            Relist
-          </Button>
-        )}
-      </div>
+          {l.status === 'active' && (
+            <Button size="sm" variant="outline" onClick={() => setStatus('sold')} disabled={!!busy}>
+              {spin('sold', <Check />)}
+              Mark sold
+            </Button>
+          )}
+          {(l.status === 'active' || l.status === 'pending' || l.status === 'rejected') && (
+            <Button size="sm" variant="ghost" onClick={() => setStatus('withdrawn')} disabled={!!busy}>
+              {spin('withdrawn', <Undo2 />)}
+              Withdraw
+            </Button>
+          )}
+          {(l.status === 'sold' || l.status === 'withdrawn') && (
+            <Button size="sm" variant="outline" onClick={() => setStatus('active')} disabled={!!busy}>
+              {spin('active', <RotateCcw />)}
+              Relist
+            </Button>
+          )}
+        </div>
       )}
     </li>
   )

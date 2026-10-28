@@ -153,8 +153,8 @@ export function MarketFiltersPanel({ f, onChange, facets, colors }: { f: MarketF
   const currencies = facets?.currencies || []
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between pb-1">
-        <span className="flex items-center gap-2 text-sm font-semibold">
+      <div className="flex items-center justify-end pb-1 lg:justify-between">
+        <span className="hidden items-center gap-2 text-sm font-semibold lg:flex">
           <SlidersHorizontal className="size-4 text-muted-foreground" />
           Filters
         </span>
