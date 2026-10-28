@@ -45,6 +45,17 @@ CSP = (
     "connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; "
     "form-action 'self'; frame-ancestors 'none'"
 )
+# with GOOGLE_MAPS_API_KEY set: Google's allow-list for the Maps JavaScript API + Places (address search, pin map)
+GOOGLE_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' https://*.googleapis.com https://*.gstatic.com *.google.com https://*.ggpht.com *.googleusercontent.com blob:; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "img-src 'self' data: blob: https://fimgs.net https://upload.wikimedia.org https://*.googleapis.com https://*.gstatic.com "
+    "*.google.com *.googleusercontent.com; "
+    "connect-src 'self' https://*.googleapis.com *.google.com https://*.gstatic.com data: blob:; "
+    "font-src 'self' https://fonts.gstatic.com; frame-src *.google.com; worker-src blob:; object-src 'none'; "
+    "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+)
 DOCS_CSP = (  # only used for /api/docs when ENABLE_DOCS=1 (Swagger UI loads from a CDN)
     "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://fastapi.tiangolo.com; "
@@ -201,6 +212,8 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     app.state.store = store
     app.state.ctx = ctx
 
+    page_csp = GOOGLE_CSP if settings.google_maps_key else CSP
+
     @app.middleware("http")
     async def edge(request: Request, call_next):
         """Host allow-list, body cap, security headers, sliding session cookie."""
@@ -229,14 +242,14 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
             elif getattr(request.state, "clear_cookie", False):
                 user_api.clear_session_cookie(resp, request, settings)
         h = resp.headers
-        h["Content-Security-Policy"] = DOCS_CSP if (settings.enable_docs and path.startswith("/api/")) else CSP
+        h["Content-Security-Policy"] = DOCS_CSP if (settings.enable_docs and path.startswith("/api/")) else page_csp
         if admin_path or on_admin_host or settings.site_env != "production":
             h["X-Robots-Tag"] = "noindex, nofollow"
             h["Cache-Control"] = "no-store"
         h["X-Content-Type-Options"] = "nosniff"
         h["Referrer-Policy"] = "strict-origin-when-cross-origin"
         h["X-Frame-Options"] = "DENY"
-        h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+        h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self), payment=()"   # "near me" uses location
         h["Cross-Origin-Opener-Policy"] = "same-origin"
         if user_api.is_https(request, settings):
             h["Strict-Transport-Security"] = "max-age=31536000"

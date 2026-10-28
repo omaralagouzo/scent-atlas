@@ -1,4 +1,4 @@
-import { Combine, FlaskConical, Layers, ListOrdered, Sparkles, Triangle, UserSearch, Users } from 'lucide-react'
+import { Combine, FlaskConical, Layers, ListOrdered, Sparkles, Store, Triangle, UserSearch, Users } from 'lucide-react'
 
 export interface NavItem {
   href: string
@@ -24,6 +24,7 @@ export const MAIN: NavItem[] = [
   { href: '/people', label: 'Discover people', icon: UserSearch, match: (p) => p.startsWith('/people') },
   { href: '/friends', label: 'Friends', icon: Users, match: (p) => p.startsWith('/friends') },
   { href: '/collection', label: 'My Collection', icon: ListOrdered, match: (p) => p.startsWith('/collection') },
+  { href: '/market', label: 'Marketplace', icon: Store, match: (p) => p.startsWith('/market') },
 ]
 
 /** Every page (the command palette lists these). */

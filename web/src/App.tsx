@@ -32,6 +32,11 @@ const Friends = lazy(() => import('@/views/friends'))
 const Profile = lazy(() => import('@/views/profile'))
 const PerfumePage = lazy(() => import('@/views/perfume'))
 const People = lazy(() => import('@/views/people'))
+const Market = lazy(() => import('@/views/market'))
+const ListingView = lazy(() => import('@/views/listing'))
+const MarketEdit = lazy(() => import('@/views/market-edit'))
+const MarketMine = lazy(() => import('@/views/market-mine'))
+const Messages = lazy(() => import('@/views/messages'))
 
 const ROUTES: [string, React.ComponentType<ViewProps>][] = [
   ['/notes', Notes],
@@ -50,6 +55,13 @@ const ROUTES: [string, React.ComponentType<ViewProps>][] = [
   ['/u/:username', Profile],
   ['/perfume/:id', PerfumePage],
   ['/people', People],
+  ['/market', Market],
+  ['/market/new', MarketEdit],
+  ['/market/mine', MarketMine],
+  ['/market/:id/edit', MarketEdit],
+  ['/market/:id', ListingView],
+  ['/messages', Messages],
+  ['/messages/:id', Messages],
 ]
 
 function Router() {
