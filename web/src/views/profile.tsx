@@ -19,6 +19,7 @@ import { NoteChip } from '@/components/notes'
 import { EmptyState, Page } from '@/components/page'
 import { PerfumeCard, PerfumeGrid } from '@/components/perfume'
 import { openProfileEditor } from '@/components/profile-editor'
+import { AddressLine } from '@/components/address-dialog'
 import { Segmented, type SegOption } from '@/components/segmented'
 import { Podium, RankRow, type Item } from '@/components/collection/podium'
 import { Shelf, ShelfProgress } from '@/components/shelf/shelf'
@@ -26,6 +27,7 @@ import { HistoryList } from '@/components/atlas/history-list'
 import { SavedSearches } from '@/components/atlas/saved-searches'
 import { TasteProfile } from '@/components/atlas/taste-profile'
 import { useAtlas } from '@/components/atlas/use-atlas'
+import { SellerListings, useSellerListings } from '@/components/market/seller-listings'
 
 interface Profile {
   top?: TopBottle | null
@@ -55,9 +57,9 @@ const VIEWS: SegOption<View>[] = [
 const VIEW_N: Partial<Record<View, number>> = { top3: 3, top5: 5, top10: 10 }
 const isView = (v: string | null): v is View => VIEWS.some((o) => o.value === v)
 
-type Tab = 'wishlist' | 'tried' | 'favorites' | 'taste' | 'saved' | 'history'
+type Tab = 'wishlist' | 'tried' | 'favorites' | 'sale' | 'taste' | 'saved' | 'history'
 const PRIVATE: Tab[] = ['taste', 'saved', 'history']
-const TABS: Tab[] = ['wishlist', 'tried', 'favorites', ...PRIVATE]
+const TABS: Tab[] = ['wishlist', 'tried', 'favorites', 'sale', ...PRIVATE]
 const isTab = (v: string | null): v is Tab => TABS.includes(v as Tab)
 
 function Count({ n, label }: { n?: number; label: string }) {
@@ -191,6 +193,7 @@ export default function ProfileView({ args, params, path }: ViewProps) {
   })
   const self = p?.relation === 'self'
   const atlas = useAtlas(!!self)
+  const forSale = useSellerListings(username, loaded && !!user)
 
   // my own profile reloads after I change my name or photo
   const mine = user && user.username.toLowerCase() === username.toLowerCase() ? `${user.name}|${user.avatar}` : ''
@@ -265,6 +268,7 @@ export default function ProfileView({ args, params, path }: ViewProps) {
             <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] break-words sm:text-[32px]">{name}</h1>
             <p className="text-[15px] text-muted-foreground">@{p.username}</p>
             <p className="text-xs text-muted-foreground">Joined {joined}</p>
+            {self && <AddressLine className="mt-1" />}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
@@ -290,11 +294,20 @@ export default function ProfileView({ args, params, path }: ViewProps) {
         </div>
       </header>
 
-      {!p.visible ? (
+      {!p.visible && (
         <EmptyState icon={<Lock className="size-5" />} title={p.relation === 'outgoing' ? `Waiting for ${who} to accept` : p.relation === 'incoming' ? `${who} wants to be friends. Accept to see their shelf` : `Add ${who} as a friend to see their shelf`}>
           Friends can see each other's collection, shelf, favourites and wishlist. Private notes always stay private.
         </EmptyState>
-      ) : (
+      )}
+      {!p.visible && !!forSale.items?.length && (
+        <section aria-label="For sale" className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em]">
+            For sale <Num n={forSale.total} />
+          </h2>
+          <SellerListings data={forSale} self={false} who={p.first_name || name} />
+        </section>
+      )}
+      {p.visible && (
         <div className="flex flex-col gap-10">
           <section aria-label={self ? 'My collection' : `${name}'s collection`} className="flex flex-col gap-5">
             <Segmented<View> label="Show" value={view} onChange={setView} options={VIEWS} size="sm" className="sm:hidden" />
@@ -314,6 +327,9 @@ export default function ProfileView({ args, params, path }: ViewProps) {
                 </TabsTrigger>
                 <TabsTrigger value="favorites" className="flex-none px-0.5">
                   Favorites <Num n={favCount} />
+                </TabsTrigger>
+                <TabsTrigger value="sale" className="flex-none px-0.5">
+                  For sale <Num n={forSale.total} />
                 </TabsTrigger>
                 {self && (
                   <>
@@ -376,6 +392,10 @@ export default function ProfileView({ args, params, path }: ViewProps) {
               ) : (
                 !p.favorites?.notes.length && <Muted>No favorites yet.</Muted>
               )}
+            </TabsContent>
+
+            <TabsContent value="sale">
+              <SellerListings data={forSale} self={!!self} who={p.first_name || name} />
             </TabsContent>
 
             {self &&
