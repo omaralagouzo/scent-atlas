@@ -146,6 +146,16 @@ export function useLoad<T>(path: string | null, params?: Params) {
   return { data, error, loading, reload }
 }
 
+/** `v`, once it has stopped changing for `ms`. */
+export function useDebounced<T>(v: T, ms: number) {
+  const [d, setD] = useState(v)
+  useEffect(() => {
+    const id = window.setTimeout(() => setD(v), ms)
+    return () => window.clearTimeout(id)
+  }, [v, ms])
+  return d
+}
+
 /** Run `fn` every `ms` while the tab is visible (and once right away when it becomes visible again). */
 export function useVisibleInterval(fn: () => void, ms: number) {
   const ref = useRef(fn)
@@ -234,4 +244,119 @@ export function ago(ts: number | null | undefined) {
 export const parseDay = (s: string) => {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)
+}
+// ---- new releases (discovery) ------------------------------------------------------------------------------------
+
+export type DiscState = 'incomplete' | 'complete' | 'duplicate' | 'approved' | 'published' | 'rejected'
+export type DiscCounts = Record<DiscState, number>
+export type ConfKey = 'identity' | 'release_date' | 'notes' | 'perfumers' | 'image' | 'gender' | 'concentration'
+export type DiscKind = 'discover' | 'complete' | 'full'
+export type DiscModel = 'sonnet' | 'haiku'
+
+export interface DiscNotes {
+  top: string[]
+  middle: string[]
+  base: string[]
+  general: string[]
+}
+
+export interface DiscSource {
+  url: string
+  title: string
+  kind: 'official' | 'retailer' | 'news' | 'aggregator' | 'social'
+  supports: string[]
+}
+
+export interface DiscItem {
+  id: number
+  state: DiscState
+  brand: string
+  name: string
+  concentration: string | null
+  gender: 'women' | 'men' | 'unisex' | null
+  release_date: string | null
+  release_status: 'released' | 'announced' | null
+  perfumers: string[]
+  notes: Partial<DiscNotes>
+  note_count: number
+  family: string | null
+  description: string | null
+  /** admin image URL, usable in <img> */
+  image: string | null
+  /** the source URL the image came from */
+  image_url: string | null
+  official_url: string | null
+  sources: DiscSource[]
+  confidence: Partial<Record<ConfKey, number>>
+  overall: number
+  missing: string[]
+  duplicate_of: { id: number; name?: string; brand?: string; year?: number | null; gender?: string | null; image?: string } | null
+  perfume_id: number | null
+  review_note: string | null
+  comment: string | null
+  origin: string | null
+  attempts: number
+  created_at: number
+  updated_at: number
+  reviewed_at: number | null
+  published_at: number | null
+  /** published only: already in the running catalogue (false: live after the next restart) */
+  live?: boolean
+}
+
+export interface DiscItemsPage {
+  items: DiscItem[]
+  total: number
+  counts: DiscCounts
+}
+
+export interface DiscConfig {
+  engine_ready: boolean
+  running: number | null
+  deploy_hook: boolean
+  pending_restart: number
+  counts: DiscCounts
+  segments: { key: string; title: string }[]
+  models: { sonnet: string; haiku: string }
+  default_budget_usd: number
+}
+
+export interface DiscSegmentStat {
+  key: string
+  status: string
+  requests: number
+  submitted: number
+  new: number
+  updated: number
+  cost_usd: number
+}
+
+export interface DiscRun {
+  id: number
+  kind: DiscKind | 'import'
+  status: 'running' | 'done' | 'failed' | 'cancelled' | 'interrupted'
+  model: string
+  params: { since?: string; segments?: string[]; budget_usd?: number; max_items?: number; model?: string; complete_model?: string }
+  stats: {
+    cost_usd?: number
+    requests?: number
+    searches?: number
+    input_tokens?: number
+    output_tokens?: number
+    new?: number
+    updated?: number
+    skipped?: number
+    segments?: Record<string, DiscSegmentStat>
+  }
+  error: string | null
+  created_at: number
+  started_at: number | null
+  finished_at: number | null
+  /** only on GET /discovery/runs/{id} */
+  log?: string[]
+}
+
+export interface DiscRunsPage {
+  runs: DiscRun[]
+  running: number | null
 }
