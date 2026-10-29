@@ -397,13 +397,27 @@ class _NoRedirectToPrivate(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+WP_CDN = re.compile(r"^https?://i[0-3]\.wp\.com/([^?#]+)")
+
+
 def download_image(url: str) -> bytes:
+    """The image at url; for a WordPress CDN copy (i0.wp.com/<site>/...) the original file on the site itself."""
+    m = WP_CDN.match(url)
+    if m:
+        try:
+            return _download(f"https://{m.group(1)}")
+        except Exception:   # noqa: BLE001
+            pass
+    return _download(url)
+
+
+def _download(url: str) -> bytes:
     parts = urllib.parse.urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname or not _public_host(parts.hostname):
         raise ValueError("image URL not allowed")
     opener = urllib.request.build_opener(_NoRedirectToPrivate)
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; ScentAtlasBot/1.0; +https://scentatlas.app)",
-                                               "Accept": "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8"})
+                                               "Accept": "image/webp,image/png,image/jpeg;q=0.9,image/*;q=0.5"})
     with opener.open(req, timeout=15) as r:   # noqa: S310 (scheme and host checked above)
         ctype = (r.headers.get("Content-Type") or "").lower()
         if ctype and not ctype.startswith("image/"):
