@@ -181,13 +181,75 @@ page_views = sa.Table(
     sa.Index("ix_page_views_user_ts", "user_id", "ts"),
 )
 
+# ---- new-release discovery (admin only) ---------------------------------------------------------------------
+# Candidates found by research runs, reviewed by the owner, then published into the catalogue (merged at start-up).
+discovery_runs = sa.Table(
+    "discovery_runs", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("kind", sa.String(12), nullable=False),            # discover | complete | full | import
+    sa.Column("status", sa.String(12), nullable=False),          # queued | running | done | failed | cancelled | interrupted
+    sa.Column("model", sa.String(40)),
+    sa.Column("params", sa.Text),                                # JSON
+    sa.Column("stats", sa.Text),                                 # JSON: units, found, new, updated, searches, tokens, cost_usd
+    sa.Column("log", sa.Text),                                   # recent progress lines
+    sa.Column("error", sa.Text),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("started_at", sa.BigInteger),
+    sa.Column("finished_at", sa.BigInteger),
+)
+
+discovery_items = sa.Table(
+    "discovery_items", metadata,
+    sa.Column("id", BigInt, primary_key=True, autoincrement=True),
+    sa.Column("key", sa.String(300), nullable=False, unique=True),  # normalized brand | name | concentration
+    sa.Column("brand", sa.String(120), nullable=False),
+    sa.Column("name", sa.String(160), nullable=False),
+    sa.Column("concentration", sa.String(40)),
+    sa.Column("gender", sa.String(10)),
+    sa.Column("release_date", sa.String(10)),                     # YYYY | YYYY-MM | YYYY-MM-DD
+    sa.Column("release_status", sa.String(10)),                   # released | announced
+    sa.Column("perfumers", sa.Text),                              # JSON list
+    sa.Column("notes", sa.Text),                                  # JSON {top, middle, base, general}
+    sa.Column("family", sa.String(80)),
+    sa.Column("description", sa.Text),
+    sa.Column("image_url", sa.String(1000)),                      # where the image came from
+    sa.Column("official_url", sa.String(1000)),
+    sa.Column("sources", sa.Text),                                # JSON list of {url, title, kind, supports}
+    sa.Column("confidence", sa.Text),                             # JSON {field: 0..1}
+    sa.Column("overall", sa.Float, nullable=False, default=0.0),
+    sa.Column("missing", sa.Text),                                # JSON list of required fields still missing
+    sa.Column("state", sa.String(12), nullable=False),            # incomplete | complete | duplicate | approved | published | rejected
+    sa.Column("duplicate_of", sa.Integer),                        # catalogue perfume id it seems to repeat
+    sa.Column("perfume_id", sa.Integer),                          # id in the catalogue once approved (>= 10,000,000)
+    sa.Column("review_note", sa.String(300)),
+    sa.Column("comment", sa.Text),                                # researcher's doubts / conflicts
+    sa.Column("origin", sa.String(60)),
+    sa.Column("first_run_id", BigInt),
+    sa.Column("last_run_id", BigInt),
+    sa.Column("attempts", sa.Integer, nullable=False, default=0),
+    sa.Column("created_at", sa.BigInteger, nullable=False),
+    sa.Column("updated_at", sa.BigInteger, nullable=False),
+    sa.Column("reviewed_at", sa.BigInteger),
+    sa.Column("published_at", sa.BigInteger),
+    sa.Index("ix_discovery_items_state", "state", "overall"),
+)
+
+discovery_images = sa.Table(
+    "discovery_images", metadata,
+    sa.Column("item_id", BigInt, sa.ForeignKey("discovery_items.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("data", sa.LargeBinary, nullable=False),
+    sa.Column("mime", sa.String(20), nullable=False),
+    sa.Column("source_url", sa.String(1000)),
+    sa.Column("fetched_at", sa.BigInteger, nullable=False),
+)
+
 schema_migrations = sa.Table(
     "schema_migrations", metadata,
     sa.Column("version", sa.Integer, primary_key=True),
     sa.Column("applied_at", sa.BigInteger, nullable=False),
 )
 
-SCHEMA_VERSION = 5  # bump + add a step in _MIGRATIONS when the schema changes
+SCHEMA_VERSION = 7  # bump + add a step in _MIGRATIONS when the schema changes
 HISTORY_CAP = 200
 SAVED_CAP = 100
 COLLECTION_CAP = 5000   # longest leaderboard accepted in one order update
@@ -261,7 +323,13 @@ def _migrate_v5(conn):
     metadata.create_all(conn, tables=[page_views])
 
 
-_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4, 5: _migrate_v5}
+def _migrate_v7(conn):
+    """New-release discovery: research runs, candidate perfumes and their images (new tables only)."""
+    metadata.create_all(conn, tables=[discovery_runs, discovery_items, discovery_images])
+
+
+_MIGRATIONS = {1: _migrate_v1, 2: _migrate_v2, 3: _migrate_v3, 4: _migrate_v4, 5: _migrate_v5,
+               7: _migrate_v7}   # 6 is the marketplace (on dev); versions are recorded one by one
 
 
 def init_schema(eng: sa.Engine) -> None:

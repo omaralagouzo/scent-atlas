@@ -104,6 +104,9 @@ class _Blob:
         return self.buf[self.off[i]:self.off[i + 1]].decode("utf-8")
 
 
+DISCOVERED_ID_BASE = 10_000_000   # perfumes published from new-release discovery (see discovery.py) start here
+
+
 class Catalog:
     def __init__(self, db_path: str | Path, image_mode: str = "local"):
         self.db_path = Path(db_path)
@@ -568,6 +571,9 @@ class Catalog:
         return f"/img/note/{self.note_slug[j]}"
 
     def perfume_image(self, i: int) -> str:
+        pid = int(self.p_id[i])
+        if pid >= DISCOVERED_ID_BASE:   # added from new-release discovery; the image is stored with the candidate
+            return f"/img/discovery/{pid - DISCOVERED_ID_BASE}.webp"
         if self.image_mode == "remote":
             u = remote_images.bottle_url(self.p_fid[i])
             if u:
