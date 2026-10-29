@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 
 import analytics
 import auth
+import discovery_api
 import market_api
 import social_api
 import user_api
@@ -313,6 +314,7 @@ def make_admin_router(ctx) -> APIRouter:
         return {"ok": True}
 
     market_api.make_admin_routes(router, ctx, require_admin, log, ip_of)
+    discovery_api.make_admin_routes(router, ctx, require_admin, log, ip_of)
     return router
 
 

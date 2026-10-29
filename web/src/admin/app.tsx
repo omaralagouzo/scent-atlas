@@ -1,6 +1,6 @@
 // Admin shell: boots from /api/admin/me, then shows sign-in or the dashboard (hash routes, so it works at / and /admin).
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Activity, BarChart3, LogOut, Moon, ShieldCheck, Store, Sun, Users } from 'lucide-react'
+import { Activity, BarChart3, LogOut, Moon, ShieldCheck, Sparkles, Store, Sun, Users } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import { useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
@@ -15,12 +15,14 @@ import { People } from './people'
 import { ActivityFeed } from './activity'
 import { Security } from './security'
 import { Market, usePendingCount } from './market'
+import { Discovery, useCompleteCount } from './discovery'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },
   { key: 'people', label: 'People', icon: Users },
   { key: 'activity', label: 'Activity', icon: Activity },
   { key: 'market', label: 'Marketplace', icon: Store },
+  { key: 'discovery', label: 'New releases', icon: Sparkles },
   { key: 'security', label: 'Security', icon: ShieldCheck },
 ] as const
 type Tab = (typeof TABS)[number]['key']
@@ -128,6 +130,9 @@ function BareHeader() {
 function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
   const tab = useSyncExternalStore(subscribeHash, readTab)
   const pending = usePendingCount()
+  const releases = useCompleteCount()
+  const badge = (key: Tab) => (key === 'market' ? pending : key === 'discovery' ? releases : 0) || 0
+  const badgeLabel = (key: Tab, n: number) => (key === 'market' ? `${n} waiting for review` : `${n} new releases ready to review`)
   const link = (t: (typeof TABS)[number], compact: boolean) => {
     const on = t.key === tab
     return (
@@ -145,15 +150,15 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       >
         <t.icon className="size-4 opacity-80" />
         {t.label}
-        {t.key === 'market' && !!pending && (
+        {badge(t.key) > 0 && (
           <span
             className={cn(
               'min-w-[18px] rounded-full px-1.5 text-center font-mono text-[11px] leading-[18px] font-semibold tabular-nums',
               on && compact ? 'bg-background text-foreground' : 'bg-brand text-brand-foreground',
             )}
-            aria-label={`${pending} waiting for review`}
+            aria-label={badgeLabel(t.key, badge(t.key))}
           >
-            {pending > 99 ? '99+' : pending}
+            {badge(t.key) > 99 ? '99+' : badge(t.key)}
           </span>
         )}
       </a>
@@ -167,7 +172,7 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
   // phones: keep the current tab (with its badge) visible in the scrolling pill row
   useEffect(() => {
     compactNav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [tab, pending])
+  }, [tab, pending, releases])
   return (
     <>
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
@@ -193,6 +198,7 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
         {tab === 'people' && <People />}
         {tab === 'activity' && <ActivityFeed />}
         {tab === 'market' && <Market />}
+        {tab === 'discovery' && <Discovery />}
         {tab === 'security' && <Security twoFactor={me.two_factor} />}
       </main>
     </>
