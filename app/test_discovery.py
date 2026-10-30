@@ -166,10 +166,16 @@ def test_admin_review_edit_approve_publish(app, admin, tmp_path, tiny_db):
     assert admin.patch(f"/api/admin/discovery/items/{inc}", headers=H, json={"gender": "robot"}).status_code == 422
     assert admin.patch(f"/api/admin/discovery/items/{inc}", headers=H, json={"name": "First Light"}).status_code == 409
 
+    # approving publishes, and one restart is scheduled for a burst of approvals
+    restarts = []
+    live = app.state.ctx.live_refresh
+    live.delay, live._restart = 0.2, lambda: restarts.append(time.time())
     b = admin.post("/api/admin/discovery/bulk", headers=H, json={"ids": [ok, inc], "action": "approve"}).json()
-    assert b["done"] == [ok, inc] and b["counts"]["approved"] == 2
-    p = admin.post("/api/admin/discovery/publish", headers=H, json={}).json()
-    assert p["published"] == 2 and p["restarting"] is False and p["pending_restart"] == 2
+    assert b["done"] == [ok, inc] and b["counts"]["published"] == 2 and b["counts"]["approved"] == 0
+    cfg = admin.get("/api/admin/discovery/config").json()
+    assert cfg["pending_restart"] == 2 and cfg["live"]["due_at"] and cfg["live"]["mode"] in ("manual", "self_restart")
+    time.sleep(0.6)
+    assert len(restarts) == 1
 
     # public image only once published
     assert TestClient(app).get(f"/img/discovery/{ok}.webp").headers["content-type"] == "image/webp"
@@ -188,8 +194,10 @@ def test_admin_review_edit_approve_publish(app, admin, tmp_path, tiny_db):
     assert a2.get(f"/api/admin/discovery/items/{ok}").json()["live"] is True
     assert a2.get("/api/admin/discovery/config").json()["pending_restart"] == 0
 
-    # unpublish -> back to approved; rejecting / restoring
-    assert admin.post(f"/api/admin/discovery/items/{ok}/unpublish", headers=H, json={}).json()["state"] == "approved"
+    # unpublish -> back in the queue (and another restart takes it off the site); rejecting / restoring
+    assert admin.post(f"/api/admin/discovery/items/{ok}/unpublish", headers=H, json={}).json()["state"] == "complete"
+    time.sleep(0.6)
+    assert len(restarts) == 2
     assert admin.post(f"/api/admin/discovery/items/{ok}/reject", headers=H, json={"reason": "fake"}).json()["state"] == "rejected"
     assert admin.post(f"/api/admin/discovery/items/{ok}/restore", headers=H, json={}).json()["state"] == "complete"
 
@@ -320,3 +328,22 @@ def test_brand_takes_the_catalogue_spelling(app):
     assert dz.canonical_brand(cat, "ALPHA Perfumes") == "Alpha" and dz.canonical_brand(cat, "Brand New") == "Brand New"
     iid = ingest(app, [cand(brand="Gamma Parfums", name="Fresh One")], fetch=False)["ids"][0]
     assert row(app, iid)["brand"] == "Gamma"
+
+
+def test_admin_sign_in_survives_a_restart_but_not_a_new_password(app, admin, tmp_path, tiny_db):
+    cookies = dict(admin.cookies)
+    again = TestClient(make_app(tmp_path, tiny_db, admin_password=APW), cookies=cookies)
+    assert again.get("/api/admin/me").json()["authenticated"] is True
+    other = TestClient(make_app(tmp_path, tiny_db, admin_password=APW + "-changed"), cookies=cookies)
+    assert other.get("/api/admin/me").json()["authenticated"] is False
+
+
+def test_big_images_are_shrunk_with_little_memory():
+    b = io.BytesIO()
+    Image.new("RGBA", (2400, 3600), (10, 20, 30, 128)).save(b, "PNG")
+    out = Image.open(io.BytesIO(dz.bottle_webp(b.getvalue())))
+    assert out.format == "WEBP" and max(out.size) == 800 and out.mode == "RGB"
+    b = io.BytesIO()
+    Image.new("RGB", (6000, 5000)).save(b, "PNG")
+    with pytest.raises(ValueError):
+        dz.bottle_webp(b.getvalue())     # over 24 MP: refused before decoding

@@ -355,6 +355,8 @@ export interface DiscConfig {
   running: number | null
   deploy_hook: boolean
   pending_restart: number
+  /** how approvals reach the site: a Render deploy, the app restarting itself, or a manual restart; due_at = when */
+  live: { mode: 'deploy_hook' | 'self_restart' | 'manual'; due_at: number | null }
   counts: DiscCounts
   segments: { key: string; title: string }[]
   models: { sonnet: string; haiku: string }

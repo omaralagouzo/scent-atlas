@@ -54,8 +54,9 @@ const TABS: { value: DiscState; label: string; empty: string }[] = [
   { value: 'complete', label: 'Complete', empty: 'Nothing waiting for review. Start a research run to find new releases.' },
   { value: 'incomplete', label: 'Incomplete', empty: 'No incomplete candidates. A run that completes the incomplete fills these in.' },
   { value: 'duplicate', label: 'Possible duplicates', empty: 'No candidate looks like a perfume the catalogue already has.' },
-  { value: 'approved', label: 'Approved', empty: 'Nothing approved yet. Approved candidates wait here until you publish them.' },
-  { value: 'published', label: 'Published', empty: 'Nothing published yet.' },
+  // approving publishes now; Approved only shows while something is left there from before
+  { value: 'approved', label: 'Approved', empty: 'Nothing waiting to be published.' },
+  { value: 'published', label: 'Published', empty: 'Nothing published yet. Approve a candidate and it goes live on the site.' },
   { value: 'rejected', label: 'Rejected', empty: 'Nothing rejected.' },
 ]
 
@@ -98,6 +99,13 @@ export function Discovery() {
   }, [reloadItems, reloadConfig])
 
   const config = cfg.data
+  // while approvals are on their way to the site, check every 15 s so the banner and "Live" badges update
+  const waiting = (config?.pending_restart ?? 0) > 0
+  useEffect(() => {
+    if (!waiting) return
+    const t = window.setInterval(refresh, 15000)
+    return () => window.clearInterval(t)
+  }, [waiting, refresh])
   const counts: DiscCounts | undefined = items.data?.counts ?? config?.counts
   useEffect(() => {
     if (counts) setComplete(counts.complete)
@@ -145,7 +153,7 @@ export function Discovery() {
     setBusyId(it.id)
     try {
       await admin.post(`/discovery/items/${it.id}/approve`, {})
-      toast.success(`Approved ${label(it)}.`)
+      toast.success(`Approved ${label(it)}. It goes live on the site in a couple of minutes.`)
       refresh()
     } catch (e) {
       // 409: still incomplete (or a possible duplicate): offer to approve anyway
@@ -164,7 +172,7 @@ export function Discovery() {
       const r = await admin.post<{ done: number[]; failed: { id: number; error: string }[] }>('/discovery/bulk', { ids, action })
       const verb = action === 'approve' ? 'Approved' : 'Restored'
       if (r.failed.length) toast.warning(`${verb} ${r.done.length}. ${r.failed.length} could not be ${verb.toLowerCase()}: ${r.failed[0].error}`, { duration: 8000 })
-      else toast.success(`${verb} ${r.done.length}.`)
+      else toast.success(action === 'approve' ? `Approved ${r.done.length}. They go live on the site in a couple of minutes.` : `${verb} ${r.done.length}.`)
       setSelected(new Set())
       refresh()
     } catch (e) {
@@ -179,7 +187,7 @@ export function Discovery() {
 
   return (
     <>
-      <PageHead title="New releases" lede="Perfumes found by research wait here for your review. Approve the ones you want, then publish them into the catalogue.">
+      <PageHead title="New releases" lede="Perfumes found by research wait here for your review. Approve the ones you want and they go live on the site within a couple of minutes.">
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onClick={refresh} disabled={items.loading} className="text-muted-foreground">
             <RefreshCw className={cn(items.loading && items.data && 'animate-spin')} />
@@ -194,17 +202,7 @@ export function Discovery() {
         </div>
       </PageHead>
 
-      {!!config && config.pending_restart > 0 && (
-        <p className="mb-4 flex items-start gap-2 rounded-lg border border-warning/50 bg-warning/10 px-3 py-2 text-sm" role="status">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
-          <span className="min-w-0">
-            <span className="font-medium">
-              {num(config.pending_restart)} published, live after the next restart.
-            </span>{' '}
-            {config.deploy_hook ? 'Publishing restarts the service by itself.' : 'Restart the service on Render (Manual Deploy → Restart) to make them live.'}
-          </span>
-        </p>
-      )}
+      {!!config && config.pending_restart > 0 && <GoingLive config={config} />}
 
       <RunsPanel config={config} onChanged={refresh} />
 
@@ -213,7 +211,7 @@ export function Discovery() {
         className="mb-3"
         value={state}
         onChange={setState}
-        options={TABS.map((t) => {
+        options={TABS.filter((t) => t.value !== 'approved' || (counts?.approved ?? 0) > 0 || state === 'approved').map((t) => {
           const n = counts?.[t.value]
           return {
             value: t.value,
@@ -296,7 +294,7 @@ export function Discovery() {
                   reject: () => setReject({ ids: [it.id], name: label(it), reason: '' }),
                   edit: () => setEditId(it.id),
                   restore: () => void act(it, () => admin.post(`/discovery/items/${it.id}/restore`, {}), `Restored ${label(it)}.`),
-                  unpublish: () => void act(it, () => admin.post(`/discovery/items/${it.id}/unpublish`, {}), `Unpublished ${label(it)}. It is back under Approved.`),
+                  unpublish: () => void act(it, () => admin.post(`/discovery/items/${it.id}/unpublish`, {}), `Unpublished ${label(it)}. It comes off the site in a couple of minutes and is back in the queue.`),
                   notDuplicate: () => void act(it, () => admin.post(`/discovery/items/${it.id}/not-duplicate`, {}), `Marked ${label(it)} as not a duplicate.`),
                   rejectDuplicate: () => setReject({ ids: [it.id], name: label(it), reason: it.duplicate_of?.name ? `Duplicate of ${it.duplicate_of.name}${it.duplicate_of.brand ? ` by ${it.duplicate_of.brand}` : ''}.` : 'Duplicate of a catalogue perfume.' }),
                 }}
@@ -373,7 +371,6 @@ export function Discovery() {
       <PublishDialog
         open={publishing}
         count={approved}
-        deployHook={!!config?.deploy_hook}
         onClose={() => setPublishing(false)}
         onDone={() => {
           setPublishing(false)
@@ -520,20 +517,15 @@ function ApproveAnywayDialog({ item, onClose, onDone }: { item: DiscItem | null;
   )
 }
 
-function PublishDialog({ open, count, deployHook, onClose, onDone }: { open: boolean; count: number; deployHook: boolean; onClose: () => void; onDone: () => void }) {
+function PublishDialog({ open, count, onClose, onDone }: { open: boolean; count: number; onClose: () => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const go = async () => {
     setBusy(true)
     setErr('')
     try {
-      const r = await admin.post<{ published: number; restarting: boolean; pending_restart: number }>('/discovery/publish', {})
-      toast.success(
-        r.restarting
-          ? `Published ${r.published}. The service is restarting, so they go live in a minute or two.`
-          : `Published ${r.published}. Restart the service on Render (Manual Deploy → Restart) to make them live.`,
-        { duration: 9000 },
-      )
+      const r = await admin.post<{ published: number; pending_restart: number }>('/discovery/publish', {})
+      toast.success(`Published ${r.published}. They go live on the site in a couple of minutes.`)
       setBusy(false)
       onDone()
     } catch (ex) {
@@ -557,8 +549,7 @@ function PublishDialog({ open, count, deployHook, onClose, onDone }: { open: boo
             Publish {num(count)} approved perfume{count === 1 ? '' : 's'}?
           </DialogTitle>
           <DialogDescription>
-            Published perfumes join the site's catalogue on its next restart.{' '}
-            {deployHook ? 'A restart starts automatically when you publish, so they go live within a minute or two.' : 'Restarting is not automatic here: after publishing, restart the service on Render (Manual Deploy → Restart).'} You can unpublish one later from the Published tab.
+            These were approved before approving published by itself. They go live on the site in a couple of minutes; you can unpublish one later from the Published tab.
           </DialogDescription>
         </DialogHeader>
         {err && (
@@ -577,5 +568,28 @@ function PublishDialog({ open, count, deployHook, onClose, onDone }: { open: boo
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function GoingLive({ config }: { config: DiscConfig }) {
+  const { mode, due_at } = config.live
+  const n = config.pending_restart
+  const [now, setNow] = useState(() => Date.now() / 1000)
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now() / 1000), 1000)
+    return () => window.clearInterval(t)
+  }, [])
+  const left = due_at ? Math.max(0, Math.round(due_at - now)) : null
+  const what = `${num(n)} approved perfume${n === 1 ? '' : 's'}`
+  let text: string
+  if (mode === 'manual') text = `${what} waiting: restart the app to put them on the site.`
+  else if (left !== null && left > 0)
+    text = `${what} go live in about ${left < 60 ? `${left} s` : `${Math.ceil(left / 60)} min`}${mode === 'self_restart' ? ' (the site restarts to load them and is offline for about half a minute)' : ''}. Approving more resets the wait, so a batch goes live together.`
+  else text = `${what} going live now: the site is reloading its catalogue. This page updates by itself.`
+  return (
+    <p className="mb-4 flex items-start gap-2 rounded-lg border border-warning/50 bg-warning/10 px-3 py-2 text-sm" role="status">
+      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
+      <span className="min-w-0">{text}</span>
+    </p>
   )
 }
