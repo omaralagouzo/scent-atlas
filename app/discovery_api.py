@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import json
 import os
+import signal
+import threading
 import time
 import urllib.request
 
@@ -91,10 +93,68 @@ def admin_image_url(iid: int, fetched_at: int | None) -> str | None:
     return f"/api/admin/discovery/images/{iid}.webp?v={fetched_at}" if fetched_at else None
 
 
+class LiveRefresh:
+    """Brings approvals onto the site. The catalogue is loaded once at start (there is no room for a second copy in
+    512 MB), so the app restarts once, `delay` seconds after the last approval: several approvals, one restart.
+
+    The restart is a Render deploy when RENDER_DEPLOY_HOOK_URL is set (no downtime). Otherwise, on Render, the app
+    stops itself and Render starts it again (about half a minute offline); elsewhere it only logs that a restart is
+    due."""
+
+    def __init__(self, ctx, log, delay: float | None = None, restart=None):
+        self.ctx, self.log = ctx, log
+        self.delay = float(os.environ.get("DISCOVERY_RESTART_DELAY") or 90) if delay is None else delay
+        self._restart = restart or self.restart_now
+        self._lock = threading.Lock()
+        self._timer: threading.Timer | None = None
+        self.due_at: float | None = None
+
+    @staticmethod
+    def hook() -> str | None:
+        h = os.environ.get("RENDER_DEPLOY_HOOK_URL") or ""
+        return h if h.startswith("https://") else None
+
+    def mode(self) -> str:
+        return "deploy_hook" if self.hook() else ("self_restart" if os.environ.get("RENDER") else "manual")
+
+    def schedule(self):
+        with self._lock:
+            if self._timer:
+                self._timer.cancel()
+            self.due_at = time.time() + self.delay
+            self._timer = threading.Timer(self.delay, self._fire)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def _fire(self):
+        with self._lock:
+            self._timer = None
+        try:
+            self._restart()
+        except Exception as e:   # noqa: BLE001
+            self.log.warning("could not restart to publish new releases: %s", e)
+            self.due_at = None
+
+    def restart_now(self):
+        hook = self.hook()
+        if hook:
+            urllib.request.urlopen(urllib.request.Request(hook, method="POST"), timeout=15).read()  # noqa: S310
+            self.log.info("new releases: deploy hook called, the new catalogue goes live with the deploy")
+        elif os.environ.get("RENDER"):
+            self.log.info("new releases: restarting so the catalogue includes them")
+            self.ctx.restart_requested = True       # server.py exits non-zero after a clean shutdown; Render restarts
+            os.kill(os.getpid(), signal.SIGTERM)
+        else:
+            self.log.info("new releases published: restart the app to show them")
+            self.due_at = None
+
+
 def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
     store, cat = ctx.store, ctx.cat
     engine = getattr(ctx, "discovery_engine", None) or de.Engine(store, cat)
     ctx.discovery_engine = engine
+    live = getattr(ctx, "live_refresh", None) or LiveRefresh(ctx, log)
+    ctx.live_refresh = live
     auth = [Depends(require_admin)]
 
     def images_of(ids: list[int]) -> dict[int, int]:
@@ -233,7 +293,8 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
             raise HTTPException(409, "Restore it before approving.")
         if not force and r["state"] != "complete":
             raise HTTPException(409, "It is still missing data (or looks like a duplicate). Approve anyway with force.")
-        put(iid, state="approved", perfume_id=r["perfume_id"] or dz.ID_BASE + iid, reviewed_at=int(time.time()),
+        now = int(time.time())   # approving publishes: it joins the site's catalogue at the restart that follows
+        put(iid, state="published", perfume_id=r["perfume_id"] or dz.ID_BASE + iid, reviewed_at=now, published_at=now,
             review_note=None)
         return r
 
@@ -253,6 +314,7 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
     @router.post("/discovery/items/{iid}/approve", dependencies=auth)
     def approve(iid: int, body: ApproveBody, request: Request):
         approve_one(iid, body.force)
+        live.schedule()
         log.info("admin approved discovery item %s from %s", iid, ip_of(request))
         return one_out(iid)
 
@@ -309,6 +371,8 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
                 done.append(iid)
             except HTTPException as e:
                 failed.append({"id": iid, "error": e.detail})
+        if body.action == "approve" and done:
+            live.schedule()
         log.info("admin bulk %s on %s discovery items from %s", body.action, len(done), ip_of(request))
         return {"done": done, "failed": failed, "counts": counts()}
 
@@ -316,34 +380,32 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
     def pending_restart() -> int:
         return sum(1 for r in dz.published_rows(store) if cat.idx_of(r["perfume_id"] or 0) is None)
 
-    def deploy_hook() -> str | None:
-        return os.environ.get("RENDER_DEPLOY_HOOK_URL") or None
-
     @router.post("/discovery/publish", dependencies=auth)
     def publish(request: Request):
+        """Publish anything left in "approved" (approving now publishes directly) and bring it live."""
         now = int(time.time())
         with store.eng.begin() as c:
             n = c.execute(discovery_items.update().where(discovery_items.c.state == "approved")
                           .values(state="published", published_at=now, updated_at=now)).rowcount
-        restarted = False
-        hook = deploy_hook()
-        if n and hook and hook.startswith("https://"):
-            try:
-                urllib.request.urlopen(urllib.request.Request(hook, method="POST"), timeout=10).read()  # noqa: S310
-                restarted = True
-            except Exception as e:   # noqa: BLE001
-                log.warning("deploy hook failed: %s", e)
+        if n or pending_restart():
+            live.schedule()
         log.info("admin published %s discovery items from %s", n, ip_of(request))
-        return {"published": n, "restarting": restarted, "pending_restart": pending_restart(), "counts": counts()}
+        return {"published": n, "pending_restart": pending_restart(), "live": live_out(), "counts": counts()}
 
     @router.post("/discovery/items/{iid}/unpublish", dependencies=auth)
     def unpublish(iid: int, request: Request):
+        """Take it off the site (at the restart that follows) and back into the queue."""
         r = get(iid)
-        if r["state"] != "published":
+        if r["state"] not in ("published", "approved"):
             raise HTTPException(409, "It is not published.")
-        put(iid, state="approved", published_at=None)
+        put(iid, state="duplicate" if r["duplicate_of"] else "incomplete", published_at=None)
+        dz.recompute(store, iid)
+        live.schedule()
         log.info("admin unpublished discovery item %s from %s", iid, ip_of(request))
         return one_out(iid)
+
+    def live_out() -> dict:
+        return {"mode": live.mode(), "due_at": int(live.due_at) if live.due_at else None}
 
     # ------------------------------------------------------------ runs
     def run_out(r: dict, full: bool = False) -> dict:
@@ -357,8 +419,8 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
     @router.get("/discovery/config", dependencies=auth)
     def config(response: Response):
         response.headers["Cache-Control"] = "no-store"
-        return {"engine_ready": engine.ready(), "running": engine.running(), "deploy_hook": bool(deploy_hook()),
-                "pending_restart": pending_restart(), "counts": counts(),
+        return {"engine_ready": engine.ready(), "running": engine.running(), "deploy_hook": bool(live.hook()),
+                "pending_restart": pending_restart(), "live": live_out(), "counts": counts(),
                 "segments": [{"key": s["key"], "title": s["title"]} for s in de.SEGMENTS],
                 "models": {"sonnet": de.MODELS["sonnet"], "haiku": de.MODELS["haiku"]},
                 "default_budget_usd": de.DEFAULT_BUDGET_USD}
