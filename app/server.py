@@ -206,6 +206,11 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
             threading.Timer(0.8, lambda: webbrowser.open(f"http://{settings.host}:{settings.port}/")).start()
         yield
         store.dispose()
+        if getattr(ctx, "restart_requested", False):
+            # publishing new releases asked for a restart (see discovery_api.LiveRefresh): exit non-zero so the
+            # platform starts the app again, which loads the catalogue with them
+            print("[scent-atlas] restarting to load newly published perfumes", file=sys.stderr, flush=True)
+            os._exit(3)
 
     app = FastAPI(title="Scent Atlas", lifespan=lifespan,
                   docs_url="/api/docs" if settings.enable_docs else None,

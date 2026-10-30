@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import json
 import hmac
 import logging
 import struct
@@ -127,10 +128,34 @@ class FailureLockout:
 
 
 class AdminSessions:
-    def __init__(self, clock=time.time):
+    """Signed-in admin browsers: token hashes with an expiry.
+
+    With a store, they are kept in its meta table so a restart (publishing new releases restarts the app) doesn't
+    sign the owner out. They are tied to a fingerprint of the admin password and two-factor key: changing either
+    signs every admin session out."""
+
+    KEY = "admin_sessions"
+
+    def __init__(self, clock=time.time, store=None, fingerprint: str = ""):
         self._s: dict[str, float] = {}
         self._lock = threading.Lock()
         self.clock = clock
+        self.store, self.fp = store, fingerprint
+        if store is not None:
+            try:
+                saved = json.loads(store.get_meta(self.KEY) or "{}")
+                if saved.get("fp") == fingerprint:
+                    now = clock()
+                    self._s = {k: float(v) for k, v in (saved.get("s") or {}).items() if float(v) > now}
+            except (ValueError, TypeError, AttributeError):
+                self._s = {}
+
+    def _save(self):
+        if self.store is not None:
+            try:
+                self.store.set_meta(self.KEY, json.dumps({"fp": self.fp, "s": self._s}))
+            except Exception:   # noqa: BLE001  (sessions still work for this process)
+                pass
 
     def create(self) -> str:
         token = auth.new_token()
@@ -138,6 +163,7 @@ class AdminSessions:
         with self._lock:
             self._s = {k: v for k, v in self._s.items() if v > now}
             self._s[auth.token_hash(token)] = now + ADMIN_TTL
+            self._save()
         return token
 
     def valid(self, token: str | None) -> bool:
@@ -157,6 +183,7 @@ class AdminSessions:
         if token:
             with self._lock:
                 self._s.pop(auth.token_hash(token), None)
+                self._save()
 
 
 class LoginBody(BaseModel):
@@ -179,7 +206,10 @@ def _digest(s: str) -> bytes:
 
 def make_admin_router(ctx) -> APIRouter:
     store, settings, cat = ctx.store, ctx.settings, ctx.cat
-    sessions = AdminSessions()
+    # only 32 bits: enough to notice a changed password / key, far too few to help anyone guess the password
+    fingerprint = hashlib.sha256(f"{settings.admin_password or ''}|{getattr(settings, 'admin_totp_secret', '') or ''}"
+                                 .encode()).hexdigest()[:8]
+    sessions = AdminSessions(store=store, fingerprint=fingerprint)
     key = totp_key(getattr(settings, "admin_totp_secret", None))
     totp = TotpGuard(key) if key else None
     ip_limit = auth.RateLimiter(5, 60.0)

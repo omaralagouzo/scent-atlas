@@ -14,6 +14,7 @@ Published perfumes get ids from ID_BASE upwards, so they never collide with cata
 """
 from __future__ import annotations
 
+import io
 import ipaddress
 import json
 import re
@@ -400,8 +401,19 @@ class _NoRedirectToPrivate(urllib.request.HTTPRedirectHandler):
 WP_CDN = re.compile(r"^https?://i[0-3]\.wp\.com/([^?#]+)")
 
 
+def sized_url(url: str, width: int = 1200) -> str:
+    """Ask image CDNs that resize on request (Shopify: cdn.shopify.com and shops' /cdn/shop/ paths) for a small copy:
+    their originals can be 5000 px images that would take hundreds of MB to decode."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.hostname == "cdn.shopify.com" or parts.path.startswith("/cdn/shop/"):
+        q = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query, keep_blank_values=True) if k not in ("width", "height")]
+        return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(q + [("width", str(width))])))
+    return url
+
+
 def download_image(url: str) -> bytes:
     """The image at url; for a WordPress CDN copy (i0.wp.com/<site>/...) the original file on the site itself."""
+    url = sized_url(url)
     m = WP_CDN.match(url)
     if m:
         try:
@@ -417,7 +429,7 @@ def _download(url: str) -> bytes:
         raise ValueError("image URL not allowed")
     opener = urllib.request.build_opener(_NoRedirectToPrivate)
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; ScentAtlasBot/1.0; +https://scentatlas.app)",
-                                               "Accept": "image/webp,image/png,image/jpeg;q=0.9,image/*;q=0.5"})
+                                               "Accept": "image/jpeg,image/png;q=0.9,image/webp;q=0.8,image/*;q=0.5"})
     with opener.open(req, timeout=15) as r:   # noqa: S310 (scheme and host checked above)
         ctype = (r.headers.get("Content-Type") or "").lower()
         if ctype and not ctype.startswith("image/"):
@@ -428,6 +440,49 @@ def _download(url: str) -> bytes:
     return data
 
 
+IMAGE_SIDE = 800
+IMAGE_MAX_PIXELS = 40_000_000      # JPEG: decoded at reduced size (draft), so large ones are cheap
+IMAGE_MAX_PIXELS_FULL = 9_000_000  # other formats decode at full size (about 4 bytes a pixel, several copies)
+_image_lock = threading.Lock()      # one decode at a time: the app runs in 512 MB next to the catalogue
+
+
+def bottle_webp(raw: bytes) -> bytes:
+    """A bottle image as a WebP at most IMAGE_SIDE px, made with little memory.
+
+    JPEGs are decoded at reduced size (draft), and every image is shrunk *before* any mode conversion, so a
+    5000 x 5000 PNG never exists as several full-size copies. Metadata (EXIF, GPS) is dropped."""
+    from PIL import Image, ImageOps
+    with _image_lock, Image.open(io.BytesIO(raw)) as im:
+        if im.format not in avatar.FORMATS:
+            raise ValueError("unsupported image format")
+        if im.width * im.height > (IMAGE_MAX_PIXELS if im.format == "JPEG" else IMAGE_MAX_PIXELS_FULL):
+            raise ValueError("image too large")
+        if im.format == "JPEG":
+            im.draft("RGB", (IMAGE_SIDE * 2, IMAGE_SIDE * 2))
+        im.seek(0)
+        im.thumbnail((IMAGE_SIDE, IMAGE_SIDE), Image.Resampling.LANCZOS, reducing_gap=2.0)
+        im = ImageOps.exif_transpose(im)
+        if im.mode in ("RGBA", "LA", "P", "PA"):
+            im = im.convert("RGBA")
+            bg = Image.new("RGB", im.size, (255, 255, 255))
+            bg.paste(im, mask=im.getchannel("A"))
+            im = bg
+        elif im.mode != "RGB":
+            im = im.convert("RGB")
+        out = io.BytesIO()
+        im.save(out, "WEBP", quality=82, method=4)
+        return out.getvalue()
+
+
+def _give_back_memory():
+    """Return freed heap to the system after an image (glibc otherwise keeps it, and RSS only grows)."""
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:   # noqa: BLE001  (not glibc: nothing to do)
+        pass
+
+
 def fetch_image(store, iid: int) -> bool:
     """Download, re-encode (WebP, <= 800 px, metadata dropped) and store the candidate's image."""
     with store.eng.connect() as c:
@@ -435,9 +490,11 @@ def fetch_image(store, iid: int) -> bool:
     if not r or not r["image_url"]:
         return False
     try:
-        data = avatar.process_photo(download_image(r["image_url"]), max_side=800)
+        data = bottle_webp(download_image(r["image_url"]))
     except Exception:
         return False
+    finally:
+        _give_back_memory()
     with store.eng.begin() as c:
         c.execute(discovery_images.delete().where(discovery_images.c.item_id == iid))
         c.execute(discovery_images.insert().values(item_id=iid, data=data, mime="image/webp",

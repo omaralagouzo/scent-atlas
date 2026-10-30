@@ -177,7 +177,7 @@ export function CandidateCard({ item, selected, onSelect, busy, act }: { item: D
 
       <div className="flex min-w-0 flex-col gap-1.5 [grid-area:head]">
         <div className="flex flex-wrap items-center gap-1.5">
-          {item.state === 'published' && (item.live ? <Badge className="bg-success/10 text-success">Live</Badge> : <Badge className="bg-warning/15 text-foreground">Live after restart</Badge>)}
+          {item.state === 'published' && (item.live ? <Badge className="bg-success/10 text-success">Live</Badge> : <Badge className="bg-warning/15 text-foreground">Going live…</Badge>)}
           {item.state === 'approved' && <Badge className="bg-success/10 text-success">Approved</Badge>}
           {item.state === 'duplicate' && <Badge className="bg-warning/15 text-foreground">Possible duplicate</Badge>}
           {item.concentration && <Badge variant="outline">{item.concentration}</Badge>}

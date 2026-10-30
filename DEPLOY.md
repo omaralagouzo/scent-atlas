@@ -60,7 +60,7 @@ Health check path: `/api/status` (exempt from the `ALLOWED_HOSTS` check, returns
 | `MALLOC_ARENA_MAX` | optional | `2` | keeps glibc's per-thread arenas (and RSS) small. |
 | `PYTHON_VERSION` | yes | `3.11.11` | Render Python version. |
 | `ANTHROPIC_API_KEY` | optional | a Claude API key (console.anthropic.com -> API keys) | lets the admin's **New releases** tab run web research itself (Claude Sonnet 5.5 / Haiku 5.5 with web search). Without it the tab still works for reviewing and publishing; only "Start a run" is off. Spend is per run (a budget you set on each run). |
-| `RENDER_DEPLOY_HOOK_URL` | optional | Render -> the service -> Settings -> **Deploy Hook** URL | after you publish new releases, the app calls it so the service restarts and the new perfumes go live. Without it, restart the service yourself (Manual Deploy -> Restart service). |
+| `RENDER_DEPLOY_HOOK_URL` | recommended | Render -> the service -> Settings -> **Deploy Hook** URL | approved new releases go live through a zero-downtime deploy. Without it the app restarts itself to load them (about half a minute offline). |
 
 ## Members, photos and notifications (no extra services)
 
@@ -113,9 +113,12 @@ The catalogue is a snapshot, so new launches are found by research and reviewed 
   find of the same perfume merges into the candidate it matches.
 - **Possible duplicates** are candidates that look like a perfume already in the catalogue. Clear the flag with
   "Not a duplicate".
-- **Approve** a candidate, then **Publish**. Published perfumes join the catalogue at the next start, with ids from
-  10,000,000 upward and the image stored with the candidate. Set `RENDER_DEPLOY_HOOK_URL` and publishing restarts the
-  service itself. Unpublish takes a perfume off the site again at the next start.
+- **Approve** a candidate and it is published: it joins the site's catalogue with an id from 10,000,000 up, and the
+  image stored with it. The catalogue is loaded at start, so the app restarts once, 90 seconds after your last
+  approval (approve a batch and they go live together; `DISCOVERY_RESTART_DELAY` changes the wait). With
+  `RENDER_DEPLOY_HOOK_URL` set the restart is a zero-downtime deploy. Without it the app stops itself and Render
+  starts it again, so the site is offline for about half a minute. Admin sign-ins survive restarts. Unpublish takes a
+  perfume off the site the same way.
 - **Costs** are shown per run, estimated at list prices. A segment with Sonnet 5.5 typically costs about $1-3.
   Completing a batch with Haiku 5.5 costs cents. Web searches are $10 per 1,000. A run stops at the budget you set.
 - **Images** are downloaded from the URL the research found, but only from public addresses. They are re-encoded to
