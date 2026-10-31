@@ -114,7 +114,7 @@ The catalogue is a snapshot, so new launches are found by research and reviewed 
 - **Possible duplicates** are candidates that look like a perfume already in the catalogue. Clear the flag with
   "Not a duplicate".
 - **Approve** a candidate and it is published: it joins the site's catalogue with an id from 10,000,000 up, and the
-  image stored with it. The catalogue is loaded at start, so the app restarts once, 90 seconds after your last
+  image stored with it. The catalogue is loaded at start, so the app restarts once, 30 seconds after your last
   approval (approve a batch and they go live together; `DISCOVERY_RESTART_DELAY` changes the wait). With
   `RENDER_DEPLOY_HOOK_URL` set the restart is a zero-downtime deploy. Without it the app stops itself and Render
   starts it again, so the site is offline for about half a minute. Admin sign-ins survive restarts. Unpublish takes a
