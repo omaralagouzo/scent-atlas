@@ -569,7 +569,7 @@ def test_schema_init_is_idempotent_and_recorded(tmp_path):
     import sqlalchemy as sa
     with s2.eng.connect() as con:
         versions = con.execute(sa.select(userdb.schema_migrations.c.version).order_by(userdb.schema_migrations.c.version)).scalars().all()
-        assert versions == list(range(1, userdb.SCHEMA_VERSION + 1))
+        assert versions == sorted(userdb._MIGRATIONS)
 
 
 def test_postgres_statements_compile():

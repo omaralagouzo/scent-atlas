@@ -24,6 +24,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import admin  # noqa: E402
+import discovery  # noqa: E402
+import discovery_api  # noqa: E402
 import auth  # noqa: E402
 import catalog as cat_mod  # noqa: E402
 import config  # noqa: E402
@@ -53,14 +55,27 @@ MAX_BODY = 256 * 1024
 
 
 # --------------------------------------------------------------------------- catalog loading
-def load_catalog(data_dir: Path, db_path: Path | None = None, settings: config.Settings | None = None):
+def with_discoveries(path: Path, published: list[dict] | None, data_dir: Path) -> Path:
+    """The catalogue database to load: `path` itself, or a copy of it with the published new releases added."""
+    if not published:
+        return path
+    try:
+        return discovery.merged_catalog(path, published, data_dir / "cache")
+    except Exception as e:  # never let a bad candidate keep the site down
+        print(f"[scent-atlas] could not add {len(published)} published discoveries ({e!r}); loading without them",
+              file=sys.stderr)
+        return path
+
+
+def load_catalog(data_dir: Path, db_path: Path | None = None, settings: config.Settings | None = None,
+                 published: list[dict] | None = None):
     settings = settings or config.Settings.from_env()
     mode = settings.image_mode
     if db_path is not None:
-        return cat_mod.Catalog(db_path, mode), Path(db_path), "custom"
+        return cat_mod.Catalog(with_discoveries(Path(db_path), published, data_dir), mode), Path(db_path), "custom"
     path, kind = config.pick_catalog_db(settings, data_dir)
     try:
-        c = cat_mod.Catalog(path, mode)
+        c = cat_mod.Catalog(with_discoveries(path, published, data_dir), mode)
         if kind in ("master", "deploy") and (c.n_perf == 0 or c.n_notes == 0):
             raise RuntimeError(f"{path.name} has no perfumes/notes yet")
         return c, path, kind
@@ -161,14 +176,16 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     settings = (settings or config.Settings.from_env()).with_(image_mode=image_mode)
     data_dir = Path(data_dir) if data_dir else DATA_DIR
     user_path = Path(user_path) if user_path else data_dir / "user.json"
-    cat, used_db, db_kind = load_catalog(data_dir, db_path, settings)
+    discovery_files = data_dir / "discovery"
+    store = userdb.UserStore(users_db_url or config.normalize_database_url(settings.database_url, data_dir / "users.db"))
+    # published new releases (admin > New releases) join the catalogue here, so the store opens first
+    cat, used_db, db_kind = load_catalog(data_dir, db_path, settings, published=discovery.published_rows(store))
     remote = settings.image_mode == "remote"
     if fetch_images is None:
         fetch_images = os.environ.get("SCENT_NO_FETCH") != "1"
     # remote mode: the browser loads images straight from fimgs.net / Wikimedia; nothing is proxied or written here
     fetcher = images.BottleFetcher(data_dir / "images" / "perfumes", enabled=bool(fetch_images) and not remote)
 
-    store = userdb.UserStore(users_db_url or config.normalize_database_url(settings.database_url, data_dir / "users.db"))
     rl = settings.rate_limit_per_min
     ctx = user_api.Ctx(
         store=store, cat=cat, settings=settings, user_path=user_path,
@@ -181,10 +198,19 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     async def lifespan(app: FastAPI):
         # build the layering model (pool features, curated pairs: ~1 s, ~4 MB) off the request path
         threading.Thread(target=layering.model, args=(cat,), daemon=True, name="layering-warmup").start()
+        if discovery_files is not None:
+            # research results committed under data/discovery/ go into the review queue once each (never published)
+            threading.Thread(target=discovery.import_files, args=(store, cat, discovery_files), daemon=True,
+                             name="discovery-import").start()
         if os.environ.get("SCENT_OPEN") == "1":
             threading.Timer(0.8, lambda: webbrowser.open(f"http://{settings.host}:{settings.port}/")).start()
         yield
         store.dispose()
+        if getattr(ctx, "restart_requested", False):
+            # publishing new releases asked for a restart (see discovery_api.LiveRefresh): exit non-zero so the
+            # platform starts the app again, which loads the catalogue with them
+            print("[scent-atlas] restarting to load newly published perfumes", file=sys.stderr, flush=True)
+            os._exit(3)
 
     app = FastAPI(title="Scent Atlas", lifespan=lifespan,
                   docs_url="/api/docs" if settings.enable_docs else None,
@@ -315,6 +341,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     # ---------------------------------------------------------------- accounts + per-user data
     app.include_router(user_api.make_router(ctx))
     app.include_router(admin.make_admin_router(ctx))
+    discovery_api.add_public_routes(app, store, cat)
     admin.add_admin_pages(app, settings)
 
     # ---------------------------------------------------------------- query helpers
@@ -552,6 +579,8 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
 
     @app.get("/img/perfume/{pid}")
     async def img_perfume(pid: int):
+        if pid >= cat_mod.DISCOVERED_ID_BASE:   # a published new release: its image is stored with the candidate
+            return RedirectResponse(f"/img/discovery/{pid - cat_mod.DISCOVERED_ID_BASE}.webp", status_code=302)
         i = get_idx(pid)
         acc = cat.accords_out(i, 1)
         tint = acc[0]["color"] if acc else palette.DEFAULT_ACCENT

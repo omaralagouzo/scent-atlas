@@ -1,6 +1,6 @@
 // Admin shell: boots from /api/admin/me, then shows sign-in or the dashboard (hash routes, so it works at / and /admin).
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { Activity, BarChart3, LogOut, Moon, ShieldCheck, Sun, Users } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Activity, BarChart3, LogOut, Moon, ShieldCheck, Sparkles, Sun, Users } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import { useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
@@ -14,11 +14,13 @@ import { Overview } from './overview'
 import { People } from './people'
 import { ActivityFeed } from './activity'
 import { Security } from './security'
+import { Discovery, useCompleteCount } from './discovery'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: BarChart3 },
   { key: 'people', label: 'People', icon: Users },
   { key: 'activity', label: 'Activity', icon: Activity },
+  { key: 'discovery', label: 'New releases', icon: Sparkles },
   { key: 'security', label: 'Security', icon: ShieldCheck },
 ] as const
 type Tab = (typeof TABS)[number]['key']
@@ -125,6 +127,10 @@ function BareHeader() {
 
 function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
   const tab = useSyncExternalStore(subscribeHash, readTab)
+  const releases = useCompleteCount()
+  const compactNav = useRef<HTMLElement>(null)
+  const badge = (key: Tab) => (key === 'discovery' ? releases : 0) || 0
+  const badgeLabel = (_key: Tab, n: number) => `${n} new releases ready to review`
   const link = (t: (typeof TABS)[number], compact: boolean) => {
     const on = t.key === tab
     return (
@@ -142,6 +148,17 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       >
         <t.icon className="size-4 opacity-80" />
         {t.label}
+        {badge(t.key) > 0 && (
+          <span
+            className={cn(
+              'min-w-[18px] rounded-full px-1.5 text-center font-mono text-[11px] leading-[18px] font-semibold tabular-nums',
+              on && compact ? 'bg-background text-foreground' : 'bg-brand text-brand-foreground',
+            )}
+            aria-label={badgeLabel(t.key, badge(t.key))}
+          >
+            {badge(t.key) > 99 ? '99+' : badge(t.key)}
+          </span>
+        )}
       </a>
     )
   }
@@ -149,6 +166,10 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
     document.title = `${TABS.find((t) => t.key === tab)?.label} · Scent Atlas admin`
     window.scrollTo(0, 0)
   }, [tab])
+  // phones: keep the current tab (with its badge) visible in the scrolling pill row
+  useEffect(() => {
+    compactNav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [tab, releases])
   return (
     <>
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
@@ -165,7 +186,7 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
             </Button>
           </div>
         </div>
-        <nav aria-label="Admin" className="flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-3 pb-2 scrollbar-none md:hidden">
+        <nav ref={compactNav} aria-label="Admin" className="flex gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-3 pb-2 scrollbar-none md:hidden">
           {TABS.map((t) => link(t, true))}
         </nav>
       </header>
@@ -173,6 +194,7 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
         {tab === 'overview' && <Overview />}
         {tab === 'people' && <People />}
         {tab === 'activity' && <ActivityFeed />}
+        {tab === 'discovery' && <Discovery />}
         {tab === 'security' && <Security twoFactor={me.two_factor} />}
       </main>
     </>
