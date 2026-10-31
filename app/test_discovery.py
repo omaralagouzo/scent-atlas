@@ -155,11 +155,14 @@ def test_admin_review_edit_approve_publish(app, admin, tmp_path, tiny_db):
     assert [i["id"] for i in r["items"]] == [ok] and r["counts"]["complete"] == 1 and r["counts"]["incomplete"] == 1
     it = r["items"][0]
     assert it["image"].startswith(f"/api/admin/discovery/images/{ok}.webp") and it["confidence"]["notes"] == 0.9
+    assert [n["name"] for n in it["note_meta"]["middle"]] == ["Rose"] and it["note_meta"]["middle"][0]["color"].startswith("#")
     assert admin.get(it["image"]).headers["content-type"] == "image/webp"
     assert admin.get("/api/admin/discovery/items?state=all&q=half").json()["total"] == 1
 
     # an incomplete one needs force; editing it in completes it (owner edits count as verified)
     assert admin.post(f"/api/admin/discovery/items/{inc}/approve", headers=H, json={}).status_code == 409
+    b = admin.post("/api/admin/discovery/bulk", headers=H, json={"ids": [inc], "action": "approve"}).json()
+    assert b["done"] == [] and b["failed"][0]["id"] == inc      # bulk approve skips incomplete ones unless forced
     e = admin.patch(f"/api/admin/discovery/items/{inc}", headers=H,
                     json={"notes": {"top": ["Rose"], "middle": ["Iris"], "base": ["Musk"]}, "gender": "women"}).json()
     assert e["state"] == "complete" and e["confidence"]["notes"] == 1.0 and e["gender"] == "women"
@@ -209,6 +212,9 @@ def test_duplicate_flags_can_be_cleared_and_set(app, admin):
     assert admin.post(f"/api/admin/discovery/items/{iid}/not-duplicate", headers=H, json={}).json()["state"] == "complete"
     assert admin.post(f"/api/admin/discovery/items/{iid}/duplicate", headers=H, json={"perfume_id": 999}).status_code == 422
     assert admin.post(f"/api/admin/discovery/items/{iid}/duplicate", headers=H, json={"perfume_id": 4}).json()["state"] == "duplicate"
+    app.state.ctx.live_refresh._restart = lambda: None
+    b = admin.post("/api/admin/discovery/bulk", headers=H, json={"ids": [iid], "action": "approve", "force": True}).json()
+    assert b["done"] == [iid] and b["counts"]["published"] == 1
 
 
 def test_import_files_once(app, tmp_path):

@@ -16,6 +16,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 
+import catalog as cat_mod
 import discovery as dz
 import discovery_engine as de
 import images
@@ -67,9 +68,10 @@ class DuplicateBody(BaseModel):
 
 
 class BulkBody(BaseModel):
-    ids: list[int] = Field(min_length=1, max_length=500)
+    ids: list[int] = Field(min_length=1, max_length=1000)
     action: str = Field(pattern="^(approve|reject|restore)$")
     reason: str | None = Field(default=None, max_length=300)
+    force: bool = False          # approve: also the incomplete ones / possible duplicates you selected
 
 
 class RunBody(BaseModel):
@@ -95,7 +97,7 @@ def admin_image_url(iid: int, fetched_at: int | None) -> str | None:
 
 class LiveRefresh:
     """Brings approvals onto the site. The catalogue is loaded once at start (there is no room for a second copy in
-    512 MB), so the app restarts once, `delay` seconds after the last approval: several approvals, one restart.
+    512 MB), so the app restarts once, `delay` seconds (30) after the last approval: several approvals, one restart.
 
     The restart is a Render deploy when RENDER_DEPLOY_HOOK_URL is set (no downtime). Otherwise, on Render, the app
     stops itself and Render starts it again (about half a minute offline); elsewhere it only logs that a restart is
@@ -103,7 +105,7 @@ class LiveRefresh:
 
     def __init__(self, ctx, log, delay: float | None = None, restart=None):
         self.ctx, self.log = ctx, log
-        self.delay = float(os.environ.get("DISCOVERY_RESTART_DELAY") or 90) if delay is None else delay
+        self.delay = float(os.environ.get("DISCOVERY_RESTART_DELAY") or 30) if delay is None else delay
         self._restart = restart or self.restart_now
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
@@ -174,12 +176,26 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
         s = cat.summary(i)
         return {k: s.get(k) for k in ("id", "name", "brand", "year", "gender", "image")}
 
+    def note_meta(notes: dict) -> dict:
+        """Each note with a colour: its accord's colour when it has one ("Cherry"), else its catalogue family's."""
+        meta = {}
+        for layer in dz.LAYERS:
+            row = []
+            for n in notes.get(layer) or []:
+                acc = dz.ACCORD_BY_NOTE.get(dz.norm(n))
+                j = cat.note_index.get(cat_mod.slugify(n))
+                fam = cat.note_family[j] if j is not None else None
+                row.append({"name": n, "family": fam,
+                            "color": palette.accord_color(acc) if acc else palette.family_color(fam)})
+            meta[layer] = row
+        return meta
+
     def out(r: dict, img: int | None, full: bool = False) -> dict:
         notes = _j(r["notes"], {})
         d = {"id": r["id"], "state": r["state"], "brand": r["brand"], "name": r["name"],
              "concentration": r["concentration"], "gender": r["gender"], "release_date": r["release_date"],
              "release_status": r["release_status"], "perfumers": _j(r["perfumers"], []), "notes": notes,
-             "note_count": dz.n_notes(notes), "family": r["family"], "description": r["description"],
+             "note_count": dz.n_notes(notes), "note_meta": note_meta(notes), "family": r["family"], "description": r["description"],
              "image": admin_image_url(r["id"], img), "image_url": r["image_url"], "official_url": r["official_url"],
              "sources": _j(r["sources"], []), "confidence": _j(r["confidence"], {}), "overall": r["overall"],
              "missing": _j(r["missing"], []), "duplicate_of": dup_out(r["duplicate_of"]), "perfume_id": r["perfume_id"],
@@ -363,7 +379,7 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
         for iid in dict.fromkeys(body.ids):
             try:
                 if body.action == "approve":
-                    approve_one(iid, False)
+                    approve_one(iid, body.force)
                 elif body.action == "reject":
                     reject_one(iid, body.reason)
                 else:
