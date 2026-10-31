@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { admin, num, useDebounced, useLoad, useVisibleInterval, type DiscConfig, type DiscCounts, type DiscItem, type DiscItemsPage, type DiscState } from './data'
-import { CandidateCard } from './discovery-card'
+import { CandidateRow, useNoteTips, type ActionKind } from './discovery-card'
 import { EditSheet } from './discovery-edit'
 import { RunsPanel } from './discovery-runs'
 import { Muted, PageHead } from './parts'
@@ -67,10 +67,12 @@ const SORTS = [
   { value: 'brand', label: 'Brand' },
 ]
 
-const PAGE = 200
+// one request loads a whole tab (the API allows up to 1000; the queue is a few hundred), so Select all means all of it
+const LIMIT = 1000
 const QUICK_REASONS = ['Not a new release.', 'Not enough reliable sources.', 'Looks like a perfume the catalogue already has.', 'Not a real fragrance product.']
 const missingText = (it: DiscItem) => (it.missing.length ? it.missing.map((m) => m.replace('_', ' ')).join(', ') : 'some data')
 
+const label = (it: DiscItem) => `“${it.name}”`
 type RejectTarget = { ids: number[]; name: string; reason: string }
 
 // ---- the screen -------------------------------------------------------------------------------------------------------
@@ -80,8 +82,7 @@ export function Discovery() {
   const [q, setQ] = useState('')
   const dq = useDebounced(q.trim(), 250)
   const [sort, setSort] = useState('confidence')
-  const [limit, setLimit] = useState(PAGE)
-  const items = useLoad<DiscItemsPage>('/discovery/items', { state, q: dq, sort, limit })
+    const items = useLoad<DiscItemsPage>('/discovery/items', { state, q: dq, sort, limit: LIMIT })
   const cfg = useLoad<DiscConfig>('/discovery/config')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [busyId, setBusyId] = useState<number | null>(null)
@@ -90,6 +91,7 @@ export function Discovery() {
   const [reject, setReject] = useState<RejectTarget | null>(null)
   const [anyway, setAnyway] = useState<DiscItem | null>(null)
   const [publishing, setPublishing] = useState(false)
+  const [confirmAnyway, setConfirmAnyway] = useState<{ picked: DiscItem[]; weak: DiscItem[] } | null>(null)
 
   const { reload: reloadItems } = items
   const { reload: reloadConfig } = cfg
@@ -114,7 +116,6 @@ export function Discovery() {
   // a different tab, search or sort starts a fresh selection
   useEffect(() => {
     setSelected(new Set())
-    setLimit(PAGE)
   }, [state, dq, sort])
 
   const list = items.data?.items
@@ -135,7 +136,7 @@ export function Discovery() {
   const approved = counts?.approved ?? 0
 
   // ---- single-candidate actions
-  const act = async (it: DiscItem, run: () => Promise<unknown>, ok: string) => {
+  const act = useCallback(async (it: DiscItem, run: () => Promise<unknown>, ok: string) => {
     setBusyId(it.id)
     try {
       await run()
@@ -147,9 +148,8 @@ export function Discovery() {
     } finally {
       setBusyId(null)
     }
-  }
-  const label = (it: DiscItem) => `“${it.name}”`
-  const approve = async (it: DiscItem) => {
+  }, [refresh])
+  const approve = useCallback(async (it: DiscItem) => {
     setBusyId(it.id)
     try {
       await admin.post(`/discovery/items/${it.id}/approve`, {})
@@ -162,18 +162,19 @@ export function Discovery() {
     } finally {
       setBusyId(null)
     }
-  }
+  }, [refresh])
 
   // ---- bulk
-  const bulk = async (action: 'approve' | 'restore') => {
-    const ids = [...selected]
+  type BulkResult = { done: number[]; failed: { id: number; error: string }[] }
+  const runBulk = async (ids: number[], action: 'approve' | 'restore', force: boolean, keep: number[] = []) => {
     setBulkBusy(true)
     try {
-      const r = await admin.post<{ done: number[]; failed: { id: number; error: string }[] }>('/discovery/bulk', { ids, action })
+      const r = await admin.post<BulkResult>('/discovery/bulk', { ids, action, ...(force ? { force: true } : {}) })
       const verb = action === 'approve' ? 'Approved' : 'Restored'
-      if (r.failed.length) toast.warning(`${verb} ${r.done.length}. ${r.failed.length} could not be ${verb.toLowerCase()}: ${r.failed[0].error}`, { duration: 8000 })
-      else toast.success(action === 'approve' ? `Approved ${r.done.length}. They go live on the site in a couple of minutes.` : `${verb} ${r.done.length}.`)
-      setSelected(new Set())
+      const live = action === 'approve' ? ' They go live on the site in about a minute.' : ''
+      if (r.failed.length) toast.warning(`${verb} ${r.done.length}.${live} ${r.failed.length} could not be ${verb.toLowerCase()}: ${r.failed[0].error}`, { duration: 8000 })
+      else toast.success(`${verb} ${r.done.length}.${live}`)
+      setSelected(new Set(keep))
       refresh()
     } catch (e) {
       toast.error(errorText(e, 'That did not work.'))
@@ -181,9 +182,41 @@ export function Discovery() {
       setBulkBusy(false)
     }
   }
+  // Approve on a selection that holds incomplete / duplicate candidates asks once whether to approve those anyway
+  const bulkApprove = () => {
+    const picked = (list || []).filter((i) => selected.has(i.id))
+    const weak = picked.filter((i) => i.state === 'incomplete' || i.state === 'duplicate')
+    if (weak.length) setConfirmAnyway({ picked, weak })
+    else void runBulk(picked.map((i) => i.id), 'approve', false)
+  }
 
   const allOn = !!list?.length && list.every((i) => selected.has(i.id))
   const someOn = selected.size > 0
+
+  // stable row callbacks: ticking one checkbox re-renders one row, not hundreds
+  const onSelect = useCallback((id: number, on: boolean) => {
+    setSelected((cur) => {
+      if (cur.has(id) === on) return cur
+      const next = new Set(cur)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }, [])
+  const onAction = useCallback((kind: ActionKind, it: DiscItem) => {
+    const post = (path: string) => () => admin.post(`/discovery/items/${it.id}/${path}`, {})
+    switch (kind) {
+      case 'approve': return void approve(it)
+      case 'approveAnyway': return setAnyway(it)
+      case 'reject': return setReject({ ids: [it.id], name: label(it), reason: '' })
+      case 'edit': return setEditId(it.id)
+      case 'restore': return void act(it, post('restore'), `Restored ${label(it)}.`)
+      case 'unpublish': return void act(it, post('unpublish'), `Unpublished ${label(it)}. It comes off the site in a couple of minutes and is back in the queue.`)
+      case 'notDuplicate': return void act(it, post('not-duplicate'), `Marked ${label(it)} as not a duplicate.`)
+      case 'rejectDuplicate': return setReject({ ids: [it.id], name: label(it), reason: it.duplicate_of?.name ? `Duplicate of ${it.duplicate_of.name}${it.duplicate_of.brand ? ` by ${it.duplicate_of.brand}` : ''}.` : 'Duplicate of a catalogue perfume.' })
+    }
+  }, [approve, act])
+  const tips = useNoteTips()
 
   return (
     <>
@@ -247,16 +280,17 @@ export function Discovery() {
         </Select>
         {canSelect && !!list?.length && (
           <label className="flex cursor-pointer items-center gap-2 px-1 text-sm text-muted-foreground">
-            <Checkbox checked={allOn ? true : someOn ? 'indeterminate' : false} onCheckedChange={(v) => setSelected(v === true ? new Set(list.map((i) => i.id)) : new Set())} aria-label="Select all shown" />
+            <Checkbox checked={allOn ? true : someOn ? 'indeterminate' : false} onCheckedChange={(v) => setSelected(v === true ? new Set(list.map((i) => i.id)) : new Set())} aria-label={`Select all ${list.length} in this tab`} />
             Select all
+            <span className="font-mono text-xs tabular-nums">{num(list.length)}</span>
           </label>
         )}
       </div>
 
       {!list && !items.error && (
-        <div className="flex flex-col gap-3" aria-busy="true">
-          {Array.from({ length: 3 }, (_, i) => (
-            <Skeleton key={i} className="h-56 w-full rounded-xl" />
+        <div className="flex flex-col gap-px overflow-hidden rounded-xl border" aria-busy="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className="h-[68px] w-full rounded-none first:rounded-t-xl last:rounded-b-xl" />
           ))}
         </div>
       )}
@@ -271,65 +305,35 @@ export function Discovery() {
         </div>
       )}
       {!!list?.length && (
-        <ol className={cn('flex flex-col gap-3 transition-opacity', items.loading && 'opacity-60')} aria-label="Candidates">
-          {list.map((it) => (
-            <li key={it.id}>
-              <CandidateCard
-                item={it}
-                busy={busyId === it.id || bulkBusy}
-                selected={selected.has(it.id)}
-                onSelect={
-                  canSelect
-                    ? (on) =>
-                        setSelected((cur) => {
-                          const next = new Set(cur)
-                          if (on) next.add(it.id)
-                          else next.delete(it.id)
-                          return next
-                        })
-                    : undefined
-                }
-                act={{
-                  approve: () => void approve(it),
-                  reject: () => setReject({ ids: [it.id], name: label(it), reason: '' }),
-                  edit: () => setEditId(it.id),
-                  restore: () => void act(it, () => admin.post(`/discovery/items/${it.id}/restore`, {}), `Restored ${label(it)}.`),
-                  unpublish: () => void act(it, () => admin.post(`/discovery/items/${it.id}/unpublish`, {}), `Unpublished ${label(it)}. It comes off the site in a couple of minutes and is back in the queue.`),
-                  notDuplicate: () => void act(it, () => admin.post(`/discovery/items/${it.id}/not-duplicate`, {}), `Marked ${label(it)} as not a duplicate.`),
-                  rejectDuplicate: () => setReject({ ids: [it.id], name: label(it), reason: it.duplicate_of?.name ? `Duplicate of ${it.duplicate_of.name}${it.duplicate_of.brand ? ` by ${it.duplicate_of.brand}` : ''}.` : 'Duplicate of a catalogue perfume.' }),
-                }}
-              />
-            </li>
-          ))}
-        </ol>
-      )}
-      {!!list && total > list.length && (
-        <div className="mt-4 flex flex-col items-center gap-1 text-sm text-muted-foreground">
-          <span>
-            Showing {num(list.length)} of {num(total)}
-          </span>
-          <Button variant="outline" size="sm" disabled={items.loading} onClick={() => setLimit((l) => l + PAGE)}>
-            Show more
-          </Button>
-        </div>
+        <>
+          <ol {...tips.bind} className={cn('divide-y rounded-xl border bg-card transition-opacity', items.loading && 'opacity-60')} aria-label="Candidates">
+            {list.map((it) => (
+              <li key={it.id}>
+                <CandidateRow item={it} busy={busyId === it.id || bulkBusy} selected={selected.has(it.id)} onSelect={canSelect ? onSelect : undefined} onAction={onAction} />
+              </li>
+            ))}
+          </ol>
+          {tips.layer}
+          {total > list.length && <p className="mt-3 text-center text-sm text-muted-foreground">Showing the first {num(list.length)} of {num(total)}. Search to narrow the list.</p>}
+        </>
       )}
 
       {someOn && (
         <div className="sticky bottom-3 z-30 mt-4 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2.5 pl-4 shadow-lg" role="region" aria-label="Selected candidates">
-          <span className="mr-auto text-sm font-medium">{num(selected.size)} selected</span>
+          <span className="mr-auto text-sm font-medium" aria-live="polite">
+            {num(selected.size)} selected
+          </span>
           {state === 'rejected' ? (
-            <Button size="sm" disabled={bulkBusy} onClick={() => void bulk('restore')}>
+            <Button size="sm" disabled={bulkBusy} onClick={() => void runBulk([...selected], 'restore', false)}>
               <RotateCcw />
               Restore
             </Button>
           ) : (
             <>
-              {state !== 'duplicate' && (
-                <Button size="sm" disabled={bulkBusy} onClick={() => void bulk('approve')}>
-                  <Check />
-                  Approve
-                </Button>
-              )}
+              <Button size="sm" disabled={bulkBusy} onClick={bulkApprove}>
+                <Check />
+                Approve
+              </Button>
               <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => setReject({ ids: [...selected], name: `${selected.size} candidate${selected.size === 1 ? '' : 's'}`, reason: '' })}>
                 <X />
                 Reject
@@ -337,7 +341,7 @@ export function Discovery() {
             </>
           )}
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-            Clear
+            Clear selection
           </Button>
         </div>
       )}
@@ -366,6 +370,16 @@ export function Discovery() {
         onDone={() => {
           setAnyway(null)
           refresh()
+        }}
+      />
+      <BulkAnywayDialog
+        target={confirmAnyway}
+        onClose={() => setConfirmAnyway(null)}
+        onChoose={(all) => {
+          const t = confirmAnyway!
+          setConfirmAnyway(null)
+          if (all) void runBulk(t.picked.map((i) => i.id), 'approve', true)
+          else void runBulk(t.picked.filter((i) => i.state === 'complete').map((i) => i.id), 'approve', false, t.weak.map((i) => i.id))
         }}
       />
       <PublishDialog
@@ -512,6 +526,43 @@ function ApproveAnywayDialog({ item, onClose, onDone }: { item: DiscItem | null;
             </DialogFooter>
           </>
         )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function BulkAnywayDialog({ target, onClose, onChoose }: { target: { picked: DiscItem[]; weak: DiscItem[] } | null; onClose: () => void; onChoose: (all: boolean) => void }) {
+  const [shown, setShown] = useState(target)
+  if (target && target !== shown) setShown(target)
+  const t = target || shown
+  if (!t) return <Dialog open={false} />
+  const complete = t.picked.length - t.weak.length
+  // what is missing most often among the selected, for the sentence ("image, gender…")
+  const tally = new Map<string, number>()
+  for (const i of t.weak) for (const m of i.missing) tally.set(m, (tally.get(m) || 0) + 1)
+  const top = [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m]) => m.replace('_', ' '))
+  const dups = t.weak.filter((i) => i.state === 'duplicate').length
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-[calc(100%-1rem)] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Approve incomplete ones too?</DialogTitle>
+          <DialogDescription>
+            {t.weak.length === t.picked.length ? (t.picked.length === 1 ? 'The selected perfume' : `All ${num(t.picked.length)} selected`) : `${num(t.weak.length)} of the ${num(t.picked.length)} selected`} still miss{t.weak.length === 1 ? 'es' : ''} data{top.length ? ` (${top.join(', ')}${tally.size > top.length ? '…' : ''})` : ''}
+            {dups > 0 ? ` or may be duplicates (${num(dups)})` : ''}. Approve them anyway? Approved perfumes go live on the site in about a minute.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="button" variant="outline" disabled={complete === 0} onClick={() => onChoose(false)}>
+            Only the {num(complete)} complete
+          </Button>
+          <Button type="button" onClick={() => onChoose(true)}>
+            Approve all {num(t.picked.length)}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

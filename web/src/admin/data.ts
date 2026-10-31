@@ -260,6 +260,13 @@ export interface DiscNotes {
   general: string[]
 }
 
+/** one note with its accord / note-family colour ('#rrggbb') */
+export interface NoteMeta {
+  name: string
+  family: string | null
+  color: string
+}
+
 export interface DiscSource {
   url: string
   title: string
@@ -278,6 +285,8 @@ export interface DiscItem {
   release_status: 'released' | 'announced' | null
   perfumers: string[]
   notes: Partial<DiscNotes>
+  /** the same notes, each with its colour */
+  note_meta?: Partial<Record<keyof DiscNotes, NoteMeta[]>>
   note_count: number
   family: string | null
   description: string | null
