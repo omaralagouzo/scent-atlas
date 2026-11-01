@@ -1,5 +1,5 @@
 // Perfume cards (grid) and similarity result rows (lists).
-import { openPerfume } from '@/lib/router'
+import { go, openPerfume } from '@/lib/router'
 import { layerLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Perfume } from '@/lib/types'
@@ -12,27 +12,29 @@ import { LAYER_COLOR } from './notes'
 
 const isControl = (t: EventTarget) => !!(t as HTMLElement).closest('button, a, [role="menu"], [data-no-open]')
 
-export function openProps(id: number, label: string) {
+/** Click / Enter opens the perfume's page, or `to` (a route such as `/like/12`) when given. */
+export function openProps(id: number, label: string, to?: string) {
+  const open = () => (to ? go(to) : openPerfume(id))
   return {
     tabIndex: 0,
     role: 'link' as const,
     'aria-label': label,
     onClick: (e: React.MouseEvent) => {
-      if (!isControl(e.target)) openPerfume(id)
+      if (!isControl(e.target)) open()
     },
     onKeyDown: (e: React.KeyboardEvent) => {
       if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
         e.preventDefault()
-        openPerfume(id)
+        open()
       }
     },
   }
 }
 
-export function PerfumeCard({ p, extra, className }: { p: Perfume; extra?: React.ReactNode; className?: string }) {
+export function PerfumeCard({ p, extra, className, to }: { p: Perfume; extra?: React.ReactNode; className?: string; to?: string }) {
   return (
     <article
-      {...openProps(p.id, `${p.name} by ${p.brand}`)}
+      {...openProps(p.id, `${p.name} by ${p.brand}`, to)}
       className={cn(
         'group flex cursor-pointer flex-col overflow-hidden rounded-xl border bg-card transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
         className,

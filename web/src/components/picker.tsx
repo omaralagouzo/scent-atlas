@@ -16,6 +16,9 @@ export interface PerfumePickerProps {
   autoFocus?: boolean
   size?: 'default' | 'lg'
   className?: string
+  /** shown when the box is clicked while empty (e.g. your wishlist); typing switches to search results */
+  suggestions?: () => Promise<Perfume[]>
+  suggestionsLabel?: string
 }
 
 export function PerfumePicker({
@@ -27,10 +30,14 @@ export function PerfumePicker({
   autoFocus = false,
   size = 'lg',
   className,
+  suggestions,
+  suggestionsLabel,
 }: PerfumePickerProps) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<Perfume[]>([])
+  const [showingSuggestions, setShowingSuggestions] = useState(false)
+  const suggested = useRef<Perfume[] | null>(null)
   const [active, setActive] = useState(-1)
   const seq = useRef(0)
   const timer = useRef(0)
@@ -40,10 +47,25 @@ export function PerfumePicker({
     return () => window.clearTimeout(timer.current)
   }, [autoFocus])
 
+  const showSuggestions = async () => {
+    if (!suggestions) return
+    const my = ++seq.current
+    try {
+      suggested.current ??= await suggestions()
+    } catch {
+      suggested.current = []
+    }
+    if (my !== seq.current || !suggested.current.length) return
+    setItems(suggested.current)
+    setActive(-1)
+    setShowingSuggestions(true)
+    setOpen(true)
+  }
   const fetchNow = async (value: string) => {
     const query = value.trim()
     if (query.length < 2) {
-      setOpen(false)
+      if (!query && suggestions) showSuggestions()
+      else setOpen(false)
       return
     }
     const my = ++seq.current
@@ -54,6 +76,7 @@ export function PerfumePicker({
       const next = r.results.filter((p: Perfume) => !sk.has(p.id)).slice(0, 8)
       setItems(next)
       setActive(next.length ? 0 : -1)
+      setShowingSuggestions(false)
       setOpen(true)
     } catch {
       /* ignore */
@@ -87,6 +110,9 @@ export function PerfumePicker({
           const v = e.target.value
           timer.current = window.setTimeout(() => fetchNow(v), 140)
         }}
+        onMouseDown={() => {
+          if (!q.trim() && !open) showSuggestions()
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
@@ -110,7 +136,12 @@ export function PerfumePicker({
         )}
       />
       {open && (
-        <ul role="listbox" className="absolute top-full right-0 left-0 z-30 mt-1.5 max-h-96 overflow-auto rounded-xl border bg-popover p-1 shadow-lg">
+        <ul role="listbox" aria-label={showingSuggestions ? suggestionsLabel : undefined} className="absolute top-full right-0 left-0 z-30 mt-1.5 max-h-96 overflow-auto rounded-xl border bg-popover p-1 shadow-lg">
+          {showingSuggestions && suggestionsLabel && (
+            <li role="presentation" className="px-2 pt-1.5 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {suggestionsLabel}
+            </li>
+          )}
           {!items.length && <li className="px-3 py-2 text-sm text-muted-foreground">No perfume found</li>}
           {items.map((p, i) => (
             <li
