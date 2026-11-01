@@ -1,0 +1,1033 @@
+[
+ {
+  "brand": "Iven",
+  "name": "Keep On",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Rum",
+    "Frankincense",
+    "Bitter Orange",
+    "Cardamom",
+    "Pink Pepper",
+    "Ginger",
+    "Bergamot",
+    "Grapefruit"
+   ],
+   "middle": [
+    "Dried Fruits",
+    "White Tobacco",
+    "Sandalwood",
+    "Tuberose",
+    "Saffron",
+    "Osmanthus",
+    "Jasmine",
+    "Iris"
+   ],
+   "base": [
+    "Tonka Bean",
+    "Myrrh",
+    "Vanilla",
+    "Labdanum",
+    "Patchouli",
+    "Musk",
+    "Cedarwood",
+    "Vetiver"
+   ],
+   "general": []
+  },
+  "family": "Amber Spicy",
+  "description": "A smoky amber-spice oriental with a blond tobacco accent, marketed to both men and women.",
+  "image_url": "https://cdn.salla.sa/mWQnb/7d3c30ef-5954-4a06-9636-2ee42a3fd5d9-1000x1000-AdOYpDdfcDZ3KHEUPP5luD1KhNBRFemwPKzSnj5m.jpg",
+  "official_url": "https://iven.sa/keep-on/p1682736587",
+  "sources": [
+   {
+    "url": "https://iven.sa/keep-on/p1682736587",
+    "title": "IVEN official store (iven.sa): Keep On",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/-Keep-On-Iven-100ml-Eau-De-Parfum",
+    "title": "Keep On Iven 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-keep-on",
+    "title": "IVEN Keep On (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.9,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.85,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Clive Christian Blonde Amber. Official page and Essenza list the same notes (official Arabic \"مسك الروم\" = tuberose). Official text calls it an oriental unisex scent; Essenza text addresses women. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-04-08; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Energy",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Lily of the Valley",
+    "Rose",
+    "Aldehydes"
+   ],
+   "middle": [
+    "Frankincense",
+    "Mystikal",
+    "Labdanum"
+   ],
+   "base": [
+    "Ambergris",
+    "White Musk",
+    "Benzoin"
+   ],
+   "general": []
+  },
+  "family": "Floral Musk",
+  "description": "A soft floral-musk opening of lily of the valley and rose that moves into a frankincense and labdanum heart over ambergris and white musk.",
+  "image_url": "https://cdn.salla.sa/mWQnb/c9d7100a-674f-48a4-b87d-cff57c050717-1000x1000-nj7QTmWwmRdzvOdahIvX3D1xoznVNtKsmSw2SAYH.png",
+  "official_url": "https://iven.sa/energy/p2142628067",
+  "sources": [
+   {
+    "url": "https://iven.sa/energy/p2142628067",
+    "title": "IVEN official store (iven.sa): Energy",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/Iven-Energy-100ml-Edp",
+    "title": "Energy Iven 100ml Eau de Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-energy",
+    "title": "IVEN Energy (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.85,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.6,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Amouage Existence. Notes: official page and Essenza agree (Essenza adds aldehydes; \"Mystikal\" appears as written on both). Gender: official listing category is unisex but the copy is feminine in tone (\"purity and femininity\" per Essenza); confidence moderate. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-08-12; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Mood",
+  "concentration": "EDP",
+  "gender": "men",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Lemon"
+   ],
+   "middle": [
+    "Rose",
+    "Jasmine"
+   ],
+   "base": [
+    "Sandalwood",
+    "Amber",
+    "Musk"
+   ],
+   "general": []
+  },
+  "family": "Woody Floral",
+  "description": "A bright citrus opening with a ginger-and-powder sparkle, a rose-jasmine heart and a soft woody-amber base, sold as a men's scent.",
+  "image_url": "https://cdn.salla.sa/mWQnb/ba5f9e40-c048-429f-9aa0-1114e5d0e15e-1000x1000-3xvhVJyjYRtEz4wLppgAoChkM4he0s4QgP7z7ZMp.jpg",
+  "official_url": "https://iven.sa/mood/p1212716442",
+  "sources": [
+   {
+    "url": "https://iven.sa/mood/p1212716442",
+    "title": "IVEN official store (iven.sa): Mood",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/Iven-Mood-100ml-EDP",
+    "title": "Mood Iven 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.85,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.85,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Sospiro Vibrato. Official page and Essenza list the same notes; both describe it as a men's fragrance (official listing sits under men's perfumes). Official text also mentions spicy ginger and powder in the opening description although ginger is not in the note list. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-05-01; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Morra",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Saffron",
+    "Cardamom"
+   ],
+   "middle": [
+    "Turkish Rose",
+    "Jasmine",
+    "Patchouli"
+   ],
+   "base": [
+    "Oud",
+    "Sandalwood",
+    "Amber",
+    "White Musk"
+   ],
+   "general": []
+  },
+  "family": "Oriental Woody",
+  "description": "A saffron-and-cardamom oriental that pairs rose and jasmine with oud, sandalwood and amber.",
+  "image_url": "https://cdn.salla.sa/mWQnb/4c2db169-8aaf-4633-b074-173add243376-1000x1000-rY6zUeOs8ESJrS4U6J6tp0Jr8WjA4ljcimfKacm8.jpg",
+  "official_url": "https://iven.sa/morra/p466870528",
+  "sources": [
+   {
+    "url": "https://iven.sa/morra/p466870528",
+    "title": "IVEN official store (iven.sa): Morra",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/Iven-Morra-100ml-eau-de-parfum",
+    "title": "Morra Iven 100ml eau de parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-morra",
+    "title": "IVEN Morra (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.75,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.8,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Oman Luxury Caden (per Essenza: \"Caden Oman Luxury alternative\"). CONFLICT: iven.sa (brand store) lists bergamot/saffron/cardamom - Turkish rose/jasmine/patchouli - oud/sandalwood/amber/white musk. Essenza and SouqScent both list saffron/cardamom/cade oil/boozy - suede/benzoin/coffee - vanilla/amberwood/tonka/guaiac/labdanum, which looks like the notes of the imitated perfume. Official notes used; owner may prefer to keep notes empty or use the shop version at 0.7. Release year not published: earliest evidence is a customer review on iven.sa dated 2026-01-21; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Red Sugar",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Red Berries",
+    "Dried Fruits",
+    "Raspberry"
+   ],
+   "middle": [
+    "Red Wine",
+    "Cedarwood",
+    "Patchouli"
+   ],
+   "base": [
+    "Boozy Notes",
+    "Brown Sugar",
+    "Leather",
+    "Caramel"
+   ],
+   "general": []
+  },
+  "family": "Gourmand Leather",
+  "description": "A dark gourmand oriental of red fruit, wine and brown sugar settling into caramel and leather.",
+  "image_url": "https://cdn.salla.sa/mWQnb/575d5b13-06ab-47a4-a1ed-4dc31055b43a-1000x1000-9iHF9M9BNJUYat3ZCA3AKq8KYyrr61MfzLMEoYKC.jpg",
+  "official_url": "https://iven.sa/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%B1%D9%8A%D8%AF-%D8%B4%D9%88%D9%82%D8%B1-100%D9%85%D9%84/p1320635353",
+  "sources": [
+   {
+    "url": "https://iven.sa/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%B1%D9%8A%D8%AF-%D8%B4%D9%88%D9%82%D8%B1-100%D9%85%D9%84/p1320635353",
+    "title": "IVEN official store (iven.sa): Red Sugar",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/Iven-Red-Sugar-100Ml-Edp",
+    "title": "Red Sugar Iven 100Ml Eau de Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-red-sugar",
+    "title": "IVEN Red Sugar (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.9,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.8,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Bohoboco Red Wine Brown Sugar. Official, Essenza and SouqScent agree on the notes (base \"wine/liquor\" entered as Boozy Notes). Official page says it suits both women and men. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-06-11; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Silent",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Tomato Leaf",
+    "Galbanum",
+    "Angelica",
+    "Violet Leaf"
+   ],
+   "middle": [
+    "Tuberose",
+    "Ylang-Ylang",
+    "Iris",
+    "Carrot Seed",
+    "Karo Karounde",
+    "Cardamom"
+   ],
+   "base": [
+    "Patchouli",
+    "Sandalwood"
+   ],
+   "general": [
+    "Smoky Woody Base"
+   ]
+  },
+  "family": "Green Floral",
+  "description": "A green, floral and smoky-woody night fragrance built on tomato leaf, galbanum and tuberose.",
+  "image_url": "https://cdn.salla.sa/mWQnb/bbf0cf0f-ca6d-4ed9-ba90-ac937ef03ab3-1000x1000-lnc3nndZLq3z4PDZjMXtq4MeGNsmwgdcobRGrH4Q.jpg",
+  "official_url": "https://iven.sa/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%B3%D8%A7%D9%8A%D9%84%D9%86%D8%AA-100-%D9%85%D9%84/p734246074",
+  "sources": [
+   {
+    "url": "https://iven.sa/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%B3%D8%A7%D9%8A%D9%84%D9%86%D8%AA-100-%D9%85%D9%84/p734246074",
+    "title": "IVEN official store (iven.sa): Silent",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/Iven-Silent-100ml-EDP",
+    "title": "Silent Iven 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.8,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.8,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Naomi Goodsir Nuit de Bakelite. Notes only from iven.sa (Essenza gives none); \"Smoky Woody Base\" in general is the official phrase for the dry-down. Official Arabic \"مسك الروم\" read as tuberose, \"الإيلنغ\" as ylang-ylang, \"السوسن\" as iris. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-08-11; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Shield",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Black Pepper"
+   ],
+   "middle": [
+    "Lavender",
+    "Flowers",
+    "Moss"
+   ],
+   "base": [
+    "Amber",
+    "Sandalwood",
+    "Musk",
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": "Aromatic Woody",
+  "description": "An aromatic woody fragrance with bergamot and pepper over lavender and moss, resting on amber, sandalwood and musk.",
+  "image_url": "https://cdn.salla.sa/mWQnb/4d314e9b-ebe6-4a4c-83f3-9088aa472184-1000x1000-aJ9Vy6hEl3IYM2GX8eYj4b2xhepKKhPM4clBXZhU.png",
+  "official_url": "https://iven.sa/shield/p1177966595",
+  "sources": [
+   {
+    "url": "https://iven.sa/shield/p1177966595",
+    "title": "IVEN official store (iven.sa): Shield",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/Shield-Iven-100Ml-Eau-de-Parfum-",
+    "title": "Shield Iven 100Ml Eau de Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-shield",
+    "title": "IVEN Shield (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.75,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.8,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Ramon Bejar Black Stone. CONFLICT: iven.sa lists bergamot/black pepper - lavender/flowers/moss - amber/sandalwood/musk/vanilla. Essenza and SouqScent list cardamom/bergamot/green notes - cypriol/lavender/sandalwood - musk/tonka/vetiver. Official notes used; shop version is a plausible alternate (0.7). Release year not published: earliest evidence is a customer review on iven.sa dated 2026-01-21; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Peace",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Lavender",
+    "Bergamot",
+    "Violet Leaf"
+   ],
+   "middle": [
+    "Soft Spices",
+    "Aromatic Woods",
+    "Powdery Accord"
+   ],
+   "base": [
+    "Sandalwood",
+    "Vanilla",
+    "White Musk"
+   ],
+   "general": []
+  },
+  "family": "Aromatic Woody",
+  "description": "A calm, clean lavender-and-bergamot scent with soft spice and powder over sandalwood and white musk.",
+  "image_url": "https://cdn.salla.sa/mWQnb/0901260c-6b52-46de-b89b-eaa773f4adc1-1000x1000-K3IMGRhd9hvXCxzX5QSTzaJr8U5UTEuU58a3E0Gx.jpg",
+  "official_url": "https://iven.sa/peace/p1640981777",
+  "sources": [
+   {
+    "url": "https://iven.sa/peace/p1640981777",
+    "title": "IVEN official store (iven.sa): Peace",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/%D8%A7%D9%8A%D9%81%D9%86-%D8%A8%D9%8A%D8%B3-100%D9%85%D9%84",
+    "title": "Peace Iven 100Ml Eau de Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://mahwous.com/iven-peace-eau-de-parfum-unisex-100ml/p595970823",
+    "title": "IVEN Peace EDP 100ml (Mahwous)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-peace",
+    "title": "IVEN Peace (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.75,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.8,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Amouage Decision. CONFLICT: iven.sa and Mahwous (Saudi retailer, likely copying the brand) give lavender/bergamot/violet leaf - soft spices/aromatic woods/powder - sandalwood/light vanilla/white musk; unisex with a masculine lean. Essenza lists bergamot/pink pepper/cardamom - frankincense/juniper/myrrh - vanilla/cedar/patchouli (Decision-like) and SouqScent lists bergamot/green citrus - lavender/sage - cedarwood/musk. Official used. Release year not published: earliest evidence is a customer review on iven.sa dated 2026-03-07; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Look Up",
+  "concentration": "EDP",
+  "gender": "men",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Orange Blossom",
+    "Nutmeg",
+    "Pimento Berries"
+   ],
+   "middle": [
+    "Orris",
+    "Osmanthus",
+    "Orange Blossom"
+   ],
+   "base": [
+    "Vanilla",
+    "Ambrofix",
+    "Benzoin",
+    "Patchouli"
+   ],
+   "general": []
+  },
+  "family": "Floral Gourmand",
+  "description": "A sweet orange-blossom and nutmeg fragrance with a vanilla-benzoin base, marketed to men.",
+  "image_url": "https://cdn.salla.sa/mWQnb/ef97eb1b-ce38-411a-b6cc-144b2fc3f25a-1000x1000-BAmVczCtbCKC24ROxwDvyswiFv5kB8cbYbxXLFpV.png",
+  "official_url": "https://iven.sa/look-up/p1787545587",
+  "sources": [
+   {
+    "url": "https://iven.sa/look-up/p1787545587",
+    "title": "IVEN official store (iven.sa): Look Up",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/%D8%A7%D9%8A%D9%81%D9%86-%D9%84%D9%88%D9%83-%D8%A7%D8%A8-100%D9%85%D9%84",
+    "title": "Iven Look Up 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-look-up",
+    "title": "IVEN Look Up (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   },
+   {
+    "url": "https://www.centrepointstores.com/sa/en/buy-iven-look-up-eau-de-parfum-for-men-100-ml/p/168533181-LS18280725",
+    "title": "Iven Look Up EDP for Men 100 ml (Centrepoint SA; seen in search result only)",
+    "kind": "retailer",
+    "supports": [
+     "gender"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.6,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.75,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Gucci Guilty Elixir (Essenza: \"clone of Gucci Guilty Elixir\"). Official page only confirms orange blossom + nutmeg opening and a vanilla base (no full list); the remaining notes (pimento, orris, osmanthus, Ambrofix, benzoin, patchouli) come from Essenza copy and may be borrowed from the imitated perfume, hence 0.6. SouqScent says orange blossom / bergamot / nutmeg+vanilla. Gender \"men\" from Essenza, SouqScent and Centrepoint SA (\"for Men\"); the official page states no gender. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-03-10; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Sweet Latte",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Caramel"
+   ],
+   "middle": [
+    "Coumarin",
+    "Honey"
+   ],
+   "base": [
+    "Vanilla",
+    "White Musk"
+   ],
+   "general": []
+  },
+  "family": "Gourmand",
+  "description": "A creamy caramel-and-vanilla gourmand for cool weather, sold as suitable for both sexes.",
+  "image_url": "https://cdn.salla.sa/mWQnb/ad1981e2-3377-4bd7-907d-b144347726a4-1000x1000-dhxeR1pQB5STZHXGsASmNpu1kwvuGUgbEzuMOJan.png",
+  "official_url": "https://iven.sa/sweet-latte/p2090780937",
+  "sources": [
+   {
+    "url": "https://iven.sa/sweet-latte/p2090780937",
+    "title": "IVEN official store (iven.sa): Sweet Latte",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%B3%D9%88%D9%8A%D8%AA-%D9%84%D8%A7%D8%AA%D9%8A%D9%87-100%D9%85%D9%84",
+    "title": "Iven sweet Latte 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-sweet-latte",
+    "title": "IVEN Sweet Latte (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.65,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.75,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Le Giardini di Toscana Bianco Latte. Notes from Essenza and SouqScent (agree). Official page is looser: vanilla and jasmine opening, warm woody base with caramel touches. Official copy calls it unisex. Release year not published anywhere found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Classy",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Citrus"
+   ],
+   "middle": [
+    "Rose",
+    "White Flowers"
+   ],
+   "base": [
+    "Sandalwood",
+    "Amber",
+    "Musk"
+   ],
+   "general": []
+  },
+  "family": "Floral Woody",
+  "description": "A refined citrus-rose-sandalwood oriental described as elegant and suited to special occasions.",
+  "image_url": "https://cdn.salla.sa/mWQnb/64f41df8-f6df-41f5-9ce2-5d5911979670-1000x1000-CkNtVw0ukHpNxpJx97LbkU7EACb4ErUYnPQraJfc.jpg",
+  "official_url": "https://iven.sa/classy/p260721970",
+  "sources": [
+   {
+    "url": "https://iven.sa/classy/p260721970",
+    "title": "IVEN official store (iven.sa): Classy",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D9%83%D9%84%D8%A7%D8%B3%D9%8A-100-%D9%85%D9%84",
+    "title": "Iven classy 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-classy",
+    "title": "IVEN Classy (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.9,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.5,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Jeroboam Gozo. Official and Essenza notes agree. Gender is ambiguous: iven.sa lists it under women's perfumes but its text says it is for \"men and women\"; set to unisex at low confidence. Release year not published anywhere found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Cold Fire",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Lemon"
+   ],
+   "middle": [
+    "Patchouli",
+    "Amber"
+   ],
+   "base": [
+    "Sandalwood",
+    "Oak"
+   ],
+   "general": []
+  },
+  "family": "Woody Citrus",
+  "description": "A lemon-led woody citrus with patchouli and amber, billed as a concentrated scent for men and women.",
+  "image_url": "https://cdn.salla.sa/mWQnb/cade5185-f12d-4bc3-9370-bf71ccf34d80-1000x1000-uPVRZrM5vvQRpFOMcNsoudcmzPj82JWHWC424AsF.png",
+  "official_url": "https://iven.sa/cold-fire/p244376991",
+  "sources": [
+   {
+    "url": "https://iven.sa/cold-fire/p244376991",
+    "title": "IVEN official store (iven.sa): Cold Fire",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D9%83%D9%88%D9%84%D8%AF-%D9%81%D8%A7%D9%8A%D8%B1-100-%D9%85%D9%84",
+    "title": "Cold Fire Iven 100ml Eau De Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-cold-fire",
+    "title": "IVEN Cold Fire (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.75,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.75,
+   "concentration": 0.85
+  },
+  "comment": "Marketed as an alternative to Amouage Outlands. Notes only from iven.sa (Essenza gives none). Official base \"خشب البلوط\" translated as oak wood; SouqScent says cedar/amber instead. Official also says it is a \"concentrated\" release. Release year not published: earliest evidence is a customer review on iven.sa dated 2025-08-12; no official launch date found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Noted",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2025",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Raspberry",
+    "Citrus"
+   ],
+   "middle": [
+    "Smoked Tobacco",
+    "Red Berries",
+    "Rose Oil"
+   ],
+   "base": [
+    "Amber",
+    "Warm Woods",
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": "Oriental Fruity",
+  "description": "A smoky tobacco-and-rose fragrance lifted by raspberry and citrus over amber and vanilla.",
+  "image_url": "https://cdn.salla.sa/mWQnb/1c53a615-7200-4534-8280-189bd680cdf4-1000x1000-MlpyuTkQq1bcWufcmLSR2Tr1MkthywxQ7psJ1K4b.jpg",
+  "official_url": "https://iven.sa/noted/p1569755042",
+  "sources": [
+   {
+    "url": "https://iven.sa/noted/p1569755042",
+    "title": "IVEN official store (iven.sa): Noted",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://essenzap.ae/en/products/%D9%86%D9%88%D8%AA%D9%8A%D8%AF-%D8%A7%D9%8A%D9%81%D9%86-100%D9%85%D9%84-%D8%A7%D9%88-%D8%AF%D9%8A-%D8%A8%D8%B1%D9%81%D9%8A%D9%88%D9%85",
+    "title": "noted Iven 100ml Eau de Parfum (Essenza UAE)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "concentration",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0.3,
+   "notes": 0.8,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.7,
+   "concentration": 0.85
+  },
+  "comment": "No \"alternative to\" reference found on any retailer page. Notes only from iven.sa. Gender: official category is unisex. Essenza page for Noted has no usable notes or alternative reference. Release year not published anywhere found. Release year estimated: on sale by 2025 (retailer listing / earliest dated reviews); Iven publishes no launch dates."
+ },
+ {
+  "brand": "Iven",
+  "name": "Badge",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": null,
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Saffron",
+    "Cardamom"
+   ],
+   "middle": [
+    "Oud",
+    "Damask Rose"
+   ],
+   "base": [
+    "Amber",
+    "Sandalwood",
+    "Leather"
+   ],
+   "general": []
+  },
+  "family": "Oud Oriental",
+  "description": "A concentrated saffron, oud and damask-rose oriental with leather and amber depth, described as unisex.",
+  "image_url": "https://cdn.salla.sa/mWQnb/613a815e-fca5-458e-bdea-6fec5f9af6a3-1000x1000-2nFcODJx3uKguJxtZZvlkZUFBQEpCboauviHSiu7.jpg",
+  "official_url": "https://iven.sa/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%A8%D8%A7%D8%AF%D8%AC-100-%D9%85%D9%84/p231283779",
+  "sources": [
+   {
+    "url": "https://iven.sa/%D8%B9%D8%B7%D8%B1-%D8%A7%D9%8A%D9%81%D9%86-%D8%A8%D8%A7%D8%AF%D8%AC-100-%D9%85%D9%84/p231283779",
+    "title": "IVEN official store (iven.sa): Badge",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   },
+   {
+    "url": "https://souqscent.com/products/iven-badge",
+    "title": "IVEN Badge (SouqScent Qatar)",
+    "kind": "retailer",
+    "supports": [
+     "identity",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "release_date": 0,
+   "notes": 0.85,
+   "perfumers": 0,
+   "image": 0.9,
+   "gender": 0.75,
+   "concentration": 0.85
+  },
+  "comment": "No \"alternative to\" reference found on any retailer page. NEW: not sold by Essenza (the 14th Iven perfume, found on iven.sa). Notes from iven.sa and SouqScent agree. Official says it is a concentrated release. Release year not published anywhere found."
+ }
+]
