@@ -655,3 +655,50 @@ def import_files(store, cat, folder: Path, fetch: bool = True) -> list[int]:
                 log=f"Imported {f.name}: {res['new']} new, {res['updated']} updated, {res['skipped']} skipped"))
         runs.append(rid)
     return runs
+
+
+# ---------------------------------------------------------------------------- cleaned-up bottle images in the repo
+def apply_image_files(store, folder: Path) -> int:
+    """Bottle images prepared offline (background removed, centred on white) for candidates still in review.
+
+    data/discovery/images/manifest.json lists {"key", "file", "source"}; each entry is applied once (tracked in meta)
+    to the candidate with that key, unless it is already published (live images are left alone)."""
+    manifest = folder / "manifest.json"
+    if not manifest.is_file():
+        return 0
+    try:
+        entries = json.loads(manifest.read_text("utf-8"))
+    except (OSError, ValueError):
+        return 0
+    done = set(json.loads(store.get_meta("discovery_image_files") or "[]"))
+    applied = 0
+    for e in entries:
+        sig = f"{e.get('key')}|{e.get('file')}"
+        path = folder / str(e.get("file") or "")
+        if sig in done or not e.get("key") or path.parent != folder or not path.is_file():
+            continue
+        with store.eng.begin() as c:
+            r = c.execute(sa.select(discovery_items.c.id, discovery_items.c.state, discovery_items.c.confidence)
+                          .where(discovery_items.c.key == e["key"])).first()
+            if r and r.state != "published":
+                conf = json.loads(r.confidence or "{}")
+                conf["image"] = max(conf.get("image", 0), 0.95)
+                c.execute(discovery_images.delete().where(discovery_images.c.item_id == r.id))
+                c.execute(discovery_images.insert().values(item_id=r.id, data=path.read_bytes(), mime="image/webp",
+                                                           source_url=e.get("source"), fetched_at=int(time.time())))
+                c.execute(discovery_items.update().where(discovery_items.c.id == r.id).values(
+                    confidence=json.dumps(conf), updated_at=int(time.time()),
+                    **({"image_url": e["source"]} if clean_url(e.get("source")) else {})))
+                applied += 1
+        if r:
+            if r.state != "published":
+                recompute(store, r.id)
+            done.add(sig)
+            store.set_meta("discovery_image_files", json.dumps(sorted(done)))
+    return applied
+
+
+def startup_import(store, cat, folder: Path):
+    """At start: research files first (data/discovery/*.json), then the prepared images (data/discovery/images/)."""
+    import_files(store, cat, folder)
+    apply_image_files(store, folder / "images")

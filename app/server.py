@@ -200,7 +200,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
         threading.Thread(target=layering.model, args=(cat,), daemon=True, name="layering-warmup").start()
         if discovery_files is not None:
             # research results committed under data/discovery/ go into the review queue once each (never published)
-            threading.Thread(target=discovery.import_files, args=(store, cat, discovery_files), daemon=True,
+            threading.Thread(target=discovery.startup_import, args=(store, cat, discovery_files), daemon=True,
                              name="discovery-import").start()
         if os.environ.get("SCENT_OPEN") == "1":
             threading.Timer(0.8, lambda: webbrowser.open(f"http://{settings.host}:{settings.port}/")).start()
