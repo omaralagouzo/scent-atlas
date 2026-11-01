@@ -353,3 +353,28 @@ def test_big_images_are_shrunk_with_little_memory():
     Image.new("RGB", (6000, 5000)).save(b, "PNG")
     with pytest.raises(ValueError):
         dz.bottle_webp(b.getvalue())     # over 24 MP: refused before decoding
+
+
+def test_prepared_images_apply_once_and_never_to_published(app, tmp_path):
+    st = app.state.store
+    a = ingest(app, [cand(name="Needs Image", image_url=None)], fetch=False)["ids"][0]
+    b = ingest(app, [cand(name="Already Live")], fetch=False)["ids"][0]
+    with st.eng.begin() as c:
+        c.execute(dz.discovery_items.update().where(dz.discovery_items.c.id == b).values(state="published"))
+    folder = tmp_path / "discovery" / "images"
+    folder.mkdir(parents=True)
+    buf = io.BytesIO()
+    Image.new("RGB", (800, 800), "white").save(buf, "WEBP")
+    (folder / "a.webp").write_bytes(buf.getvalue())
+    (folder / "b.webp").write_bytes(buf.getvalue())
+    key = lambda iid: row(app, iid)["key"]
+    (folder / "manifest.json").write_text(json.dumps([
+        {"key": key(a), "file": "a.webp", "source": "https://shop.example/a.jpg"},
+        {"key": key(b), "file": "b.webp", "source": "https://shop.example/b.jpg"},
+        {"key": "nobody|here|", "file": "a.webp"},
+        {"key": key(a), "file": "../secret.webp"}]))
+    assert dz.apply_image_files(st, folder) == 1
+    r = row(app, a)
+    assert r["state"] == "complete" and json.loads(r["confidence"])["image"] == 0.95 and r["image_url"] == "https://shop.example/a.jpg"
+    assert row(app, b)["image_url"] != "https://shop.example/b.jpg"
+    assert dz.apply_image_files(st, folder) == 0          # once only

@@ -1,0 +1,2003 @@
+[
+ {
+  "brand": "Goutal",
+  "name": "Voile de Santal",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [
+   "Romain Almairac"
+  ],
+  "notes": {
+   "top": [
+    "Fig Milk",
+    "Blackcurrant"
+   ],
+   "middle": [
+    "Sandalwood",
+    "Cedarwood",
+    "Moss"
+   ],
+   "base": [
+    "Oud",
+    "White Musk",
+    "Ambroxan"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://escentual.com/products/annick-goutal-voile-de-santal-eau-de-parfum",
+    "title": "Escentual - Annick Goutal Voile de Santal EDP (listed Sept/Oct 2026)",
+    "kind": "retailer",
+    "supports": [
+     "concentration",
+     "notes.top",
+     "notes.middle",
+     "notes.base (oud, white musk)",
+     "release_date (product published 2026-09/10)"
+    ]
+   },
+   {
+    "url": "https://scentadvice.com/voile-de-santal-2026-annick-goutal/",
+    "title": "ScentAdvice - Voile de Santal (2026)",
+    "kind": "aggregator",
+    "supports": [
+     "perfumers",
+     "notes (ungrouped: neroli, blackcurrant, cypress, fig milk, cedarwood, moss, ambroxan, sandalwood, oud, white musk)"
+    ]
+   },
+   {
+    "url": "https://www.galerieslafayette.com/p/voile+de+santal-eau+de+parfum-annick+goutal/2013277723094/378",
+    "title": "Galeries Lafayette - Voile de Santal EDP (described as 'mixte' and naming perfumer; seen via search snippet, page itself 403 to fetch)",
+    "kind": "retailer",
+    "supports": [
+     "gender",
+     "perfumers"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.65,
+   "release_date": 0.6,
+   "concentration": 0.9,
+   "perfumers": 0.6,
+   "notes": 0.5
+  },
+  "comment": "Existing notes in the DB match Escentual. ScentAdvice also lists neroli and cypress that Escentual doesn't; not added. Gender 'unisex' from Galeries Lafayette ('mixte') via search snippet only."
+ },
+ {
+  "brand": "Astier de Villatte",
+  "name": "Tanger",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": "2026-09",
+  "status": null,
+  "perfumers": [
+   "Sylvie Fischer"
+  ],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Mandarin"
+   ],
+   "middle": [
+    "Neroli",
+    "Orange Blossom"
+   ],
+   "base": [
+    "Maté",
+    "Musk"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.bontongoods.com/products/tanger-eau-de-parfum-100ml-astier-de-villatte-exclusive-pre-order-item",
+    "title": "Bonton - Tanger Eau de Parfum 100ml (new Sept 2026)",
+    "kind": "retailer",
+    "supports": [
+     "concentration",
+     "perfumers",
+     "notes (bergamot, mandarin, neroli, orange blossom, mate, musk)",
+     "release_date"
+    ]
+   },
+   {
+    "url": "https://www.johnderian.com/collections/astier-de-villatte-scents/products.json?limit=250",
+    "title": "John Derian - Tanger perfume/candle (essential oils: bergamot, mandarin, neroli, mate absolute, musk)",
+    "kind": "retailer",
+    "supports": [
+     "notes"
+    ]
+   },
+   {
+    "url": "https://scentadvice.com/tanger-2026-astier-de-villatte/",
+    "title": "ScentAdvice - Tanger 2026",
+    "kind": "aggregator",
+    "supports": [
+     "perfumers",
+     "notes (adds lemon, orange, bitter orange)"
+    ]
+   }
+  ],
+  "confidence": {
+   "release_date": 0.6,
+   "concentration": 0.8,
+   "perfumers": 0.8,
+   "notes": 0.6
+  },
+  "comment": "Retailers say top/heart/base are not structured; I assigned citrus to top, neroli/orange blossom to middle, mate/musk to base following the existing DB layout. Existing DB also had lemon, orange, bitter orange from ScentAdvice (aggregator) - retailer only lists bergamot, mandarin. Gender not stated by any source found."
+ },
+ {
+  "brand": "Carner Barcelona",
+  "name": "Crema Vainilla",
+  "concentration": "Extrait de Parfum",
+  "gender": "unisex",
+  "release_date": "2026-09",
+  "status": null,
+  "perfumers": [
+   "Jordi Fernandez"
+  ],
+  "notes": {
+   "top": [
+    "Sweet Almond",
+    "Crema Catalana Accord"
+   ],
+   "middle": [
+    "Praline",
+    "Moroccan Iris Absolute",
+    "Milk Accord"
+   ],
+   "base": [
+    "Madagascan Vanilla",
+    "Creamy Musk",
+    "Venezuelan Roasted Tonka Bean"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://carnerbarcelona.com/products/crema-vainilla-perfume",
+    "title": "Carner Barcelona - Crema Vainilla (official; page title 'Unisex Gourmand Perfume')",
+    "kind": "official",
+    "supports": [
+     "gender",
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://nstperfume.com/2026/10/07/carner-barcelona-crema-vainilla-new-fragrance/",
+    "title": "NST Perfume - Carner Barcelona Crema Vainilla (7 Oct 2026)",
+    "kind": "news",
+    "supports": [
+     "perfumers"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.9,
+   "concentration": 0.95,
+   "perfumers": 0.5,
+   "notes": 0.95,
+   "release_date": 0.5
+  },
+  "comment": "Official notes differ slightly from DB (cinnamon not listed officially; official has Moroccan Iris Absolute, Madagascan Vanilla, Creamy Musk, Venezuelan Roasted Tonka Bean). Recommend replacing DB notes with official ones. Release date not stated by brand; blog dated 2026-10-07 and existing DB value 2026-09 kept at low confidence."
+ },
+ {
+  "brand": "Chanel",
+  "name": "Paris-St. Moritz",
+  "concentration": "EDT",
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [
+   "Olivier Polge"
+  ],
+  "notes": {
+   "top": [],
+   "middle": [],
+   "base": [],
+   "general": [
+    "Pear",
+    "Rose",
+    "Amber",
+    "Musk"
+   ]
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.chanel.com/gb/fragrance/p/102450/paris-st-moritz-les-eaux-de-chanel-eau-de-toilette-spray/",
+    "title": "Chanel UK - Paris-St. Moritz Les Eaux de Chanel EDT (official, ref 102450, marked 'New'; 125ml GBP145, 50ml GBP102)",
+    "kind": "official",
+    "supports": [
+     "concentration",
+     "perfumers",
+     "notes.general (fresh fruity pear accord, rose facet, musky-ambery notes)"
+    ]
+   },
+   {
+    "url": "https://nstperfume.com/2026/10/03/chanel-paris-st-moritz-new-fragrance/",
+    "title": "NST Perfume - Chanel Paris-St. Moritz (3 Oct 2026)",
+    "kind": "news",
+    "supports": [
+     "release_date"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/Chanel/paris-st-moritz",
+    "title": "Parfumo - Paris-St. Moritz",
+    "kind": "aggregator",
+    "supports": [
+     "gender (women and men)"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.8,
+   "concentration": 0.95,
+   "perfumers": 0.95,
+   "notes": 0.9
+  },
+  "comment": "Only image was missing; DB image_url is the same official packshot but is a transparent PNG with a cropped URL - the 2112px URL verified OK. Chanel gives no structured notes; official composition: pear accord, rose, musky-ambery notes."
+ },
+ {
+  "brand": "Dolce&Gabbana",
+  "name": "Velvet Amber Sage",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [
+   "Jordi Fernandez"
+  ],
+  "notes": {
+   "top": [
+    "Clary Sage",
+    "Bergamot",
+    "Praline"
+   ],
+   "middle": [
+    "Cinnamon",
+    "Tonka Bean",
+    "Green Notes"
+   ],
+   "base": [
+    "Cedarwood",
+    "Amber"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.sephora.com/product/velvet-amber-sage-eau-de-parfum-P526964",
+    "title": "Sephora US - Velvet Amber Sage EDP (new; tagged Unisex; notes via search snippet, page 403 to direct fetch)",
+    "kind": "retailer",
+    "supports": [
+     "gender",
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://world.dolcegabbana.com/beauty/dolce-gabbana-velvet-collection-fragrances",
+    "title": "Dolce&Gabbana Beauty - Velvet Collection page ('New in: Velvet Amber Sage', master perfumer Jordi Fernandez)",
+    "kind": "official",
+    "supports": [
+     "perfumers"
+    ]
+   },
+   {
+    "url": "https://www.perfumenetwork.in/blogs/news/dolce-gabbana-velvet-amber-sage-notes-launch-first-look",
+    "title": "Perfume Network - D&G Velvet Amber Sage launch first look (worldwide launch Oct 2026)",
+    "kind": "news",
+    "supports": [
+     "release_date",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/Dolce_Gabbana/velvet-amber-sage",
+    "title": "Parfumo - Velvet Amber Sage (women and men, 2026)",
+    "kind": "aggregator",
+    "supports": [
+     "gender"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.6,
+   "concentration": 0.9,
+   "perfumers": 0.9,
+   "notes": 0.7
+  },
+  "comment": "Retailer notes add Bergamot and Green Notes to the DB list; DB's 'Roasted Tonka Bean' is plain 'Tonka Bean' at Sephora. Name matches 'Velvet Amber Sage'."
+ },
+ {
+  "brand": "Jo Loves",
+  "name": "Nutmeg & Incense",
+  "concentration": "Parfum",
+  "gender": null,
+  "release_date": "2026-09",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Nutmeg",
+    "Black Pepper",
+    "Allspice Leaf"
+   ],
+   "middle": [
+    "Coriander Seed",
+    "Kephalis",
+    "Incense",
+    "Myrrh"
+   ],
+   "base": [
+    "Akigalawood",
+    "Patchouli",
+    "Cistus",
+    "Ambrofix"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.joloves.com/products/nutmeg-incense-a-fragrance-100ml",
+    "title": "Jo Loves - Nutmeg & Incense, A Fragrance (100ml) GBP135 (official; Christmas/limited edition, tag 'new')",
+    "kind": "official",
+    "supports": [
+     "notes (top/middle/base)",
+     "concentration (bottle label reads 'A Fragrance / Parfum')",
+     "release_date (product published 2026-09-03 / listed 2026-09-28)"
+    ]
+   }
+  ],
+  "confidence": {
+   "release_date": 0.5,
+   "concentration": 0.5,
+   "notes": 0.95
+  },
+  "comment": "Official notes add Cistus and Ambrofix to base vs DB general list; DB general list can be replaced with top/middle/base. Limited edition. Brand calls it 'A Fragrance' (label also says Parfum); gender not stated. Perfumer not found. Product created on site 2026-09-03 (DB says 2026-10)."
+ },
+ {
+  "brand": "Jo Malone London",
+  "name": "Tangerine & Honey",
+  "concentration": "Cologne",
+  "gender": "unisex",
+  "release_date": null,
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [],
+   "middle": [],
+   "base": [],
+   "general": [
+    "Tangerine",
+    "Honey",
+    "Tobacco Leaf"
+   ]
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://bluemercury.com/products/jo-malone-london-tangerine-and-honey-cologne",
+    "title": "Bluemercury - Tangerine & Honey Cologne (Limited Edition), published 2026-10-07; tagged 'for all'",
+    "kind": "retailer",
+    "supports": [
+     "gender (collection tag 'for all')",
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://scentadvice.com/tangerine-honey-2026-jo-malone/",
+    "title": "ScentAdvice - Tangerine & Honey (2026), part of the 2026 'Tartan Tale' holiday limited edition",
+    "kind": "aggregator",
+    "supports": [
+     "notes",
+     "release (2026 holiday limited edition)"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.55,
+   "concentration": 0.9,
+   "notes": 0.7
+  },
+  "comment": "Bluemercury describes 'fresh tangerine, sweet honey and warm tobacco notes inspired by a Scottish liqueur'; ScentAdvice lists tangerine, honey, tobacco leaf. DB has 'Clove' which no source I found supports - suggest replacing with Tobacco Leaf. Release date not confirmed (Bluemercury published 2026-10-07, limited-edition holiday release); perfumer not found. jomalone.com blocked (403)."
+ },
+ {
+  "brand": "Jo Malone London",
+  "name": "Vanilla Scotch",
+  "concentration": "Cologne",
+  "gender": "unisex",
+  "release_date": null,
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [],
+   "middle": [],
+   "base": [],
+   "general": [
+    "Vanilla",
+    "Scotch Accord",
+    "Golden Amber",
+    "Roasted Tonka Bean"
+   ]
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://bluemercury.com/products/jo-malone-london-vanilla-scotch-cologne",
+    "title": "Bluemercury - Vanilla Scotch Cologne (Limited Edition), published 2026-10-07; tagged 'for all'",
+    "kind": "retailer",
+    "supports": [
+     "gender (collection tag 'for all')",
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://scentadvice.com/vanilla-scotch-2026-jo-malone/",
+    "title": "ScentAdvice - Vanilla Scotch (2026), part of the 2026 'Tartan Tale' holiday limited edition",
+    "kind": "aggregator",
+    "supports": [
+     "notes",
+     "release (2026 holiday limited edition)"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.55,
+   "concentration": 0.9,
+   "notes": 0.7
+  },
+  "comment": "Bluemercury: 'natural vanilla, Scotch accord and golden amber with roasted tonka bean' (DB already matches). Release date not confirmed (Bluemercury published 2026-10-07); perfumer not found; jomalone.com blocked (403)."
+ },
+ {
+  "brand": "L'Entropiste",
+  "name": "Festin",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026-09",
+  "status": null,
+  "perfumers": [
+   "Bertrand Duchaufour"
+  ],
+  "notes": {
+   "top": [
+    "Blackberry",
+    "Violet Leaf",
+    "Truffle Accord"
+   ],
+   "middle": [
+    "Caviar Accord",
+    "Shagreen Leather",
+    "Marine Accord"
+   ],
+   "base": [
+    "Oud",
+    "Ambergris Accord"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://lentropiste.com/products/festin",
+    "title": "L'Entropiste - Festin (official; 50ml EUR248 / 100ml EUR338; product published 2026-09-30)",
+    "kind": "official",
+    "supports": [
+     "concentration (box: Eau de Parfum)",
+     "release_date"
+    ]
+   },
+   {
+    "url": "https://www.premiumbeautynews.com/en/l-entropiste-indulges-in-olfactory,28383",
+    "title": "Premium Beauty News - L'Entropiste indulges in olfactory excess (21 Oct 2026)",
+    "kind": "news",
+    "supports": [
+     "perfumers",
+     "notes",
+     "concentration (25%)"
+    ]
+   },
+   {
+    "url": "https://www.maxaroma.com/fragrance/unisex/lentropiste-festin/pid/42907/4",
+    "title": "MaxAroma - L'Entropiste Festin (listed under unisex)",
+    "kind": "retailer",
+    "supports": [
+     "gender"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.6,
+   "release_date": 0.6,
+   "concentration": 0.95,
+   "perfumers": 0.85,
+   "notes": 0.7
+  },
+  "comment": "Official site gives no notes in English; notes from Premium Beauty News (caviar's tier is ambiguous in the article - DB placed it in top; I placed it in middle with Shagreen Leather). Added Violet Leaf and Marine facet vs DB."
+ },
+ {
+  "brand": "Régime des Fleurs",
+  "name": "Dark Subtle Teas",
+  "concentration": "Extrait de Parfum",
+  "gender": "unisex",
+  "release_date": "2026-09",
+  "status": null,
+  "perfumers": [
+   "Alia Raza"
+  ],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Bitter Orange",
+    "Benzoin"
+   ],
+   "middle": [
+    "Black Tea",
+    "Rooibos",
+    "Maté"
+   ],
+   "base": [
+    "Cedarwood",
+    "Patchouli",
+    "Vetiver"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://nstperfume.com/2026/09/27/regime-des-fleurs-dark-subtle-teas-new-fragrance/",
+    "title": "Now Smell This - Regime des Fleurs Dark Subtle Teas (27 Sep 2026; limited edition, 30ml Extrait de Parfum, USD220)",
+    "kind": "news",
+    "supports": [
+     "release_date",
+     "concentration",
+     "perfumers",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://theweartest.com/products/dark-subtle-teas-regime-des-fleurs",
+    "title": "The Wear Test - Dark Subtle Teas (listed 2026-09-25)",
+    "kind": "retailer",
+    "supports": [
+     "notes (bitter orange, bergamot opening; benzoin; black tea, rooibos, mate; cedar, patchouli, vetiver)",
+     "release_date"
+    ]
+   },
+   {
+    "url": "https://fragplace.com/en/fragrances/97018/regime-des-fleurs/dark-subtle-teas",
+    "title": "Fragplace - Dark Subtle Teas (Alia Raza, 2026)",
+    "kind": "aggregator",
+    "supports": [
+     "perfumers",
+     "notes tiers"
+    ]
+   },
+   {
+    "url": "https://www.fragrantica.com/perfume/Regime-des-Fleurs/Dark-Subtle-Teas-143157.html",
+    "title": "Fragrantica - Dark Subtle Teas ('for women and men', 2026)",
+    "kind": "aggregator",
+    "supports": [
+     "gender"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.5,
+   "release_date": 0.75,
+   "concentration": 0.85,
+   "perfumers": 0.7,
+   "notes": 0.8
+  },
+  "comment": "Limited edition, brand PDP (regimedesfleurs.com/products/dark-subtle-teas) was 'available until Oct 19' and now 404s, so no official image available. Best images are third-party; Fragrantica fimgs.net images are only 375x500 (too small, not used)."
+ },
+ {
+  "brand": "Profumum Roma",
+  "name": "Dolce Artica",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026-09-25",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Lemon",
+    "Mandarin",
+    "Blueberry"
+   ],
+   "middle": [
+    "Wild Strawberry",
+    "Tonka Bean"
+   ],
+   "base": [
+    "Vanilla",
+    "Wild Raspberry",
+    "Sandalwood"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.gents.se/profumum-roma-dolce-artica-x-gents-parfum",
+    "title": "Gents.se - Profumum Roma x Gents Dolce Artica Parfum, 100ml SEK2995 (exclusive retailer; top/heart/base notes in Swedish)",
+    "kind": "retailer",
+    "supports": [
+     "notes (Citron, Mandarin, Blabar / Smultron, Tonkaboen / Vanilj, Vildhallon, Sandelträ)",
+     "concentration (shop category 'Parfum')"
+    ]
+   },
+   {
+    "url": "https://nstperfume.com/2026/10/14/profumum-dolce-artica-new-fragrance/",
+    "title": "Now Smell This - Profumum Dolce Artica (14 Oct 2026; exclusive to Gents, 100ml Eau de Parfum)",
+    "kind": "news",
+    "supports": [
+     "concentration (EDP)",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.fragrantica.com/news/Gents-x-Profumum-Roma-Dolce-Artica-26184.html",
+    "title": "Fragrantica news - Gents x Profumum Roma: Dolce Artica (introduced 25 Sep 2026, limited to 300 bottles; search snippet)",
+    "kind": "aggregator",
+    "supports": [
+     "release_date",
+     "gender (listed for women and men)"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.5,
+   "release_date": 0.6,
+   "concentration": 0.5,
+   "notes": 0.9
+  },
+  "comment": "Exists: a limited (reportedly 300 bottles) Gents-exclusive collaboration, 100ml only; Fragrantica spells it 'Dolce Arctica x Gents'. Concentration conflicting: NST says Eau de Parfum, Gents shop files it under 'Parfum' - EDP kept. Gents.se is a men's-grooming shop but Fragrantica lists it as women and men. Notes confirmed; no perfumer named. Not on profumum.com."
+ },
+ {
+  "brand": "Philosophy",
+  "name": "Summer Grace Tropical Summer",
+  "concentration": "EDT",
+  "gender": "women",
+  "release_date": "2026-05",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [],
+   "middle": [],
+   "base": [],
+   "general": [
+    "Coconut Water",
+    "Watermelon",
+    "Creamy Sandalwood"
+   ]
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://philosophy.com/products/summer-grace-tropical-summer-eau-de-toilette",
+    "title": "philosophy.com - summer grace tropical summer eau de toilette (limited edition, 4oz USD84; page created 2026-04, published 2026-10 on site)",
+    "kind": "official",
+    "supports": [
+     "concentration",
+     "notes (coconut water, chilled watermelon, creamy sandalwood)"
+    ]
+   },
+   {
+    "url": "https://nstperfume.com/2026/05/21/philosophy-summer-grace-x-3-new-fragrances/",
+    "title": "Now Smell This - Philosophy Summer Grace x 3 new fragrances (21 May 2026)",
+    "kind": "news",
+    "supports": [
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.5,
+   "release_date": 0.8,
+   "concentration": 0.95,
+   "notes": 0.95
+  },
+  "comment": "Exists (limited-edition Summer Grace flanker, launched May 2026 with Sea of Love and Waterfront Escape). Not to be confused with the older 'Pure Grace Tropical Summer'. Gender not stated by brand; DB 'women' kept (Philosophy markets Summer Grace as women's). Official gallery has no bottle-only packshot; third-party retailers (Ulta, Sephora, Macy's, Kohl's, Amazon) do not list this flanker yet, so best available is the coconut-prop image."
+ },
+ {
+  "brand": "Nishane",
+  "name": "Hacivat Arlecchino",
+  "concentration": "Extrait de Parfum",
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [
+   "Julien Rasquinet"
+  ],
+  "notes": {
+   "top": [
+    "Pineapple",
+    "Limoncello"
+   ],
+   "middle": [
+    "Jasmine",
+    "Honey",
+    "Cedarwood",
+    "Patchouli"
+   ],
+   "base": [
+    "Oakmoss",
+    "Dry Woods",
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.vittoriocitro.it/products/nishane-hacivat-arlecchino-extrait-de-parfum-50-ml",
+    "title": "Vittorio Citro - Nishane Hacivat Arlecchino Extrait de Parfum 50 ml (listed 2026-10-30; concentration, perfumer, tiered notes)",
+    "kind": "retailer",
+    "supports": [
+     "concentration",
+     "perfumers",
+     "notes (top/middle/base)",
+     "gender (tagged women and men)"
+    ]
+   },
+   {
+    "url": "https://scentadvice.com/hacivat-arlecchino-2026-nishane/",
+    "title": "ScentAdvice - Hacivat Arlecchino (2026); Italian-market special edition",
+    "kind": "aggregator",
+    "supports": [
+     "perfumers",
+     "notes",
+     "release_date (2026)"
+    ]
+   },
+   {
+    "url": "https://www.5starselitemagazine.it/nishane-2/",
+    "title": "5 Stars Elite Magazine - Nishane dresses two classics for Italy: Arlecchino and Amarena",
+    "kind": "news",
+    "supports": [
+     "Italy-exclusive special edition (distributed by Cale)"
+    ]
+   },
+   {
+    "url": "https://parenteprofumeria.com/products/nishane-hacivat-arlecchino-extrai-de-parfum",
+    "title": "Parente Profumeria - Hacivat Arlecchino EDP 50ml (tags: Profumi unisex)",
+    "kind": "retailer",
+    "supports": [
+     "gender",
+     "notes (tiers listed inconsistently)"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.55,
+   "release_date": 0.6,
+   "concentration": 0.9,
+   "perfumers": 0.85,
+   "notes": 0.85
+  },
+  "comment": "Exists: Italy-only special edition of Hacivat (50ml Extrait de Parfum, around EUR245), distributed by Cale; retailer pages appeared 23-30 Oct 2026. Notes tiers match the DB exactly (Vittorio Citro). Not on nishane.com. Gender not stated officially; Italian retailers tag it both women and men / unisex."
+ },
+ {
+  "brand": "Rabanne",
+  "name": "Phantom Rock",
+  "concentration": null,
+  "gender": "men",
+  "release_date": null,
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [],
+   "middle": [],
+   "base": [],
+   "general": [
+    "Rhubarb",
+    "Eucalyptus",
+    "Toasted sandalwood"
+   ]
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.olfastory.com/en/perfume/paco-rabanne-phantom-rock",
+    "title": "Phantom Rock (Paco Rabanne) - Olfastory",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "notes",
+     "announcement 2026-09-23"
+    ]
+   },
+   {
+    "url": "https://scentadvice.com/phantom-rock-2026-paco-rabanne/",
+    "title": "PHANTOM ROCK (2026) - ScentAdvice",
+    "kind": "aggregator",
+    "supports": [
+     "existence"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.75,
+   "notes": 0.7
+  },
+  "comment": "Exists as a Rabanne announcement (23 Sep 2026, launches alongside Fame Pink). No Rabanne/retailer product page found yet (rabanne.com, Sephora, Notino, Douglas, Fragrantica, Parfumo all negative). Concentration, size, perfumer and exact release date are unpublished; leave release_date at the existing 2026-09 only as 'announced'. Notes are the house's three-material description (no tiers)."
+ },
+ {
+  "brand": "Rabanne",
+  "name": "Fame Pink",
+  "concentration": null,
+  "gender": "women",
+  "release_date": null,
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [],
+   "middle": [],
+   "base": [],
+   "general": [
+    "Blackberry jam",
+    "Peony",
+    "Soft musk"
+   ]
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.olfastory.com/en/perfume/paco-rabanne-fame-pink",
+    "title": "Fame Pink (Paco Rabanne) - Olfastory",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "notes",
+     "announcement 2026-09-23"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.75,
+   "notes": 0.7
+  },
+  "comment": "No clean image found. Announced 23 Sep 2026 with Phantom Rock, but no Rabanne/retailer/Fragrantica/Parfumo product page or campaign visual exists yet. The only image online (Olfastory fame-pink-3.jpg, 600x600) shows the old Fame Blooming Pink 2023 collector bottle, which is a different product - rejected. Re-check in a few weeks. Concentration/perfumer/release date unpublished."
+ },
+ {
+  "brand": "Floraïku",
+  "name": "Make My Heart Sing",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": null,
+  "status": null,
+  "perfumers": [
+   "Aliénor Massenet (Symrise)"
+  ],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.glossy.co/beauty/beauty-briefing-would-you-buy-a-775-fragrance-sight-unseen/",
+    "title": "Beauty Briefing: Would you buy a $775 fragrance sight unseen? - Glossy",
+    "kind": "news",
+    "supports": [
+     "existence",
+     "perfumer",
+     "collection Edition 3776",
+     "price 775 USD"
+    ]
+   }
+  ],
+  "confidence": {
+   "concentration": 0.55,
+   "perfumers": 0.7
+  },
+  "comment": "No images available: the four Edition 3776 additions are not yet published on floraiku.com / us.floraiku.com / fr.floraiku.com (the editions-3776 collection JSON still lists only I Am Not A Flower and, in the US, Friday Night; guessed product handles 404), and are absent from Parfumo, Fragrantica (blocked, search finds nothing) and retailers. Existence rests on a single Glossy article (about 20 Oct 2026; $775 per bottle, US online only). Existing 'I Am Not A Flower' pack shots are not usable for these. Re-check floraiku.com on/after 2 Nov. Notes in the DB could not be corroborated. Gender not stated (earlier Floraiku perfumes are listed women and men). Concentration EDP is inferred from the rest of the Edition 3776 line (Abanuc lists 'I Am Not A Flower - 3776 Edition Eau de Parfum')."
+ },
+ {
+  "brand": "Floraïku",
+  "name": "Many Different Stories",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": null,
+  "status": null,
+  "perfumers": [
+   "Shinichiro Oba (IFF)"
+  ],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.glossy.co/beauty/beauty-briefing-would-you-buy-a-775-fragrance-sight-unseen/",
+    "title": "Beauty Briefing: Would you buy a $775 fragrance sight unseen? - Glossy",
+    "kind": "news",
+    "supports": [
+     "existence",
+     "perfumer",
+     "collection Edition 3776",
+     "price 775 USD"
+    ]
+   }
+  ],
+  "confidence": {
+   "concentration": 0.55,
+   "perfumers": 0.7
+  },
+  "comment": "No images available: the four Edition 3776 additions are not yet published on floraiku.com / us.floraiku.com / fr.floraiku.com (the editions-3776 collection JSON still lists only I Am Not A Flower and, in the US, Friday Night; guessed product handles 404), and are absent from Parfumo, Fragrantica (blocked, search finds nothing) and retailers. Existence rests on a single Glossy article (about 20 Oct 2026; $775 per bottle, US online only). Existing 'I Am Not A Flower' pack shots are not usable for these. Re-check floraiku.com on/after 2 Nov. Notes in the DB could not be corroborated. Gender not stated (earlier Floraiku perfumes are listed women and men). Concentration EDP is inferred from the rest of the Edition 3776 line (Abanuc lists 'I Am Not A Flower - 3776 Edition Eau de Parfum')."
+ },
+ {
+  "brand": "Floraïku",
+  "name": "Bows & Arrows",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": null,
+  "status": null,
+  "perfumers": [
+   "Gaël Montero (Givaudan)"
+  ],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.glossy.co/beauty/beauty-briefing-would-you-buy-a-775-fragrance-sight-unseen/",
+    "title": "Beauty Briefing: Would you buy a $775 fragrance sight unseen? - Glossy",
+    "kind": "news",
+    "supports": [
+     "existence",
+     "perfumer",
+     "collection Edition 3776",
+     "price 775 USD"
+    ]
+   }
+  ],
+  "confidence": {
+   "concentration": 0.55,
+   "perfumers": 0.7
+  },
+  "comment": "No images available: the four Edition 3776 additions are not yet published on floraiku.com / us.floraiku.com / fr.floraiku.com (the editions-3776 collection JSON still lists only I Am Not A Flower and, in the US, Friday Night; guessed product handles 404), and are absent from Parfumo, Fragrantica (blocked, search finds nothing) and retailers. Existence rests on a single Glossy article (about 20 Oct 2026; $775 per bottle, US online only). Existing 'I Am Not A Flower' pack shots are not usable for these. Re-check floraiku.com on/after 2 Nov. Notes in the DB could not be corroborated. Gender not stated (earlier Floraiku perfumes are listed women and men). Concentration EDP is inferred from the rest of the Edition 3776 line (Abanuc lists 'I Am Not A Flower - 3776 Edition Eau de Parfum')."
+ },
+ {
+  "brand": "Floraïku",
+  "name": "Lost for Words",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": null,
+  "status": null,
+  "perfumers": [
+   "Gaël Montero (Givaudan)"
+  ],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.glossy.co/beauty/beauty-briefing-would-you-buy-a-775-fragrance-sight-unseen/",
+    "title": "Beauty Briefing: Would you buy a $775 fragrance sight unseen? - Glossy",
+    "kind": "news",
+    "supports": [
+     "existence",
+     "perfumer",
+     "collection Edition 3776",
+     "price 775 USD"
+    ]
+   }
+  ],
+  "confidence": {
+   "concentration": 0.55,
+   "perfumers": 0.7
+  },
+  "comment": "No images available: the four Edition 3776 additions are not yet published on floraiku.com / us.floraiku.com / fr.floraiku.com (the editions-3776 collection JSON still lists only I Am Not A Flower and, in the US, Friday Night; guessed product handles 404), and are absent from Parfumo, Fragrantica (blocked, search finds nothing) and retailers. Existence rests on a single Glossy article (about 20 Oct 2026; $775 per bottle, US online only). Existing 'I Am Not A Flower' pack shots are not usable for these. Re-check floraiku.com on/after 2 Nov. Notes in the DB could not be corroborated. Gender not stated (earlier Floraiku perfumes are listed women and men). Concentration EDP is inferred from the rest of the Edition 3776 line (Abanuc lists 'I Am Not A Flower - 3776 Edition Eau de Parfum')."
+ },
+ {
+  "brand": "Tate McRae",
+  "name": "Tate 01",
+  "concentration": "EDP",
+  "gender": "women",
+  "release_date": "2026-10-01",
+  "status": null,
+  "perfumers": [
+   "Adriana Medina",
+   "Antoine Maisondieu"
+  ],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Clary Sage"
+   ],
+   "middle": [
+    "Orange Blossom",
+    "Hedione",
+    "Iso E Super"
+   ],
+   "base": [
+    "Moss",
+    "Tonka Bean",
+    "Amber",
+    "Sandalwood"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.tatebytm.com/products/eau-de-parfum",
+    "title": "Tate 01 Eau de Parfum - official",
+    "kind": "official",
+    "supports": [
+     "concentration",
+     "notes (top/heart/base)"
+    ]
+   },
+   {
+    "url": "https://www.mannpublications.com/mannabouttown/2026/10/01/global-icon-tate-mcrae-launches-namesake-fragrance-brand-in-partnership-with-scent-beauty/",
+    "title": "Tate McRae launches namesake fragrance (press release)",
+    "kind": "news",
+    "supports": [
+     "release_date",
+     "perfumers",
+     "'scent of a girl' positioning"
+    ]
+   },
+   {
+    "url": "https://cosmeticsbusiness.com/tate-mcrae-first-fragrance-tate-01-with-scent-beauty",
+    "title": "Cosmetics Business",
+    "kind": "news",
+    "supports": [
+     "perfumers",
+     "Ulta dates 16/25 Oct"
+    ]
+   },
+   {
+    "url": "https://www.fragrantica.com/perfume/Tate-McRae/Tate-01-144241.html",
+    "title": "Fragrantica Tate 01",
+    "kind": "aggregator",
+    "supports": [
+     "notes base",
+     "gender listed women and men"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/tate-mcrae/tate-01-eau-de-parfum",
+    "title": "Parfumo Tate 01 EDP",
+    "kind": "aggregator",
+    "supports": [
+     "gender women"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.45,
+   "release_date": 0.9,
+   "concentration": 0.95,
+   "perfumers": 0.95,
+   "notes": 0.85
+  },
+  "comment": "Gender is not stated officially; the press release speaks of 'the scent of a girl'; Parfumo says women, Fragrantica says women and men - so women at low confidence (could be left null). Base notes: official site lists moss + tonka; press/Fragrantica add amber, sandalwood. DTC launch 1 Oct 2026 on tatebytm.com; Ulta online 16 Oct, stores 25 Oct."
+ },
+ {
+  "brand": "Parfums Quartana",
+  "name": "Bleeding Heart",
+  "concentration": "Parfum",
+  "gender": "unisex",
+  "release_date": "2026-10-21",
+  "status": null,
+  "perfumers": [
+   "Laure Breysse"
+  ],
+  "notes": {
+   "top": [
+    "Rose Oxide",
+    "Cardamom",
+    "Grapefruit",
+    "Cocoa"
+   ],
+   "middle": [
+    "Bulgarian Rose",
+    "Strawberry",
+    "Peony"
+   ],
+   "base": [
+    "White Chocolate",
+    "Caramel",
+    "Vanilla",
+    "Amberwood",
+    "White Musk"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://six-scents.com/products/bleeding-heart",
+    "title": "Parfums Quartana official shop (read via fetch tool; site blocks curl)",
+    "kind": "official",
+    "supports": [
+     "concentration 20% parfum 50 ml",
+     "perfumer Laure Breysse (Symrise)",
+     "release 21 Oct",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://fragplace.com/en/blog/bleeding-heart-by-parfums-quartana",
+    "title": "Fragplace: Bleeding Heart",
+    "kind": "news",
+    "supports": [
+     "release 21 Oct 2026",
+     "perfumer (spelled Brysse)",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.fragrantica.com/perfume/Parfums-Quartana/Bleeding-Heart-144173.html",
+    "title": "Fragrantica",
+    "kind": "aggregator",
+    "supports": [
+     "gender women and men",
+     "perfumer"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.55,
+   "release_date": 0.9,
+   "concentration": 0.8,
+   "perfumers": 0.9,
+   "notes": 0.9
+  },
+  "comment": "Official shop page does not state gender; Fragrantica lists women and men (brand's Potions Fatales are unisex). The box+bottle zipify image on six-scents is not suitable (box in frame). The current DB image is a campaign collage."
+ },
+ {
+  "brand": "Xerjoff",
+  "name": "Primi Venti",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Black Currant",
+    "Blackberry",
+    "Blueberry"
+   ],
+   "middle": [
+    "Iris",
+    "Jasmine",
+    "Caramel",
+    "Tuberose",
+    "White Flowers"
+   ],
+   "base": [
+    "Amber",
+    "White Musk",
+    "Patchouli",
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.olfastory.com/en/perfume/xerjoff-primi-venti",
+    "title": "Olfastory",
+    "kind": "aggregator",
+    "supports": [
+     "Advent calendar exclusive",
+     "notes",
+     "unisex",
+     "concentration/perfumer unpublished"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/Xerjoff/primi-venti",
+    "title": "Parfumo",
+    "kind": "aggregator",
+    "supports": [
+     "notes",
+     "women and men",
+     "limited"
+    ]
+   },
+   {
+    "url": "https://www.scento.com/perfumes/primi-venti-xerjoff",
+    "title": "Scento",
+    "kind": "retailer",
+    "supports": [
+     "notes",
+     "2026, 20th anniversary"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.8,
+   "notes": 0.75
+  },
+  "comment": "Important: per Olfastory/Parfumo this is NOT sold as a standalone bottle - it is an exclusive in Xerjoff's 2026 twelve-day Advent calendar, and not on xerjoff.com. Concentration (EDP in DB), size and perfumer are unpublished (scento only says 'eau de parfum'). The bottle in the image is the Xerjoff 50 ml-style 'Primi Venti' bottle."
+ },
+ {
+  "brand": "Kayali Fragrances",
+  "name": "Yum Vanilla Cupcake | 108 Eau de Parfum",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": "2026-10-30",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Lemon Sugar",
+    "Rainbow Sprinkles",
+    "Pink Pepper"
+   ],
+   "middle": [
+    "White Caramel",
+    "Coconut Flakes",
+    "Sweet Milk",
+    "Buttercream"
+   ],
+   "base": [
+    "Vanilla Frosting",
+    "White Amber",
+    "Kayali Signature Accord"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://kayali.com/en-ae/products/yum-vanilla-cupcake-108",
+    "title": "Kayali official product page (JSON)",
+    "kind": "official",
+    "supports": [
+     "name/concentration",
+     "description: lemon sugar, sprinkles, white caramel, coconut flakes, sweet milk, vanilla frosting"
+    ]
+   },
+   {
+    "url": "https://cosmeticsbusiness.com/kayali-expands-yum-fragrance-line-with-vanilla-cupcake",
+    "title": "Cosmetics Business",
+    "kind": "news",
+    "supports": [
+     "global launch 30 Oct 2026"
+    ]
+   },
+   {
+    "url": "https://www.sephora.com/product/vanilla-cupcake-108-eau-de-parfum-P526397",
+    "title": "Sephora US",
+    "kind": "retailer",
+    "supports": [
+     "limited edition, sizes"
+    ]
+   }
+  ],
+  "confidence": {
+   "release_date": 0.9,
+   "concentration": 0.9,
+   "notes": 0.7
+  },
+  "comment": "Gender not stated anywhere (Kayali does not label) - left null. Pink pepper / buttercream / white amber / signature accord come from the existing DB notes (not visible in the official blurb). A separate 'Yum Vanilla Cupcake | 108 Limited Edition' (with sprinkles cap) exists - this image is the standard edition."
+ },
+ {
+  "brand": "Phlur",
+  "name": "Heavy Cream Eau de Parfum",
+  "concentration": "EDP",
+  "gender": null,
+  "release_date": null,
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Lemon",
+    "Vanilla Mousse"
+   ],
+   "middle": [
+    "Orange Blossom",
+    "White Orchid",
+    "Tiare Flower"
+   ],
+   "base": [
+    "Amber Woods",
+    "Musk"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.sephora.fr/p/heavy-cream---eau-de-parfum-826496.html",
+    "title": "Sephora FR (via search snippet)",
+    "kind": "retailer",
+    "supports": [
+     "notes pyramid"
+    ]
+   },
+   {
+    "url": "https://www.whowhatwear.com/beauty/fragrance/phlur-heavy-cream-eau-de-parfum-review",
+    "title": "Who What Wear",
+    "kind": "news",
+    "supports": [
+     "notes, $99 EDP"
+    ]
+   }
+  ],
+  "confidence": {
+   "concentration": 0.95,
+   "notes": 0.85
+  },
+  "comment": "Gender not stated by Phlur/Sephora - left null. Release date not verified (Sephora/Phlur pages blocked to curl; DB value 2026-10-20 unchecked). sku 3009503 is the 9.5 ml rollerball - do not use. phlur.com is behind a bot wall."
+ },
+ {
+  "brand": "Zara",
+  "name": "Seasons Sweet Resin & Saffron",
+  "concentration": "Parfum",
+  "gender": "unisex",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bitter Orange"
+   ],
+   "middle": [
+    "Saffron",
+    "Cinnamon"
+   ],
+   "base": [
+    "Resin",
+    "Incense"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.zara.com/us/en/zara-seasons-sweet-resin---saffron-parfum-100ml--3-4-fl--oz---p20110484.html",
+    "title": "Zara official product page (via ?ajax=true JSON)",
+    "kind": "official",
+    "supports": [
+     "name, 100 ml, description, notes"
+    ]
+   },
+   {
+    "url": "https://www.fragrantica.com/perfume/Zara/Sweet-Resin-Saffron-144286.html",
+    "title": "Fragrantica",
+    "kind": "aggregator",
+    "supports": [
+     "women and men, 2026",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://vivir.com/article/zara-sweet-resin-saffron",
+    "title": "Vivir review",
+    "kind": "news",
+    "supports": [
+     "unisex, 2026"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.8,
+   "concentration": 0.7,
+   "notes": 0.8
+  },
+  "comment": "Zara's own 4 images are all editorial (bottle on cracked clay, orange slices, smoke, saffron) - no clean packshot, so the Fragrantica packshot is used. Zara markets it as 'a collection created by Ms. Jo Malone CBE' (creative direction, not necessarily perfumer; Fragrantica lists Jo Malone as nose, another source Olivier Cresp) - perfumers left empty. Zara name says PARFUM; Vivir calls it EDP. Zara page text: saffron, bitter orange (opening), incense."
+ },
+ {
+  "brand": "Zara",
+  "name": "Soft Magnolia",
+  "concentration": "EDT",
+  "gender": "women",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Pear"
+   ],
+   "middle": [
+    "Gardenia"
+   ],
+   "base": [
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.parfumo.com/Perfumes/Zara/soft-magnolia",
+    "title": "Parfumo Soft Magnolia",
+    "kind": "aggregator",
+    "supports": [
+     "2026, women, notes Pear/Gardenia/Vanilla, Day Collection"
+    ]
+   },
+   {
+    "url": "https://www.zara.com/us/en/soft-magnolia-edt-90ml--3-04-fl--oz---p20120936.html",
+    "title": "Zara product page (per search snippet: fresh pear, gardenia, creamy vanilla base; fruity amber)",
+    "kind": "official",
+    "supports": [
+     "notes",
+     "EDT 90 ml"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.6,
+   "release_date": 0.75,
+   "concentration": 0.8,
+   "notes": 0.65
+  },
+  "comment": "The Zara US product page now returns 410 (Gone) and the product no longer appears in Zara US search, so no official images could be pulled. Parfumo gives notes without tiers; tiers kept from DB."
+ },
+ {
+  "brand": "Zara",
+  "name": "Zara Illusion Radiance",
+  "concentration": "EDP",
+  "gender": "women",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Apple Blossom"
+   ],
+   "middle": [
+    "Magnolia"
+   ],
+   "base": [
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.zara.com/mx/en/zara-illusion-radiance-eau-de-parfum-80-ml--2-71-fl-oz--p20110961.html",
+    "title": "Zara Illusion Radiance EDP 80 ml (official, seen via search snippet; page itself blocked)",
+    "kind": "official",
+    "supports": [
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/Zara/zaraillusion-radiance",
+    "title": "Zaraillusion Radiance - Parfumo",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "release_date",
+     "notes"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.8,
+   "concentration": 0.8,
+   "notes": 0.85
+  },
+  "comment": "Official name is 'ZARAILLUSION RADIANCE' (80 ml EDP, amber floral). No perfumer published. Notes match the existing data."
+ },
+ {
+  "brand": "Zara",
+  "name": "Zara Illusion Serenity",
+  "concentration": "EDP",
+  "gender": "women",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Raspberry"
+   ],
+   "middle": [
+    "Rose"
+   ],
+   "base": [
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.zara.com/us/en/zaraillusion-serenity-edp-80-ml--2-71-fl-oz--p20110955.html",
+    "title": "ZARAILLUSION SERENITY EAU DE PARFUM 80 ML (official, via search snippet; page blocked)",
+    "kind": "official",
+    "supports": [
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/Zara/zaraillusion-serenity",
+    "title": "Zaraillusion Serenity - Parfumo",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "release_date",
+     "notes"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.8,
+   "concentration": 0.8,
+   "notes": 0.85
+  },
+  "comment": "Concentration is EDP 80 ml (Zara product p20110955). Notes match existing data. No perfumer published."
+ },
+ {
+  "brand": "Zara",
+  "name": "Wonder Cherry",
+  "concentration": "EDT",
+  "gender": "women",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Red Fruits"
+   ],
+   "middle": [
+    "Rose"
+   ],
+   "base": [
+    "Vanilla"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.zara.com/us/en/zara-wonder-cherry-edt-90-ml--3-04-fl--oz--p20120860.html",
+    "title": "Zara Wonder Cherry EDT 90 ml (official, via search snippet; page blocked)",
+    "kind": "official",
+    "supports": [
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.ebay.com/itm/128158189981",
+    "title": "eBay listing: ZARA Wonder Cherry 30 ml",
+    "kind": "retailer",
+    "supports": [
+     "existence"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.5,
+   "release_date": 0.5,
+   "concentration": 0.7,
+   "notes": 0.4
+  },
+  "comment": "NO CLEAN IMAGE FOUND. zara.com is Akamai-blocked (curl and WebFetch), eBay blocked, Parfumo/Olfastory/Fragrantica have no Wonder Cherry page. Product exists (Zara p20120860, EDT 90 ml, plus a 30 ml on eBay). Search snippet says Zara copy lists red fruits / rose / vanilla (possibly shared with sibling Wonder Rose); an eBay seller lists heart as peony, cherry blossom, jasmine - conflicting, so notes are low confidence. Needs a manual grab from zara.com static.zara.net."
+ },
+ {
+  "brand": "Zara",
+  "name": "Red Zara Temptation Éclat Mandarine",
+  "concentration": "Parfum",
+  "gender": "women",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Mandarin Orange"
+   ],
+   "middle": [
+    "Jasmine"
+   ],
+   "base": [
+    "Akigalawood"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.zara.com/us/en/red-zara-temptation-eclat-mandarine-parfum-80ml--2-72-fl--oz---p20110530.html",
+    "title": "RED ZARA TEMPTATION ECLAT MANDARINE PARFUM 80ML (official, via search snippet; page blocked)",
+    "kind": "official",
+    "supports": [
+     "concentration"
+    ]
+   },
+   {
+    "url": "https://www.fragrantica.com/perfume/Zara/Red-Zara-Temptation-Eclat-Mandarine-144329.html",
+    "title": "Red Zara Temptation Eclat Mandarine - Fragrantica (via search snippet; page blocked)",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "release_date",
+     "notes"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.7,
+   "concentration": 0.8,
+   "notes": 0.5
+  },
+  "comment": "Official name is 'Red Zara Temptation Eclat Mandarine', concentration printed on the bottle is PARFUM (80 ml). Notes from Fragrantica snippet only (mandarin / jasmine / akigalawood); not independently verified. Suggested concentration value: 'Parfum' (Extrait-level label)."
+ },
+ {
+  "brand": "Lattafa Perfumes",
+  "name": "Verdant Night",
+  "concentration": null,
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [
+   "Quentin Bisch"
+  ],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.olfastory.com/en/perfume/lattafa-verdant-night",
+    "title": "Verdant Night (Lattafa) - Olfastory",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "perfumers",
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.55,
+   "release_date": 0.5,
+   "perfumers": 0.75
+  },
+  "comment": "Bottle label itself reads 'VERDANT NIGHT 07-10-2026 QUENTIN BISCH' (likely 7 Oct 2026; exact format DD-MM vs MM-DD not certain, so kept 2026-10). Olfastory lists oriental/woody, unisex, 100 ml. No notes or concentration published anywhere found. Lattafa USA / Emirates Oud do not list it yet."
+ },
+ {
+  "brand": "Armaf",
+  "name": "Club de Nuit Urban Man Elixir Extrait",
+  "concentration": "Extrait de Parfum",
+  "gender": "men",
+  "release_date": "2026-08",
+  "status": null,
+  "perfumers": [],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://ifragranceofficial.com/perfumes/club-de-nuit-urban-man-elixir-extrait/",
+    "title": "Club De Nuit Urban Man Elixir Extrait - iFragrance (via search snippet; page blocked)",
+    "kind": "aggregator",
+    "supports": [
+     "concentration",
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "concentration": 0.6,
+   "release_date": 0.4
+  },
+  "comment": "Only one aggregator (iFragrance) mentions this Extrait (2026 flanker, aromatic/citrus/amber, notes 'coming soon'). Not on armaf.com, Parfumo, Olfastory, big retailers. Do NOT copy the EDP Urban Man Elixir notes (bergamot, pink pepper, orange blossom, jasmine / lavender, tagetes, geranium, vetiver, elemi, saffron / ambroxan, amber, patchouli, cedar, labdanum) as they may differ. Parfumo/Armaf EDP images are the wrong product."
+ },
+ {
+  "brand": "French Avenue",
+  "name": "Sacred Smoke",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Cardamom",
+    "Bergamot",
+    "Pink Pepper"
+   ],
+   "middle": [
+    "Frankincense",
+    "Myrrh",
+    "Juniper Berries"
+   ],
+   "base": [
+    "Vanilla",
+    "Cedarwood",
+    "Patchouli"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.shamperfume.com/perfumes/french-avenue/sacred-smoke-french-avenue/",
+    "title": "Sacred Smoke by French Avenue 100ml EDP Unisex - Sham perfume",
+    "kind": "retailer",
+    "supports": [
+     "gender",
+     "concentration",
+     "notes"
+    ]
+   },
+   {
+    "url": "https://www.olfastory.com/en/perfume/french-avenue-sacred-smoke",
+    "title": "Sacred Smoke (French Avenue) - Olfastory",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "concentration",
+     "release_date"
+    ]
+   },
+   {
+    "url": "https://emiratesoud.co.uk/products/sacred-smoke-perfume-french-avenue",
+    "title": "Emirates Oud listing (published 2026-10-06; 'inspired by Amouage Decision')",
+    "kind": "retailer",
+    "supports": [
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.7,
+   "release_date": 0.6,
+   "concentration": 0.85,
+   "notes": 0.45
+  },
+  "comment": "Current Emirates Oud image (2400px) has an 'Emirates Oud' watermark and a grey, badly rendered bottle: rejected. Olfastory image is clean. Notes come from one Malaysian retailer (tier split Sham: cardamom, bergamot, pink pepper / frankincense, myrrh, juniper / vanilla, cedarwood, patchouli); the tier split is inferred from its sentence structure, so moderate-low confidence. French Avenue (Fragrance World) is spicy/aromatic/amber."
+ },
+ {
+  "brand": "Khadlaj Perfumes",
+  "name": "Onyx Crystal",
+  "concentration": null,
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.olfastory.com/en/perfume/khadlaj-onyx-crystal",
+    "title": "Onyx Crystal (Khadlaj) - Olfastory (published 8 Oct 2026)",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.6,
+   "release_date": 0.6
+  },
+  "comment": "Existing image is already a good packshot, Olfastory one is higher resolution. Khadlaj has published no notes, concentration or perfumer (Olfastory: musky family, clean facet, hint of vanilla - descriptive only, not entered as notes). Sibling Onyx Gold/Silver are EDP 100 ml but not asserted for Crystal. Announced alongside Onyx Galaxy."
+ },
+ {
+  "brand": "MAISON ASRAR",
+  "name": "Pomme Rouge",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026-10",
+  "status": null,
+  "perfumers": [],
+  "notes": {},
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://fragrance-gems.us/products/maison-asrar-pomme-rouge-100ml",
+    "title": "Maison Asrar Pomme Rouge (100ml) - FragranceGems (listed 2026-10-06, unisex, EDP)",
+    "kind": "retailer",
+    "supports": [
+     "gender",
+     "concentration",
+     "release_date"
+    ]
+   },
+   {
+    "url": "https://emiratesoud.co.uk/products/pomme-rouge-perfume-maison-asrar",
+    "title": "Emirates Oud listing (published 2026-10-12, 100 ml EDP)",
+    "kind": "retailer",
+    "supports": [
+     "concentration",
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.5,
+   "release_date": 0.6,
+   "concentration": 0.8
+  },
+  "comment": "No notes published anywhere found (Parfumo/Olfastory have no page). Do not confuse with Ed Pinaud Pomme Rouge (2008)."
+ },
+ {
+  "brand": "Ajmal",
+  "name": "Cherry Wood",
+  "concentration": "EDP",
+  "gender": "unisex",
+  "release_date": "2026",
+  "status": null,
+  "perfumers": [
+   "Jordi Fernandez"
+  ],
+  "notes": {
+   "top": [
+    "Raspberry",
+    "Lychee",
+    "Cherry",
+    "Saffron"
+   ],
+   "middle": [
+    "Frangipani",
+    "Frankincense"
+   ],
+   "base": [
+    "Akigalawood",
+    "Cashmere Wood",
+    "Leather"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": null,
+  "image_url": null,
+  "official_url": null,
+  "sources": [
+   {
+    "url": "https://www.scento.com/perfume-database/perfumes/ajmal-cherry-wood",
+    "title": "Cherry Wood - Ajmal (notes 'as published by Ajmal', checked 20 Oct 2026) - Scento",
+    "kind": "aggregator",
+    "supports": [
+     "notes",
+     "concentration"
+    ]
+   },
+   {
+    "url": "https://www.parfumo.com/Perfumes/Ajmal/cherry-wood",
+    "title": "Cherry Wood by Ajmal - Parfumo (women and men, 2026, perfumer Jordi Fernandez)",
+    "kind": "aggregator",
+    "supports": [
+     "gender",
+     "perfumers",
+     "notes",
+     "release_date"
+    ]
+   }
+  ],
+  "confidence": {
+   "gender": 0.55,
+   "release_date": 0.6,
+   "concentration": 0.6,
+   "perfumers": 0.5,
+   "notes": 0.75
+  },
+  "comment": "Notes agree between Parfumo and Scento (Parfumo lists 'Incense' heart, 'Smoked leather' base; Scento says frankincense / leather). Ajmal's own site (403) and Notino not checked. Exact 2026 month unverified (existing 2026-04 not confirmed)."
+ }
+]
