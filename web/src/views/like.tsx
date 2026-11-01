@@ -24,15 +24,25 @@ import { BottleImg } from '@/components/media'
 
 const PER = 24
 
+// the picker's default list: the perfumes on your wishlist, most recently added first
+const wishlist = async (): Promise<Perfume[]> => (await api.get<{ items: Perfume[] }>('/api/me/perfumes', { status: 'wishlist' })).items
+
 export default function LikeView({ args, params }: ViewProps) {
   const pid = args.id ? Number(args.id) : null
+  const { user } = useSession()
   return (
     <Page wide={!!pid}>
       <PageHeader
         title={pid ? 'Kindred fragrances' : 'What do you love wearing?'}
         description="Pick a perfume and find the ones that share its notes, layer by layer."
       />
-      <PerfumePicker onPick={(p) => go(`/like/${p.id}`)} className="mb-8 max-w-2xl" autoFocus={!pid} />
+      <PerfumePicker
+        onPick={(p) => go(`/like/${p.id}`)}
+        className="mb-8 max-w-2xl"
+        autoFocus={!pid}
+        suggestions={user ? wishlist : undefined}
+        suggestionsLabel="Your wishlist"
+      />
       {pid ? <Similar pid={pid} params={params} /> : <Home />}
     </Page>
   )
@@ -72,7 +82,7 @@ function Home() {
           <SectionTitle>Your favorites</SectionTitle>
           <PerfumeGrid className="lg:grid-cols-5 xl:grid-cols-6">
             {favs.map((p) => (
-              <PerfumeCard key={p.id} p={p} />
+              <PerfumeCard key={p.id} p={p} to={`/like/${p.id}`} />
             ))}
           </PerfumeGrid>
         </section>
@@ -82,7 +92,7 @@ function Home() {
         {pop ? (
           <PerfumeGrid className="lg:grid-cols-5 xl:grid-cols-6">
             {pop.map((p) => (
-              <PerfumeCard key={p.id} p={p} />
+              <PerfumeCard key={p.id} p={p} to={`/like/${p.id}`} />
             ))}
           </PerfumeGrid>
         ) : (
@@ -92,7 +102,7 @@ function Home() {
             ))}
           </PerfumeGrid>
         )}
-        {pop && <p className="mt-4 text-sm text-muted-foreground">Click any card to open its details, then “Find similar”.</p>}
+        {pop && <p className="mt-4 text-sm text-muted-foreground">Pick any of them to see what smells like it.</p>}
       </section>
     </div>
   )
