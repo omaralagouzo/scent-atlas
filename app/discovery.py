@@ -678,8 +678,11 @@ def apply_image_files(store, folder: Path) -> int:
         if sig in done or not e.get("key") or path.parent != folder or not path.is_file():
             continue
         with store.eng.begin() as c:
-            r = c.execute(sa.select(discovery_items.c.id, discovery_items.c.state, discovery_items.c.confidence)
-                          .where(discovery_items.c.key == e["key"])).first()
+            sel = sa.select(discovery_items.c.id, discovery_items.c.state, discovery_items.c.confidence)
+            r = c.execute(sel.where(discovery_items.c.key == e["key"])).first()
+            if r is None:   # its concentration was filled in since: same brand and name, one candidate only
+                alike = c.execute(sel.where(discovery_items.c.key.like(e["key"].rsplit("|", 1)[0] + "|%"))).all()
+                r = alike[0] if len(alike) == 1 else None
             if r and r.state != "published":
                 conf = json.loads(r.confidence or "{}")
                 conf["image"] = max(conf.get("image", 0), 0.95)
