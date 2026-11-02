@@ -1,0 +1,211 @@
+[
+ {
+  "brand": "Scentenario",
+  "name": "Her Secret",
+  "concentration": "Extrait de Parfum",
+  "gender": "women",
+  "release_date": "2025-07",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Grapefruit",
+    "Rose",
+    "Pineapple"
+   ],
+   "middle": [
+    "Amber",
+    "Floral Notes",
+    "Iris"
+   ],
+   "base": [
+    "Powdery Musk",
+    "Blackcurrant"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": "A fruity floral for women: grapefruit, rose and pineapple over amber and iris, drying down to powdery musk and blackcurrant.",
+  "image_url": "https://cdn.shopify.com/s/files/1/0584/8639/0869/files/scentenariohersecret.jpg",
+  "official_url": "https://www.scentenario.com/products/her-secret",
+  "sources": [
+   {
+    "url": "https://www.scentenario.com/products/her-secret",
+    "title": "Scentenario: Her Secret",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "notes": 0.9,
+   "gender": 0.85,
+   "concentration": 0.9,
+   "image": 0.9,
+   "release_date": 0.4
+  },
+  "comment": "Indian house (Scentenario, by Ameen Shageer). Release date is when the shop listed it (July 2025), not a confirmed launch date. 100 ml and 20 ml."
+ },
+ {
+  "brand": "Scentenario",
+  "name": "Alpha Male",
+  "concentration": "Extrait de Parfum",
+  "gender": "men",
+  "release_date": "2025-07",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Green Apple",
+    "Mint"
+   ],
+   "middle": [
+    "Woody Notes",
+    "Spicy Notes"
+   ],
+   "base": [
+    "Leather",
+    "Oud"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": "A fresh-spicy masculine scent: green apple and mint over woods and spice, settling on leather and oud.",
+  "image_url": "https://cdn.shopify.com/s/files/1/0584/8639/0869/files/alphamale100ml.jpg",
+  "official_url": "https://www.scentenario.com/products/alpha-male",
+  "sources": [
+   {
+    "url": "https://www.scentenario.com/products/alpha-male",
+    "title": "Scentenario: Alpha Male",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "notes": 0.9,
+   "gender": 0.85,
+   "concentration": 0.9,
+   "image": 0.9,
+   "release_date": 0.4
+  },
+  "comment": "Indian house (Scentenario, by Ameen Shageer). Release date is when the shop listed it (July 2025), not a confirmed launch date. 100 ml and 20 ml."
+ },
+ {
+  "brand": "Scentenario",
+  "name": "Prophet Oud",
+  "concentration": "Extrait de Parfum",
+  "gender": "unisex",
+  "release_date": "2025-07",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "White Musk"
+   ],
+   "middle": [
+    "Amber",
+    "Rose"
+   ],
+   "base": [
+    "Ambergris",
+    "Oud",
+    "Frankincense"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": "A smoky Middle Eastern oud: bergamot and musk, amber and rose, over ambergris, smoked oud and frankincense.",
+  "image_url": "https://cdn.shopify.com/s/files/1/0584/8639/0869/files/scentenarioprophetoud.jpg",
+  "official_url": "https://www.scentenario.com/products/prophet-oud",
+  "sources": [
+   {
+    "url": "https://www.scentenario.com/products/prophet-oud",
+    "title": "Scentenario: Prophet Oud",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "notes": 0.9,
+   "gender": 0.7,
+   "concentration": 0.9,
+   "image": 0.9,
+   "release_date": 0.4
+  },
+  "comment": "Indian house (Scentenario, by Ameen Shageer). Release date is when the shop listed it (July 2025), not a confirmed launch date. 100 ml and 20 ml."
+ },
+ {
+  "brand": "Scentenario",
+  "name": "Aquatica",
+  "concentration": "Extrait de Parfum",
+  "gender": "unisex",
+  "release_date": "2025-07",
+  "status": "released",
+  "perfumers": [],
+  "notes": {
+   "top": [
+    "Bergamot",
+    "Lime",
+    "Mint"
+   ],
+   "middle": [
+    "Lavender",
+    "Water Notes"
+   ],
+   "base": [
+    "Ambroxan",
+    "White Woods",
+    "Powdery Musk"
+   ],
+   "general": []
+  },
+  "family": null,
+  "description": "A cool aquatic: bergamot, lime and mint, lavender and watery notes, over ambroxan, white woods and musk.",
+  "image_url": "https://cdn.shopify.com/s/files/1/0584/8639/0869/files/aquatica_scentenario.jpg",
+  "official_url": "https://www.scentenario.com/products/aquatica",
+  "sources": [
+   {
+    "url": "https://www.scentenario.com/products/aquatica",
+    "title": "Scentenario: Aquatica",
+    "kind": "official",
+    "supports": [
+     "identity",
+     "notes",
+     "gender",
+     "concentration",
+     "image"
+    ]
+   }
+  ],
+  "confidence": {
+   "identity": 0.95,
+   "notes": 0.9,
+   "gender": 0.7,
+   "concentration": 0.9,
+   "image": 0.9,
+   "release_date": 0.4
+  },
+  "comment": "Indian house (Scentenario, by Ameen Shageer). Release date is when the shop listed it (July 2025), not a confirmed launch date. 100 ml and 20 ml."
+ }
+]
