@@ -178,8 +178,17 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     user_path = Path(user_path) if user_path else data_dir / "user.json"
     discovery_files = data_dir / "discovery"
     store = userdb.UserStore(users_db_url or config.normalize_database_url(settings.database_url, data_dir / "users.db"))
-    # published new releases (admin > New releases) join the catalogue here, so the store opens first
-    cat, used_db, db_kind = load_catalog(data_dir, db_path, settings, published=discovery.published_rows(store))
+    # published new releases (admin > New releases) join the catalogue here, so the store opens first. With
+    # CATALOG_SOURCE_URL (dev), the list comes from that environment (production) instead: one list everywhere.
+    catalog_source = (os.environ.get("CATALOG_SOURCE_URL") or "").strip().rstrip("/") or None
+    if catalog_source and not catalog_source.startswith("https://"):
+        catalog_source = None
+    source_version = None
+    if catalog_source:
+        published, source_version = discovery.synced_rows(catalog_source, data_dir / "cache")
+    else:
+        published = discovery.published_rows(store)
+    cat, used_db, db_kind = load_catalog(data_dir, db_path, settings, published=published)
     remote = settings.image_mode == "remote"
     if fetch_images is None:
         fetch_images = os.environ.get("SCENT_NO_FETCH") != "1"
@@ -202,6 +211,10 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
             # research results committed under data/discovery/ go into the review queue once each (never published)
             threading.Thread(target=discovery.startup_import, args=(store, cat, discovery_files), daemon=True,
                              name="discovery-import").start()
+        if catalog_source:
+            # follow production's list: reload (restart) when it changes
+            threading.Thread(target=discovery.watch_source, daemon=True, name="catalog-source-watch",
+                             args=(catalog_source, source_version, lambda: ctx.live_refresh.restart_now())).start()
         if os.environ.get("SCENT_OPEN") == "1":
             threading.Timer(0.8, lambda: webbrowser.open(f"http://{settings.host}:{settings.port}/")).start()
         yield
@@ -341,7 +354,7 @@ def create_app(db_path: str | Path | None = None, data_dir: str | Path | None = 
     # ---------------------------------------------------------------- accounts + per-user data
     app.include_router(user_api.make_router(ctx))
     app.include_router(admin.make_admin_router(ctx))
-    discovery_api.add_public_routes(app, store, cat)
+    discovery_api.add_public_routes(app, store, cat, source=catalog_source, cache_dir=data_dir / "cache")
     admin.add_admin_pages(app, settings)
 
     # ---------------------------------------------------------------- query helpers

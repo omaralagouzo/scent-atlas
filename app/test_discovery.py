@@ -378,3 +378,38 @@ def test_prepared_images_apply_once_and_never_to_published(app, tmp_path):
     assert r["state"] == "complete" and json.loads(r["confidence"])["image"] == 0.95 and r["image_url"] == "https://shop.example/a.jpg"
     assert row(app, b)["image_url"] != "https://shop.example/b.jpg"
     assert dz.apply_image_files(st, folder) == 0          # once only
+
+
+def test_one_perfume_list_follows_the_source(app, tmp_path, tiny_db, monkeypatch):
+    # production side: approve one, its list is public
+    st = app.state.store
+    iid = ingest(app, [cand()])["ids"][0]
+    with st.eng.begin() as c:
+        c.execute(dz.discovery_items.update().where(dz.discovery_items.c.id == iid)
+                  .values(state="published", perfume_id=dz.ID_BASE + iid))
+    export = TestClient(app).get("/api/catalog/additions").json()
+    assert export["version"] and [p["name"] for p in export["perfumes"]] == ["First Light"]
+    img = TestClient(app).get(f"/img/discovery/{iid}.webp").content
+
+    # dev side: a fresh environment with its own (empty) database follows that list
+    monkeypatch.setattr(dz, "_get_json", lambda url, timeout=20: export)
+    monkeypatch.setattr(dz, "source_image", lambda source, i, cache_dir: img if i == iid else None)
+    monkeypatch.setenv("CATALOG_SOURCE_URL", "https://prod.example")
+    dev = make_app(tmp_path / "dev", tiny_db, admin_password=APW)
+    c = TestClient(dev)
+    d = c.get(f"/api/perfumes/{dz.ID_BASE + iid}").json()
+    assert d["name"] == "First Light" and d["image"] == f"/img/discovery/{iid}.webp"
+    assert c.get(f"/img/discovery/{iid}.webp").content == img
+    assert c.get("/img/discovery/999.webp").status_code == 404
+
+    # the source down at the next start: the last copy is used
+    monkeypatch.setattr(dz, "_get_json", lambda url, timeout=20: (_ for _ in ()).throw(OSError("down")))
+    rows, version = dz.synced_rows("https://prod.example", tmp_path / "dev" / "cache")
+    assert version == export["version"] and rows[0]["perfume_id"] == dz.ID_BASE + iid
+
+    # a changed list triggers one reload
+    calls, stop = [], __import__("threading").Event()
+    seq = iter([{"version": export["version"]}, {"version": "new"}])
+    monkeypatch.setattr(dz, "_get_json", lambda url, timeout=20: next(seq))
+    dz.watch_source("https://prod.example", export["version"], lambda: calls.append(1), every=0.01, stop=stop)
+    assert calls == [1]
