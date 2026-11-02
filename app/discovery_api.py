@@ -490,11 +490,23 @@ def make_admin_routes(router: APIRouter, ctx, require_admin, log, ip_of):
         return Response(r.data, media_type=r.mime or "image/webp", headers={"Cache-Control": "private, max-age=86400"})
 
 
-def add_public_routes(app, store, cat):
-    """/img/discovery/{id}.webp: the stored image of a published candidate (a drawn bottle when it has none)."""
+def add_public_routes(app, store, cat, source: str | None = None, cache_dir=None):
+    """/img/discovery/{id}.webp: the stored image of a published candidate (a drawn bottle when it has none), and
+    /api/catalog/additions: the published list another environment can follow (see discovery.synced_rows).
+    With `source` set, this environment follows that list: its images come from there too."""
+
+    @app.get("/api/catalog/additions")
+    def catalog_additions(response: Response):
+        response.headers["Cache-Control"] = "public, max-age=60"
+        return dz.export_published(store)
 
     @app.get("/img/discovery/{iid}.webp")
     def discovery_image(iid: int):
+        if source:
+            data = dz.source_image(source, iid, cache_dir)
+            if not data:
+                raise HTTPException(404, "Not found.")
+            return Response(data, media_type="image/webp", headers={"Cache-Control": "public, max-age=86400"})
         with store.eng.connect() as c:
             r = c.execute(sa.select(discovery_items.c.state, discovery_items.c.brand, discovery_items.c.name,
                                     discovery_images.c.data, discovery_images.c.mime)
