@@ -655,3 +655,132 @@ def import_files(store, cat, folder: Path, fetch: bool = True) -> list[int]:
                 log=f"Imported {f.name}: {res['new']} new, {res['updated']} updated, {res['skipped']} skipped"))
         runs.append(rid)
     return runs
+
+
+# ---------------------------------------------------------------------------- cleaned-up bottle images in the repo
+def apply_image_files(store, folder: Path) -> int:
+    """Bottle images prepared offline (background removed, centred on white) for candidates still in review.
+
+    data/discovery/images/manifest.json lists {"key", "file", "source"}; each entry is applied once (tracked in meta)
+    to the candidate with that key, unless it is already published (live images are left alone)."""
+    manifest = folder / "manifest.json"
+    if not manifest.is_file():
+        return 0
+    try:
+        entries = json.loads(manifest.read_text("utf-8"))
+    except (OSError, ValueError):
+        return 0
+    done = set(json.loads(store.get_meta("discovery_image_files") or "[]"))
+    applied = 0
+    for e in entries:
+        sig = f"{e.get('key')}|{e.get('file')}"
+        path = folder / str(e.get("file") or "")
+        if sig in done or not e.get("key") or path.parent != folder or not path.is_file():
+            continue
+        with store.eng.begin() as c:
+            sel = sa.select(discovery_items.c.id, discovery_items.c.state, discovery_items.c.confidence)
+            r = c.execute(sel.where(discovery_items.c.key == e["key"])).first()
+            if r is None:   # its concentration was filled in since: same brand and name, one candidate only
+                alike = c.execute(sel.where(discovery_items.c.key.like(e["key"].rsplit("|", 1)[0] + "|%"))).all()
+                r = alike[0] if len(alike) == 1 else None
+            if r and r.state != "published":
+                conf = json.loads(r.confidence or "{}")
+                conf["image"] = max(conf.get("image", 0), 0.95)
+                c.execute(discovery_images.delete().where(discovery_images.c.item_id == r.id))
+                c.execute(discovery_images.insert().values(item_id=r.id, data=path.read_bytes(), mime="image/webp",
+                                                           source_url=e.get("source"), fetched_at=int(time.time())))
+                c.execute(discovery_items.update().where(discovery_items.c.id == r.id).values(
+                    confidence=json.dumps(conf), updated_at=int(time.time()),
+                    **({"image_url": e["source"]} if clean_url(e.get("source")) else {})))
+                applied += 1
+        if r:
+            if r.state != "published":
+                recompute(store, r.id)
+            done.add(sig)
+            store.set_meta("discovery_image_files", json.dumps(sorted(done)))
+    return applied
+
+
+def startup_import(store, cat, folder: Path):
+    """At start: research files first (data/discovery/*.json), then the prepared images (data/discovery/images/)."""
+    import_files(store, cat, folder)
+    apply_image_files(store, folder / "images")
+
+
+# ---------------------------------------------------------------------------- one perfume list for every environment
+# Production is the only place perfumes are approved. It publishes the list at /api/catalog/additions (public: the
+# perfumes are on the site anyway); another environment (dev) started with CATALOG_SOURCE_URL=https://scentatlas.app
+# loads that list instead of its own, checks it every few minutes and restarts when it changes. Nothing is ever
+# written to the source: dev can't change production's list.
+def export_published(store) -> dict:
+    rows = published_rows(store)
+    perfumes = [{"perfume_id": r["perfume_id"] or ID_BASE + r["id"], "brand": r["brand"], "name": r["name"],
+                 "concentration": r["concentration"], "gender": r["gender"], "release_date": r["release_date"],
+                 "perfumers": json.loads(r["perfumers"] or "[]"), "notes": json.loads(r["notes"] or "{}"),
+                 "official_url": r["official_url"], "updated_at": r["updated_at"]} for r in rows]
+    import hashlib
+    version = hashlib.sha256(json.dumps([(p["perfume_id"], p["updated_at"]) for p in perfumes]).encode()).hexdigest()[:16]
+    return {"version": version, "perfumes": perfumes}
+
+
+def _get_json(url: str, timeout: float = 20):
+    req = urllib.request.Request(url, headers={"User-Agent": "ScentAtlas-sync/1.0", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:   # noqa: S310 (a configured https origin)
+        return json.loads(r.read(20_000_000))
+
+
+def synced_rows(source: str, cache_dir: Path) -> tuple[list[dict], str | None]:
+    """The source environment's published perfumes as rows for merged_catalog(), and the list's version.
+    The last good copy is kept on disk, so a source that is briefly down doesn't empty the catalogue."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cached = cache_dir / "catalog-additions.json"
+    try:
+        data = _get_json(source.rstrip("/") + "/api/catalog/additions")
+        cached.write_text(json.dumps(data))
+    except Exception as e:   # noqa: BLE001
+        print(f"[scent-atlas] could not read the perfume list from {source} ({e!r}); using the last copy")
+        try:
+            data = json.loads(cached.read_text())
+        except (OSError, ValueError):
+            return [], None
+    rows = []
+    for p in data.get("perfumes") or []:
+        pid = int(p["perfume_id"])
+        rows.append({"id": pid - ID_BASE, "perfume_id": pid, "brand": p["brand"], "name": p["name"],
+                     "concentration": p.get("concentration"), "gender": p.get("gender"),
+                     "release_date": p.get("release_date"), "official_url": p.get("official_url"),
+                     "perfumers": json.dumps(p.get("perfumers") or []), "notes": json.dumps(p.get("notes") or {})})
+    return rows, data.get("version")
+
+
+def watch_source(source: str, version: str | None, on_change, every: float = 600, stop: threading.Event | None = None):
+    """Check the source's list every `every` seconds; call on_change() once when its version differs."""
+    stop = stop or threading.Event()
+    while not stop.wait(every):
+        try:
+            v = _get_json(source.rstrip("/") + "/api/catalog/additions").get("version")
+        except Exception:   # noqa: BLE001  (the source is down: try again later)
+            continue
+        if v and v != version:
+            print(f"[scent-atlas] the perfume list at {source} changed; reloading")
+            on_change()
+            return
+
+
+def source_image(source: str, iid: int, cache_dir: Path) -> bytes | None:
+    """A published perfume's image from the source environment, kept on disk after the first fetch."""
+    path = cache_dir / "discovery-images" / f"{int(iid)}.webp"
+    if path.is_file():
+        return path.read_bytes()
+    try:
+        req = urllib.request.Request(f"{source.rstrip('/')}/img/discovery/{int(iid)}.webp",
+                                     headers={"User-Agent": "ScentAtlas-sync/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as r:   # noqa: S310
+            if not (r.headers.get("Content-Type") or "").startswith("image/webp"):
+                return None
+            data = r.read(IMAGE_MAX_BYTES)
+    except Exception:   # noqa: BLE001
+        return None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return data

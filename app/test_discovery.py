@@ -155,11 +155,14 @@ def test_admin_review_edit_approve_publish(app, admin, tmp_path, tiny_db):
     assert [i["id"] for i in r["items"]] == [ok] and r["counts"]["complete"] == 1 and r["counts"]["incomplete"] == 1
     it = r["items"][0]
     assert it["image"].startswith(f"/api/admin/discovery/images/{ok}.webp") and it["confidence"]["notes"] == 0.9
+    assert [n["name"] for n in it["note_meta"]["middle"]] == ["Rose"] and it["note_meta"]["middle"][0]["color"].startswith("#")
     assert admin.get(it["image"]).headers["content-type"] == "image/webp"
     assert admin.get("/api/admin/discovery/items?state=all&q=half").json()["total"] == 1
 
     # an incomplete one needs force; editing it in completes it (owner edits count as verified)
     assert admin.post(f"/api/admin/discovery/items/{inc}/approve", headers=H, json={}).status_code == 409
+    b = admin.post("/api/admin/discovery/bulk", headers=H, json={"ids": [inc], "action": "approve"}).json()
+    assert b["done"] == [] and b["failed"][0]["id"] == inc      # bulk approve skips incomplete ones unless forced
     e = admin.patch(f"/api/admin/discovery/items/{inc}", headers=H,
                     json={"notes": {"top": ["Rose"], "middle": ["Iris"], "base": ["Musk"]}, "gender": "women"}).json()
     assert e["state"] == "complete" and e["confidence"]["notes"] == 1.0 and e["gender"] == "women"
@@ -209,6 +212,9 @@ def test_duplicate_flags_can_be_cleared_and_set(app, admin):
     assert admin.post(f"/api/admin/discovery/items/{iid}/not-duplicate", headers=H, json={}).json()["state"] == "complete"
     assert admin.post(f"/api/admin/discovery/items/{iid}/duplicate", headers=H, json={"perfume_id": 999}).status_code == 422
     assert admin.post(f"/api/admin/discovery/items/{iid}/duplicate", headers=H, json={"perfume_id": 4}).json()["state"] == "duplicate"
+    app.state.ctx.live_refresh._restart = lambda: None
+    b = admin.post("/api/admin/discovery/bulk", headers=H, json={"ids": [iid], "action": "approve", "force": True}).json()
+    assert b["done"] == [iid] and b["counts"]["published"] == 1
 
 
 def test_import_files_once(app, tmp_path):
@@ -347,3 +353,63 @@ def test_big_images_are_shrunk_with_little_memory():
     Image.new("RGB", (6000, 5000)).save(b, "PNG")
     with pytest.raises(ValueError):
         dz.bottle_webp(b.getvalue())     # over 24 MP: refused before decoding
+
+
+def test_prepared_images_apply_once_and_never_to_published(app, tmp_path):
+    st = app.state.store
+    a = ingest(app, [cand(name="Needs Image", image_url=None)], fetch=False)["ids"][0]
+    b = ingest(app, [cand(name="Already Live")], fetch=False)["ids"][0]
+    with st.eng.begin() as c:
+        c.execute(dz.discovery_items.update().where(dz.discovery_items.c.id == b).values(state="published"))
+    folder = tmp_path / "discovery" / "images"
+    folder.mkdir(parents=True)
+    buf = io.BytesIO()
+    Image.new("RGB", (800, 800), "white").save(buf, "WEBP")
+    (folder / "a.webp").write_bytes(buf.getvalue())
+    (folder / "b.webp").write_bytes(buf.getvalue())
+    key = lambda iid: row(app, iid)["key"]
+    (folder / "manifest.json").write_text(json.dumps([
+        {"key": key(a), "file": "a.webp", "source": "https://shop.example/a.jpg"},
+        {"key": key(b), "file": "b.webp", "source": "https://shop.example/b.jpg"},
+        {"key": "nobody|here|", "file": "a.webp"},
+        {"key": key(a), "file": "../secret.webp"}]))
+    assert dz.apply_image_files(st, folder) == 1
+    r = row(app, a)
+    assert r["state"] == "complete" and json.loads(r["confidence"])["image"] == 0.95 and r["image_url"] == "https://shop.example/a.jpg"
+    assert row(app, b)["image_url"] != "https://shop.example/b.jpg"
+    assert dz.apply_image_files(st, folder) == 0          # once only
+
+
+def test_one_perfume_list_follows_the_source(app, tmp_path, tiny_db, monkeypatch):
+    # production side: approve one, its list is public
+    st = app.state.store
+    iid = ingest(app, [cand()])["ids"][0]
+    with st.eng.begin() as c:
+        c.execute(dz.discovery_items.update().where(dz.discovery_items.c.id == iid)
+                  .values(state="published", perfume_id=dz.ID_BASE + iid))
+    export = TestClient(app).get("/api/catalog/additions").json()
+    assert export["version"] and [p["name"] for p in export["perfumes"]] == ["First Light"]
+    img = TestClient(app).get(f"/img/discovery/{iid}.webp").content
+
+    # dev side: a fresh environment with its own (empty) database follows that list
+    monkeypatch.setattr(dz, "_get_json", lambda url, timeout=20: export)
+    monkeypatch.setattr(dz, "source_image", lambda source, i, cache_dir: img if i == iid else None)
+    monkeypatch.setenv("CATALOG_SOURCE_URL", "https://prod.example")
+    dev = make_app(tmp_path / "dev", tiny_db, admin_password=APW)
+    c = TestClient(dev)
+    d = c.get(f"/api/perfumes/{dz.ID_BASE + iid}").json()
+    assert d["name"] == "First Light" and d["image"] == f"/img/discovery/{iid}.webp"
+    assert c.get(f"/img/discovery/{iid}.webp").content == img
+    assert c.get("/img/discovery/999.webp").status_code == 404
+
+    # the source down at the next start: the last copy is used
+    monkeypatch.setattr(dz, "_get_json", lambda url, timeout=20: (_ for _ in ()).throw(OSError("down")))
+    rows, version = dz.synced_rows("https://prod.example", tmp_path / "dev" / "cache")
+    assert version == export["version"] and rows[0]["perfume_id"] == dz.ID_BASE + iid
+
+    # a changed list triggers one reload
+    calls, stop = [], __import__("threading").Event()
+    seq = iter([{"version": export["version"]}, {"version": "new"}])
+    monkeypatch.setattr(dz, "_get_json", lambda url, timeout=20: next(seq))
+    dz.watch_source("https://prod.example", export["version"], lambda: calls.append(1), every=0.01, stop=stop)
+    assert calls == [1]
